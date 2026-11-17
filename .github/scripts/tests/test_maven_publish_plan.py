@@ -200,6 +200,16 @@ class PlanTest(unittest.TestCase):
         self.commit("a")
         self.assertPlan(["a", "b"])
 
+    def test_bom_only_change_publishes_the_bom(self) -> None:
+        self.baseline({"a": "1.0.0", "b": "1.0.0", "c": "1.0.0", "watchface-tools-bom": "1.0.0"})
+        self.write("bom/build.gradle.kts", "plugins { id(\"watchface.maven-publishing-platform\") }\n// fix\n")
+        self.commit("bom")
+        self.assertPlan(["watchface-tools-bom"])
+
+    def test_bom_unchanged_publishes_nothing(self) -> None:
+        self.baseline({"a": "1.0.0", "b": "1.0.0", "c": "1.0.0", "watchface-tools-bom": "1.0.0"})
+        self.assertPlan([])
+
     def test_never_published_module_publishes(self) -> None:
         self.baseline({"a": "1.0.0", "b": "1.0.0"})
         self.assertPlan(["c"])
