@@ -63,4 +63,13 @@ class WffBundleLayoutTest {
     assertEquals(1, info.extra.size)
     assertEquals(info, WffWatchFaceInfo.fromDocument(info.toDocument()))
   }
+
+  @Test
+  fun androidStringsAreEscaped() {
+    assertEquals("It\\'s \\\"on\\\"", WffBundleLayout.androidStringEscape("It's \"on\""))
+    assertEquals("\\@home", WffBundleLayout.androidStringEscape("@home"))
+    assertEquals("a@b\\nc", WffBundleLayout.androidStringEscape("a@b\nc"))
+    val xml = WffBundleLayout.stringsDocument(mapOf("label" to "It's")).toXml()
+    assertTrue(xml.contains("<string name=\"label\">It\\'s</string>"), xml)
+  }
 }
