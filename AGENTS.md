@@ -15,3 +15,4 @@ Rules for every coding agent working in this repository.
   runs it under Kotlin/Wasm. Check with `./gradlew :wff-core:compileKotlinWasmJs`.
 - Schema entries whose version or shape is not certain carry a `// verify` comment; keep it until
   checked against Google's XSD.
+- **Merge only when explicitly requested.** Opening and updating PRs is automatic; merging is not.
