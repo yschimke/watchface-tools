@@ -57,16 +57,23 @@ class HttpPushApi(
       }
     }
 
-  private suspend inline fun <reified T> call(request: Request): T =
-    execute(request).use { response ->
-      val body = response.body.string()
-      if (!response.isSuccessful) throw ApiException(response.code, "HTTP ${response.code}")
-      try {
-        json.decodeFromString<T>(body)
-      } catch (e: Exception) {
-        throw ApiException(response.code, "Unreadable response: ${e.message}", e)
+  /** Runs the request and reads the whole body on IO; body reads hit the socket. */
+  private suspend inline fun <reified T> call(request: Request): T {
+    val (code, body) =
+      kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        try {
+          client.newCall(request).execute().use { it.code to it.body.string() }
+        } catch (e: IOException) {
+          throw ApiException(0, "Network error: ${e.message}", e)
+        }
       }
+    if (code !in 200..299) throw ApiException(code, "HTTP $code")
+    return try {
+      json.decodeFromString<T>(body)
+    } catch (e: Exception) {
+      throw ApiException(code, "Unreadable response: ${e.message}", e)
     }
+  }
 
   override suspend fun createDeviceCode(request: DeviceCodeRequest): DeviceCode =
     call(
