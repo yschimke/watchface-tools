@@ -11,7 +11,7 @@ class WffValidatorTest {
   fun minimalFacePassesAtV1() {
     val doc =
       parse(
-        """<WatchFace width="450" height="450"><Scene><Group x="0" y="0" width="1" height="1"/></Scene></WatchFace>""",
+        """<WatchFace width="450" height="450"><Scene><Group name="g" x="0" y="0" width="1" height="1"/></Scene></WatchFace>""",
       )
     assertEquals(emptyList(), WffValidator.check(doc, WffVersion.V1))
     assertEquals(WffVersion.V1, WffValidator.minimumVersion(doc))
@@ -22,7 +22,7 @@ class WffValidatorTest {
     val doc =
       parse(
         """<WatchFace width="450" height="450">
-             <UserConfigurations><Flavors defaultValue="a"><Flavor id="a"/></Flavors></UserConfigurations>
+             <UserConfigurations><Flavors defaultValue="a"><Flavor id="a" displayName="A"/></Flavors></UserConfigurations>
              <Scene/>
            </WatchFace>""",
       )
@@ -40,11 +40,28 @@ class WffValidatorTest {
 
   @Test
   fun newerAttributeIsAnErrorOnAnOlderTarget() {
-    val doc = parse("""<WatchFace width="1" height="1" clipShape="CIRCLE"/>""")
-    val d = WffValidator.check(doc, WffVersion.V1).single()
+    // Group@blendMode arrived in format version 5.
+    val doc =
+      parse(
+        """<WatchFace width="1" height="1"><Scene><Group name="g" x="0" y="0" width="1" height="1" blendMode="MULTIPLY"/></Scene></WatchFace>""",
+      )
+    val d = WffValidator.check(doc, WffVersion.V4).single()
     assertEquals(WffDiagnosticCode.ATTRIBUTE_TOO_NEW, d.code)
-    assertEquals("/WatchFace/@clipShape", d.path)
-    assertEquals(emptyList(), WffValidator.check(doc, WffVersion.V2))
+    assertEquals("/WatchFace/Scene/Group/@blendMode", d.path)
+    assertEquals(emptyList(), WffValidator.check(doc, WffVersion.V5))
+    assertEquals(WffVersion.V5, WffValidator.minimumVersion(doc))
+  }
+
+  @Test
+  fun generatedSchemaCoversTheLatestVersion() {
+    assertEquals(GENERATED_LATEST_VERSION, WffVersion.LATEST.number)
+    val listOption = WffSchema.elements.getValue("UserConfigurations.ListConfiguration.ListOption")
+    assertEquals(WffVersion.V5, listOption.attribute("childSettingIds")?.sinceVersion)
+    assertEquals(WffVersion.V5, listOption.attribute("complicationSlotIds")?.sinceVersion)
+    assertEquals(
+      WffVersion.V5,
+      WffSchema.elements.getValue("Font").attribute("minSize")?.sinceVersion,
+    )
   }
 
   @Test
@@ -52,8 +69,8 @@ class WffValidatorTest {
     val doc =
       parse(
         """<WatchFace width="1" height="1"><Scene>
-             <Group x="0" y="0" width="1" height="1"/>
-             <Group x="0" y="0" width="1" height="1"><PartText x="0" y="0" width="1" height="1"><Variant mode="AMBIENT" target="alpha"/></PartText></Group>
+             <Group name="a" x="0" y="0" width="1" height="1"/>
+             <Group name="b" x="0" y="0" width="1" height="1"><PartText x="0" y="0" width="1" height="1"><Variant mode="AMBIENT" target="alpha"/></PartText></Group>
            </Scene></WatchFace>""",
       )
     val d = WffValidator.check(doc, WffVersion.V4).single()

@@ -106,8 +106,9 @@ public object WffBundleLayout {
 
   /**
    * Minimum SDK the manifest declares per format version. verify: V1 = Wear OS 4 (API 33), V2 =
-   * Wear OS 5 (API 34), V3 = API 35, V4 = API 36. `ensureWffApk` in compose-ai-tools declares 33
-   * even for version 2 because it only renders; real packaging should use this table.
+   * Wear OS 5 (API 34), V3 = API 35, V4 = API 36, V5 = API 36 (Wear OS 6.x; not yet confirmed).
+   * `ensureWffApk` in compose-ai-tools declares 33 even for version 2 because it only renders; real
+   * packaging should use this table.
    */
   public fun minSdkFor(version: WffVersion): Int =
     when (version) {
@@ -115,6 +116,7 @@ public object WffBundleLayout {
       WffVersion.V2 -> 34
       WffVersion.V3 -> 35 // verify
       WffVersion.V4 -> 36 // verify
+      WffVersion.V5 -> 36 // verify
     }
 
   public fun resourcePath(file: WffResourceFile): String = "res/${file.directory}/${file.fileName}"

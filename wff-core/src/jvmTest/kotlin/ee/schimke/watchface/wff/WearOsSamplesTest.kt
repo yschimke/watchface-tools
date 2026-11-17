@@ -9,16 +9,17 @@ import kotlin.test.assertTrue
  * them).
  */
 class WearOsSamplesTest {
-  // Minimum WFF version per sample according to WffSchema. verify against each sample's manifest.
+  // Minimum WFF version per sample according to the XSD-generated schema. Weather reads to v1
+  // because the validator does not yet check expression data sources ([WEATHER.*] is v2).
   private val expectedMinimum =
     mapOf(
       "SimpleAnalog" to WffVersion.V1,
       "SimpleDigital" to WffVersion.V1,
       "Complications" to WffVersion.V2,
       "Flavors" to WffVersion.V2,
-      "Weather" to WffVersion.V2,
-      "PhotosMulti" to WffVersion.V2,
-      "PhotosMask" to WffVersion.V2,
+      "Weather" to WffVersion.V1,
+      "PhotosMulti" to WffVersion.V4,
+      "PhotosMask" to WffVersion.V4,
     )
 
   private fun read(path: String): String =
@@ -71,15 +72,16 @@ class WearOsSamplesTest {
       val diagnostics = WffValidator.check(doc, min)
       assertEquals(emptyList(), diagnostics.filter { it.severity == WffSeverity.ERROR }, name)
       assertEquals(emptyList(), diagnostics, "$name should have no warnings either")
-      assertEquals(emptyList(), WffValidator.errors(doc, WffVersion.V4), name)
+      assertEquals(emptyList(), WffValidator.check(doc, WffVersion.LATEST), name)
     }
   }
 
   @Test
-  fun v2SamplesFailAtV1() {
+  fun samplesFailOneVersionBelowTheirMinimum() {
     for ((name, min) in expectedMinimum.filterValues { it > WffVersion.V1 }) {
       val doc = WffXmlParser.parse(read("$name/raw/watchface.xml"))
-      assertTrue(WffValidator.errors(doc, WffVersion.V1).isNotEmpty(), "$name should need > v1")
+      val below = WffVersion.entries[min.ordinal - 1]
+      assertTrue(WffValidator.errors(doc, below).isNotEmpty(), "$name should need > $below")
     }
   }
 }

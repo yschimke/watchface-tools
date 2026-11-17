@@ -19,8 +19,9 @@ Planned (not in Phase 0): `wff-packager` (JVM, aapt2 to APK), `wff-validator` (J
   ignorable whitespace are dropped.
 - **Canonical writer.** `doc.toXml()` is deterministic: 2-space indent, attributes in stored order,
   escaped values. `write(parse(write(x))) == write(x)` byte for byte.
-- **Schema + validation.** `WffSchema` lists known elements, attributes, allowed children and the
-  WFF version that introduced each. `WffValidator.check(doc, WffVersion.V2)` reports unknown
+- **Schema + validation.** `WffSchema` lists every element, attribute and allowed child of format
+  versions 1–5 with the version that introduced each, generated from Google's XSDs (see
+  [`tools/wff-xsd`](tools/wff-xsd/README.md)). `WffValidator.check(doc, WffVersion.V2)` reports unknown
   elements (warning, kept as passthrough), elements/attributes newer than the target, missing
   required attributes and disallowed children, with paths like `/WatchFace/Scene/Group[2]/PartText`.
   `WffValidator.minimumVersion(doc)` returns the lowest version that supports a document.
@@ -45,12 +46,14 @@ val canonical = doc.toXml()
 
 Published to Maven under group `ee.schimke.watchface` with semantic versioning; `0.x` while the
 model and schema API settle. Do not confuse the library version with the WFF format version
-(`WffVersion.V1..V4`), which is data the library models.
+(`WffVersion.V1..V5`), which is data the library models.
 
 ## Status and caveats
 
-Phase 0. The schema is hand-built from public documentation; entries marked `// verify` in
-`WffSchema.kt` are unconfirmed. Attribute *values* and expressions are not validated yet.
+Phase 0. The schema is generated from the official XSDs, so element and attribute versions are
+authoritative. Attribute *values* and expressions (including which data sources such as
+`[WEATHER.*]` a version supports) are not validated yet, and `WffBundleLayout.minSdkFor` for
+versions 3–5 is unconfirmed (`// verify`).
 
 ## Build
 

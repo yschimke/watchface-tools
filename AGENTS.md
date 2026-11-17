@@ -13,8 +13,8 @@ Rules for every coding agent working in this repository.
 - Run Gradle through `build-brief` when it is installed (`build-brief ./gradlew :wff-core:jvmTest`).
 - `wff-core` `commonMain` must stay free of JVM-only code and of dependencies: the browser editor
   runs it under Kotlin/Wasm. Check with `./gradlew :wff-core:compileKotlinWasmJs`.
-- Schema entries whose version or shape is not certain carry a `// verify` comment; keep it until
-  checked against Google's XSD.
+- `WffSchemaData.kt` is generated from Google's XSDs; never edit it by hand. Regenerate it with
+  `tools/wff-xsd/generate_schema.py` (see `tools/wff-xsd/README.md`) when a new format version ships.
 - **Merge only when explicitly requested.** Opening and updating PRs is automatic; merging is not.
 
 ## Review guidelines

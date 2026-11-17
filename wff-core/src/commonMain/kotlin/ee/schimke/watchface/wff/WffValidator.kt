@@ -51,7 +51,7 @@ public object WffValidator {
         )
       return out
     }
-    visit(root, spec, path, targetVersion, out)
+    visit(root, spec, spec.sinceVersion, path, targetVersion, out)
     return out
   }
 
@@ -61,35 +61,37 @@ public object WffValidator {
   /** Lowest [WffVersion] that supports every known element and attribute in [doc]. */
   public fun minimumVersion(doc: WffDocument): WffVersion {
     var min = WffVersion.V1
-    fun walk(e: WffElement, spec: WffElementSpec) {
-      if (spec.sinceVersion > min) min = spec.sinceVersion
+    fun walk(e: WffElement, spec: WffElementSpec, since: WffVersion) {
+      if (since > min) min = since
       for (a in e.attributes) {
         val s = spec.attribute(a.name) ?: continue
         if (s.sinceVersion > min) min = s.sinceVersion
       }
       for (c in e.childElements) {
         val cs = WffSchema.child(spec, c.name) ?: continue
-        walk(c, cs)
+        walk(c, cs, WffSchema.childSince(spec, c.name)!!)
       }
     }
-    if (doc.root.name == WffSchema.root.name) walk(doc.root, WffSchema.root)
+    if (doc.root.name == WffSchema.root.name)
+      walk(doc.root, WffSchema.root, WffSchema.root.sinceVersion)
     return min
   }
 
   private fun visit(
     e: WffElement,
     spec: WffElementSpec,
+    since: WffVersion,
     path: String,
     target: WffVersion,
     out: MutableList<WffDiagnostic>,
   ) {
-    if (spec.sinceVersion > target) {
+    if (since > target) {
       out +=
         WffDiagnostic(
           WffSeverity.ERROR,
           WffDiagnosticCode.ELEMENT_TOO_NEW,
           path,
-          "<${e.name}> requires WFF version ${spec.sinceVersion.number}, target is ${target.number}",
+          "<${e.name}> requires WFF version ${since.number}, target is ${target.number}",
         )
     }
 
@@ -131,7 +133,8 @@ public object WffValidator {
     }
 
     if (!spec.allowsText) {
-      val hasText = e.children.any { (it is WffText && it.text.isNotBlank()) || it is WffCData }
+      val hasText =
+        e.children.any { (it is WffText && !it.text.isXmlWhitespace()) || it is WffCData }
       if (hasText) {
         out +=
           WffDiagnostic(
@@ -151,7 +154,8 @@ public object WffValidator {
       val childPath = path + "/" + child.name + if ((counts[child.name] ?: 0) > 1) "[$n]" else ""
       val childSpec = WffSchema.child(spec, child.name)
       when {
-        childSpec != null -> visit(child, childSpec, childPath, target, out)
+        childSpec != null ->
+          visit(child, childSpec, WffSchema.childSince(spec, child.name)!!, childPath, target, out)
         WffSchema.isKnownName(child.name) ->
           out +=
             WffDiagnostic(
