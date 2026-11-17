@@ -57,8 +57,15 @@ if [[ -n "${manifest}" ]]; then
   version="$(jq -r '.["."] // empty' <<< "${manifest}" 2>/dev/null)"
 fi
 
+# The manifest's bootstrap value names a release that was never meant to exist: before the first
+# release there is nothing in flight, and treating it as in flight would skip opening the first
+# release PR until the stale timeout passed.
+BOOTSTRAP_VERSION="${BOOTSTRAP_VERSION:-0.0.0}"
+
 if [[ -z "${version}" ]]; then
   echo "::warning::could not read the release version from .release-please-manifest.json on ${BRANCH}; assuming no release is in flight"
+elif [[ "${version}" == "${BOOTSTRAP_VERSION}" ]]; then
+  echo "manifest is at the bootstrap version ${version}; nothing has been released, so no release is in flight."
 else
   tag="v${version}"
   # Anything but an explicit `false` — a draft (which this endpoint does not resolve), a release
