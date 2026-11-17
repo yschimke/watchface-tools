@@ -160,4 +160,18 @@ class RulesTest {
     assertTrue(WffBundleLayout.WFF_VERSION_PROPERTY in msg, msg)
     assertTrue(WffVersion.V1.number == 1)
   }
+
+  @Test
+  fun wffValidatorRefusesDoctypeAndExternalEntities() {
+    val secret = File(tmp, "secret.txt").also { it.writeText("TOP-SECRET") }
+    val xml =
+      """<?xml version="1.0"?>
+      <!DOCTYPE WatchFace [<!ENTITY x SYSTEM "${secret.toURI()}">]>
+      <WatchFace width="450" height="450">&x;</WatchFace>"""
+        .trimIndent()
+    val errors = GoogleWffValidator.validate(xml, WffVersion.V1)
+    assertTrue(errors.isNotEmpty())
+    assertTrue(errors.none { "TOP-SECRET" in it }, errors.toString())
+    assertTrue(errors.any { "DOCTYPE" in it || "doctype" in it }, errors.toString())
+  }
 }

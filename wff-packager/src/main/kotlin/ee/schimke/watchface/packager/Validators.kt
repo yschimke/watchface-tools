@@ -70,7 +70,19 @@ public object GoogleWffValidator : WffFormatValidator {
     try {
       val dom =
         DocumentBuilderFactory.newInstance()
-          .apply { isNamespaceAware = true }
+          .apply {
+            isNamespaceAware = true
+            // The XML may come from untrusted authors: no DOCTYPE, no external entities or DTDs.
+            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+            setFeature("http://xml.org/sax/features/external-general-entities", false)
+            setFeature("http://xml.org/sax/features/external-parameter-entities", false)
+            setFeature(
+              "http://apache.org/xml/features/nonvalidating/load-external-dtd",
+              false,
+            )
+            isXIncludeAware = false
+            isExpandEntityReferences = false
+          }
           .newDocumentBuilder()
           .parse(InputSource(StringReader(watchFaceXml)))
       WatchFaceXmlValidator().validateOrThrow(dom, version.number.toString())
