@@ -28,7 +28,7 @@ public object WffXmlWriter {
   public fun write(element: WffElement): String = buildString { writeElement(element, 0) }
 
   private fun isMixed(e: WffElement) =
-    e.children.any { (it is WffText && it.text.isNotBlank()) || it is WffCData }
+    e.children.any { (it is WffText && !it.text.isXmlWhitespace()) || it is WffCData }
 
   private fun StringBuilder.writeElement(e: WffElement, depth: Int) {
     append('<').append(e.name)

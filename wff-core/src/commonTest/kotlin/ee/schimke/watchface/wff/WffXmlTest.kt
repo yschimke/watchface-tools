@@ -74,4 +74,19 @@ class WffXmlTest {
     val doc = WffXmlParser.parse("﻿<A>\r\n<B/>\r\n</A>")
     assertEquals(listOf("B"), doc.root.childElements.map { it.name })
   }
+
+  @Test
+  fun nonBreakingSpaceIsContentNotFormatting() {
+    val doc = WffXmlParser.parse("<A><Template>&#160;</Template></A>")
+    val template = doc.root.childElements.single()
+    assertEquals("\u00A0", template.textContent())
+    assertEquals(doc, WffXmlParser.parse(doc.toXml()))
+  }
+
+  @Test
+  fun literalLessThanInAttributeIsRejected() {
+    assertFailsWith<WffParseException> { WffXmlParser.parse("<Compare expression=\"[X] < 2\"/>") }
+    val ok = WffXmlParser.parse("<Compare expression=\"[X] &lt; 2\"/>")
+    assertEquals("[X] < 2", ok.root.attributes.single().value)
+  }
 }

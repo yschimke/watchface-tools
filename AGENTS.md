@@ -16,3 +16,10 @@ Rules for every coding agent working in this repository.
 - Schema entries whose version or shape is not certain carry a `// verify` comment; keep it until
   checked against Google's XSD.
 - **Merge only when explicitly requested.** Opening and updating PRs is automatic; merging is not.
+
+## Review guidelines
+
+- **Do not report commit author, committer or `Co-authored-by:` findings.** A review sandbox applies
+  the pull request as a new commit under its own identity (for example `Codex`), so an identity read
+  from a local `git log` is the reviewer's, not the author's. Attribution is a human and CI concern;
+  leave it out of reviews entirely.

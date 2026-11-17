@@ -107,8 +107,9 @@ public object WffXmlParser {
     }
 
     private fun dropIgnorableWhitespace(children: List<WffNode>): List<WffNode> {
-      val mixed = children.any { (it is WffText && it.text.isNotBlank()) || it is WffCData }
-      return if (mixed) children else children.filterNot { it is WffText && it.text.isBlank() }
+      val mixed = children.any { (it is WffText && !it.text.isXmlWhitespace()) || it is WffCData }
+      return if (mixed) children
+      else children.filterNot { it is WffText && it.text.isXmlWhitespace() }
     }
 
     private fun readComment(): WffComment {
@@ -125,7 +126,10 @@ public object WffXmlParser {
         fail("Attribute value must be quoted")
       val quote = src[pos++]
       val start = pos
-      while (pos < len && src[pos] != quote) pos++
+      while (pos < len && src[pos] != quote) {
+        if (src[pos] == '<') fail("Unescaped '<' in attribute value; write &lt;")
+        pos++
+      }
       if (pos >= len) fail("Unterminated attribute value")
       val raw = src.substring(start, pos)
       pos++
@@ -241,4 +245,12 @@ public object WffXmlParser {
       throw WffParseException(message, line, col)
     }
   }
+}
+
+/**
+ * True when every character is XML whitespace (space, tab, CR, LF). Unlike [CharSequence.isBlank],
+ * a non-breaking space or other Unicode space is character content, not ignorable formatting.
+ */
+internal fun String.isXmlWhitespace(): Boolean = all {
+  it == ' ' || it == '\t' || it == '\n' || it == '\r'
 }
