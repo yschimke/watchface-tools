@@ -10,17 +10,26 @@ import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
 
 internal fun run(source: String, vararg cmd: String) {
-  val proc = ProcessBuilder(*cmd).redirectErrorStream(true).start()
-  val output = proc.inputStream.bufferedReader().readText()
-  if (!proc.waitFor(120, TimeUnit.SECONDS)) {
-    proc.destroyForcibly()
-    throw PackagingException(source, "${File(cmd.first()).name} timed out")
-  }
-  if (proc.exitValue() != 0) {
-    throw PackagingException(
-      source,
-      "${File(cmd.first()).name} exited with ${proc.exitValue()}:\n${output.trim()}",
-    )
+  // Output goes to a file, not a pipe, so a hung tool can't block us before the timeout applies.
+  val log = Files.createTempFile("wff-packager-", ".log").toFile()
+  try {
+    val proc =
+      ProcessBuilder(*cmd)
+        .redirectErrorStream(true)
+        .redirectOutput(ProcessBuilder.Redirect.to(log))
+        .start()
+    if (!proc.waitFor(120, TimeUnit.SECONDS)) {
+      proc.destroyForcibly().waitFor()
+      throw PackagingException(source, "${File(cmd.first()).name} timed out after 120s")
+    }
+    if (proc.exitValue() != 0) {
+      throw PackagingException(
+        source,
+        "${File(cmd.first()).name} exited with ${proc.exitValue()}:\n${log.readText().trim()}",
+      )
+    }
+  } finally {
+    log.delete()
   }
 }
 
@@ -124,7 +133,18 @@ private fun ensureDebugKey(dir: File): SigningConfig.Keystore {
         ),
       )
     }
-    Files.move(tmp, file.toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE)
+    // Publish without replacing: if another process generated a key first, keep (and use) theirs.
+    try {
+      Files.createLink(file.toPath(), tmp)
+    } catch (_: java.nio.file.FileAlreadyExistsException) {
+      // lost the race; fall through and load the winner's key
+    } catch (_: UnsupportedOperationException) {
+      runCatching { Files.move(tmp, file.toPath()) }
+    } catch (_: java.io.IOException) {
+      runCatching { Files.move(tmp, file.toPath()) }
+    } finally {
+      Files.deleteIfExists(tmp)
+    }
   }
   return SigningConfig.Keystore(file, DEBUG_PASSWORD, DEBUG_ALIAS)
 }
