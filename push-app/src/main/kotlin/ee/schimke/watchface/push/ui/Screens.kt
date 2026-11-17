@@ -181,6 +181,16 @@ fun DesignListScreen(
         }
       }
       item { Spacer(Modifier.height(4.dp)) }
+      if (state is DesignsState.Ready) {
+        item {
+          Button(
+            onClick = onRefresh,
+            colors = ButtonDefaults.filledTonalButtonColors(),
+            label = { Text("Refresh") },
+            secondaryLabel = { Text("Check for new designs") },
+          )
+        }
+      }
       item {
         Button(
           onClick = onUnlink,
