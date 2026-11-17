@@ -1,0 +1,135 @@
+# Publishes wff-core (JVM + Kotlin/Wasm) and wff-packager to Maven Central for a tag.
+#
+# A published coordinate is PERMANENT: Central refuses a second upload of the same GAV, and
+# `publishToMavenCentral(automaticRelease = true)` promotes without a human looking. So every
+# check that can run before the upload does, and the GitHub release stays a draft until the
+# upload succeeds.
+name: Release
+
+on:
+  workflow_call:
+    inputs:
+      tag_name:
+        description: The `vX.Y.Z` tag to publish.
+        required: true
+        type: string
+    secrets:
+      # Optional so a missing one reaches the preflight step, which names it.
+      SIGNING_KEY: {required: false}
+      SIGNING_KEY_ID: {required: false}
+      SIGNING_KEY_PASSWORD: {required: false}
+      MAVEN_CENTRAL_USERNAME: {required: false}
+      MAVEN_CENTRAL_PASSWORD: {required: false}
+  # Re-publish a tag whose first attempt failed BEFORE the upload (a missing secret, say).
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: The `vX.Y.Z` tag to publish.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag_name }}
+  cancel-in-progress: false
+
+env:
+  TAG_NAME: ${{ inputs.tag_name }}
+
+jobs:
+  publish:
+    name: Publish to Maven Central
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # un-draft the release once the upload succeeds
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Check publishing credentials are configured
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=0
+          check() {
+            if [ -z "${2:-}" ]; then
+              echo "::error::$1 is not set. $3"
+              missing=1
+            fi
+          }
+          check SIGNING_KEY "${SIGNING_KEY:-}" "The armoured GPG private key; Central rejects unsigned artifacts."
+          check SIGNING_KEY_ID "${SIGNING_KEY_ID:-}" "The GPG key id for that key."
+          check SIGNING_KEY_PASSWORD "${SIGNING_KEY_PASSWORD:-}" "The passphrase for that key."
+          check MAVEN_CENTRAL_USERNAME "${MAVEN_CENTRAL_USERNAME:-}" "The Central Portal token username."
+          check MAVEN_CENTRAL_PASSWORD "${MAVEN_CENTRAL_PASSWORD:-}" "The Central Portal token password."
+          [ "$missing" -eq 0 ] || exit 1
+          echo "all five credentials present"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG_NAME }}
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Check the tag matches the manifest and gradle.properties
+        run: |
+          set -euo pipefail
+          want="${TAG_NAME#v}"
+          manifest="$(python3 -c 'import json;print(json.load(open(".release-please-manifest.json"))["."])')"
+          props="$(sed -n 's/^watchfaceToolsVersion=//p' gradle.properties)"
+          if [ "$want" != "$manifest" ] || [ "$want" != "$props" ]; then
+            echo "::error::tag $TAG_NAME implies $want, manifest says $manifest, gradle.properties says $props."
+            exit 1
+          fi
+          echo "publishing $want"
+
+      - name: Android SDK (aapt2, zipalign, android.jar for :wff-packager tests)
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;36.0.0" "platforms;android-36"
+
+      # Everything the artifacts must survive, before they are permanent.
+      - name: Check
+        env:
+          WFF_REQUIRE_SDK: "1"
+        run: ./gradlew ktfmtCheck :wff-core:check :wff-packager:check
+
+      # Signing applies to every release publication, so the dry run needs the keys too.
+      - name: Dry run to the local repository
+        env:
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          ./gradlew -Prelease :wff-core:publishToMavenLocal :wff-packager:publishToMavenLocal
+          v="${TAG_NAME#v}"
+          for a in wff-core wff-core-jvm wff-core-wasm-js wff-packager; do
+            pom="$HOME/.m2/repository/ee/schimke/watchface/$a/$v/$a-$v.pom"
+            [ -f "$pom" ] || { echo "::error::no POM for $a at $v"; exit 1; }
+            [ -f "$pom.asc" ] || { echo "::error::$a $v POM is not signed"; exit 1; }
+          done
+          echo "all POMs present and signed"
+
+      - name: Publish to Maven Central
+        env:
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        run: ./gradlew -Prelease :wff-core:publishToMavenCentral :wff-packager:publishToMavenCentral
+
+      - name: Publish the GitHub release
+        run: gh release edit "$TAG_NAME" --draft=false
