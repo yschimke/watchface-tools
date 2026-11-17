@@ -62,6 +62,8 @@ jobs:
     uses: ./.github/workflows/release.yml
     permissions:
       contents: write
+      # No `pull-requests: write`: a called workflow cannot elevate what its caller granted, and
+      # asking for more is a startup failure of the whole run with nothing in the log to say why.
     with:
       tag_name: ${{ needs.release-please.outputs.tag_name }}
     secrets:
@@ -71,8 +73,9 @@ jobs:
       MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
       MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
 
-  # The PR half: on an ordinary push, or straight after a SUCCESSFUL release, never after a
-  # failed one (its baseline would be stale and produce a phantom release PR).
+  # The PR half, split out so it never runs against a half-published release. Runs on an ordinary
+  # push, or straight after a SUCCESSFUL release; never after a failed one (its baseline would be
+  # stale and produce a phantom release PR).
   update-release-pr:
     name: Update the release PR
     needs: [release-please, release]
@@ -84,9 +87,69 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    outputs:
+      pr: ${{ steps.rp.outputs.pr }}
+      in_flight: ${{ steps.preflight.outputs.in_flight }}
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # An ordinary push and a release-PR merge hold separate concurrency slots, so this pass can
+      # run while another run's release is still a draft, which release-please cannot see: it would
+      # baseline on the release before and rewrite the release PR with already-released history.
+      # The guard skips the pass while a release is in flight and closes a duplicate a mid-run
+      # merge still produced. See `.github/scripts/release-pr-race-guard.sh`.
+      - name: Check whether a release is in flight
+        id: preflight
+        if: ${{ needs.release-please.outputs.release_created != 'true' }}
+        env:
+          MODE: check
+        run: ./.github/scripts/release-pr-race-guard.sh
+
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: rp
+        if: ${{ steps.preflight.outputs.in_flight != 'true' }}
+        # The failure this tolerates is the race's own; the last step re-raises anything else.
+        continue-on-error: true
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           skip-github-release: true
+
+      - name: Discard a release PR the race produced
+        id: repair
+        if: ${{ always() && needs.release-please.outputs.release_created != 'true' && steps.preflight.outputs.in_flight != 'true' }}
+        env:
+          MODE: repair
+          RP_PR: ${{ steps.rp.outputs.pr }}
+        run: ./.github/scripts/release-pr-race-guard.sh
+
+      - name: Re-raise a release-please failure the race does not explain
+        if: ${{ always() && steps.rp.outcome == 'failure' && steps.repair.outputs.raced != 'true' }}
+        run: |
+          echo "::error::release-please failed and no release was in flight; see the step above."
+          exit 1
+
+  # Which Maven coordinates merging the release PR would publish, as one comment on that PR. The
+  # plan otherwise only runs inside the release, after the irreversible upload. Same script, same
+  # Central baseline, run against the release PR's head. Informational: it never fails.
+  release-pr-publish-plan:
+    needs: update-release-pr
+    if: ${{ !cancelled() && needs.update-release-pr.result == 'success' && needs.update-release-pr.outputs.in_flight != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # create/edit the comment on the release PR
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Comment the publish plan on the release PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RP_PR: ${{ needs.update-release-pr.outputs.pr }}
+        run: ./.github/scripts/release-pr-publish-plan.sh

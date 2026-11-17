@@ -28,11 +28,22 @@ Rules for every coding agent working in this repository.
 
 ## Releasing
 
+Set up like compose-preview-contracts; the rules and rationale are in
+[`docs/VERSIONING.md`](docs/VERSIONING.md).
+
 - `release-please` owns the version: `.release-please-manifest.json` is the LAST released version,
   and it rewrites `watchfaceToolsVersion` in `gradle.properties` between the
   `x-release-please-*` markers. Never edit either by hand. Builds are `-SNAPSHOT` unless run with
-  `-Prelease`.
-- Merging the release PR publishes `wff-core` and `wff-packager` to Maven Central. A published
-  version is permanent, so only merge it when the user asks.
+  `-Prelease`. Its first release is `0.1.0` (`initial-version` in `release-please-config.json`).
+- Publishing is `build-logic` (`watchface.maven-publishing`, `watchface.maven-publishing-platform`).
+  A new published module applies the plugin in its build script (matched with its closing quote) and
+  sets `description`; `:bom` picks it up. `:push-app` is never published.
+- A release uploads only the modules the plan says changed, plus the BOM
+  (`.github/scripts/maven-publish-plan.sh`, `-Pwatchface.publishSet`). Changing the plan, the
+  publish plugins or the release workflows means running `python3 -m unittest discover -s
+  .github/scripts/tests`, `./gradlew -p build-logic test` and
+  `.github/scripts/tests/print-publish-tasks-test.sh`.
+- Merging the release PR publishes to Maven Central. A published version is permanent, so only
+  merge it when the user asks.
 - Publishing needs five repository secrets: `SIGNING_KEY`, `SIGNING_KEY_ID`,
   `SIGNING_KEY_PASSWORD`, `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`.
