@@ -25,3 +25,14 @@ Rules for every coding agent working in this repository.
   the pull request as a new commit under its own identity (for example `Codex`), so an identity read
   from a local `git log` is the reviewer's, not the author's. Attribution is a human and CI concern;
   leave it out of reviews entirely.
+
+## Releasing
+
+- `release-please` owns the version: `.release-please-manifest.json` is the LAST released version,
+  and it rewrites `watchfaceToolsVersion` in `gradle.properties` between the
+  `x-release-please-*` markers. Never edit either by hand. Builds are `-SNAPSHOT` unless run with
+  `-Prelease`.
+- Merging the release PR publishes `wff-core` and `wff-packager` to Maven Central. A published
+  version is permanent, so only merge it when the user asks.
+- Publishing needs five repository secrets: `SIGNING_KEY`, `SIGNING_KEY_ID`,
+  `SIGNING_KEY_PASSWORD`, `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`.

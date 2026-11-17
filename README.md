@@ -11,7 +11,8 @@ parser, a version-aware schema, and the bundle layout of a watch face resource p
 | `:wff-core` | Kotlin Multiplatform: `jvm`, `wasmJs` | Document model (`WffDocument`, `WffElement`, ...), canonical `WffXmlWriter`, `WffXmlParser`, `WffSchema`, `WffValidator`, `WffBundleLayout`. `commonMain` has no dependencies. |
 | `:push-app` | Android (Wear OS 6) | Marketplace app that links to a site account (device code + QR) and installs designs via Watch Face Push. See [`push-app/README.md`](push-app/README.md) and [`docs/PUSH_API.md`](docs/PUSH_API.md). |
 
-Planned (not in Phase 0): `wff-packager` (JVM, aapt2 to APK), `wff-validator` (JVM, Google XSD).
+`wff-packager` (JVM) turns a source bundle into a signed, validated, Watch Face Push-ready APK, and
+`push-app` is the Wear OS marketplace app that installs published designs (an APK, not on Maven).
 
 ## What `wff-core` gives you
 
@@ -45,8 +46,31 @@ val canonical = doc.toXml()
 
 ## Versioning
 
-Published to Maven under group `ee.schimke.watchface` with semantic versioning; `0.x` while the
-model and schema API settle. Do not confuse the library version with the WFF format version
+Published to Maven Central under group `ee.schimke.watchface` with semantic versioning; `0.x`
+while the model and schema API settle.
+
+```kotlin
+dependencies {
+  implementation("ee.schimke.watchface:wff-core:0.0.0") // x-release-please-version
+  implementation("ee.schimke.watchface:wff-packager:0.0.0") // x-release-please-version
+}
+```
+
+`wff-core` is Kotlin Multiplatform (`wff-core-jvm`, `wff-core-wasm-js`) with no dependencies.
+`wff-packager` additionally needs Google Maven (`google()`, for
+`com.google.android.wearable.watchface.validator:validator-push`) and JitPack restricted to
+`com.github.xgouchet` (the validator's `AXML` dependency is only published there):
+
+```kotlin
+repositories {
+  google()
+  mavenCentral()
+  maven("https://jitpack.io") { content { includeGroup("com.github.xgouchet") } }
+}
+```
+
+Releases are cut by release-please: merging its `chore(main): release X.Y.Z` PR tags a draft
+release, `release.yml` checks, dry-runs and publishes both modules to Central, then un-drafts it. Do not confuse the library version with the WFF format version
 (`WffVersion.V1..V5`), which is data the library models.
 
 ## Status and caveats

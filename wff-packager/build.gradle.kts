@@ -1,8 +1,13 @@
 plugins {
   alias(libs.plugins.kotlin.jvm)
   alias(libs.plugins.ktfmt)
+  alias(libs.plugins.maven.publish)
   application
 }
+
+description =
+  "Builds signed, validated, Watch Face Push-ready APKs from a Watch Face Format source bundle " +
+    "with aapt2, apksig and Google's watch face validators."
 
 ktfmt { googleStyle() }
 
