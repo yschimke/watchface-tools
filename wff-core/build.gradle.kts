@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 plugins {
   alias(libs.plugins.kotlin.multiplatform)
   alias(libs.plugins.ktfmt)
-  alias(libs.plugins.maven.publish)
+  id("watchface.maven-publishing")
 }
 
 description =

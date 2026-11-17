@@ -1,7 +1,7 @@
 plugins {
   alias(libs.plugins.kotlin.jvm)
   alias(libs.plugins.ktfmt)
-  alias(libs.plugins.maven.publish)
+  id("watchface.maven-publishing")
   application
 }
 

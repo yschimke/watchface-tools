@@ -51,10 +51,15 @@ while the model and schema API settle.
 
 ```kotlin
 dependencies {
-  implementation("ee.schimke.watchface:wff-core:0.0.0") // x-release-please-version
-  implementation("ee.schimke.watchface:wff-packager:0.0.0") // x-release-please-version
+  implementation(platform("ee.schimke.watchface:watchface-tools-bom:0.0.0")) // x-release-please-version
+  implementation("ee.schimke.watchface:wff-core")
+  implementation("ee.schimke.watchface:wff-packager")
 }
 ```
+
+The BOM constrains every published coordinate, so the modules stay aligned without naming a version
+each. A release only uploads the modules that changed, so the BOM may point a module at an earlier
+version than its own (see [`docs/VERSIONING.md`](docs/VERSIONING.md)).
 
 `wff-core` is Kotlin Multiplatform (`wff-core-jvm`, `wff-core-wasm-js`) with no dependencies.
 `wff-packager` additionally needs Google Maven (`google()`, for
@@ -70,7 +75,8 @@ repositories {
 ```
 
 Releases are cut by release-please: merging its `chore(main): release X.Y.Z` PR tags a draft
-release, `release.yml` checks, dry-runs and publishes both modules to Central, then un-drafts it. Do not confuse the library version with the WFF format version
+release, `release.yml` checks, dry-runs and publishes the changed modules and the BOM to Central, then
+un-drafts it. Do not confuse the library version with the WFF format version
 (`WffVersion.V1..V5`), which is data the library models.
 
 ## Status and caveats

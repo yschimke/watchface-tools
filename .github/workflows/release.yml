@@ -1,4 +1,5 @@
-# Publishes wff-core (JVM + Kotlin/Wasm) and wff-packager to Maven Central for a tag.
+# Publishes the watchface-tools coordinates (wff-core JVM + Kotlin/Wasm, wff-packager and the BOM)
+# to Maven Central for a tag, as far as the publish plan says they changed (docs/VERSIONING.md).
 #
 # A published coordinate is PERMANENT: Central refuses a second upload of the same GAV, and
 # `publishToMavenCentral(automaticRelease = true)` promotes without a human looking. So every
@@ -76,6 +77,10 @@ jobs:
         with:
           ref: ${{ env.TAG_NAME }}
           persist-credentials: false
+          # Full history: the publish plan compares each module against the tag IT last published
+          # at. With a shallow clone those tags are absent, the plan takes its fail-safe path and
+          # publishes everything while reporting success.
+          fetch-depth: 0
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -99,28 +104,75 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;36.0.0" "platforms;android-36"
 
-      # Everything the artifacts must survive, before they are permanent.
+      # Which modules this release uploads. `maven-publish-plan.sh` compares each module against the
+      # tag it last published at (read from Maven Central), propagates to dependents, and resolves
+      # every uncertainty to "publish". Nothing is published yet, so the first release finds no
+      # baseline and publishes everything.
+      #
+      # A `workflow_dispatch` recovery run gets no plan: its baseline may not be trustworthy and
+      # publishing everything is the safe answer. An EMPTY set from a plan is a real answer ("no
+      # module changed"), kept apart from "no plan ran" by PUBLISH_PLANNED.
+      - name: Compute the publish plan
+        run: |
+          set -euo pipefail
+          PUBLISH_SET=""
+          PUBLISH_PLANNED=false
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            # `--write-manifest` puts the Central baseline into the workspace, where the Gradle
+            # build reads it to give a skipped module the version it is already published at.
+            # Written, never committed.
+            PUBLISH_SET="$(.github/scripts/maven-publish-plan.sh --head "$TAG_NAME" \
+              --write-manifest publishing-manifest.json | paste -sd, -)"
+            PUBLISH_PLANNED=true
+          fi
+          echo "plan ran: $PUBLISH_PLANNED; publish set: ${PUBLISH_SET:-<empty>}"
+          echo "PUBLISH_SET=$PUBLISH_SET" >> "$GITHUB_ENV"
+          echo "PUBLISH_PLANNED=$PUBLISH_PLANNED" >> "$GITHUB_ENV"
+
+      # Everything the artifacts must survive, before they are permanent, plus the build logic and
+      # release scripts that decide what gets uploaded.
       - name: Check
         env:
           WFF_REQUIRE_SDK: "1"
-        run: ./gradlew ktfmtCheck :wff-core:check :wff-packager:check
+        run: |
+          ./gradlew -p build-logic test
+          ./gradlew -Prelease ktfmtCheck :wff-core:check :wff-packager:check
+          python3 -m unittest discover -s .github/scripts/tests
 
-      # Signing applies to every release publication, so the dry run needs the keys too.
-      - name: Dry run to the local repository
+      # A dry run against the local repository, signed: the POMs either resolve every internal
+      # coordinate or they do not, and finding that out here costs nothing while finding it out on
+      # Central costs a version number. The signing keys are needed HERE too: every release
+      # publication is signed, so `publishToMavenLocal` fails with "No configured signatory" without
+      # them. Central's own credentials are deliberately not passed.
+      - name: Publish to Maven Local first
         env:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          ./gradlew -Prelease :wff-core:publishToMavenLocal :wff-packager:publishToMavenLocal
-          v="${TAG_NAME#v}"
-          for a in wff-core wff-core-jvm wff-core-wasm-js wff-packager; do
-            pom="$HOME/.m2/repository/ee/schimke/watchface/$a/$v/$a-$v.pom"
-            [ -f "$pom" ] || { echo "::error::no POM for $a at $v"; exit 1; }
-            [ -f "$pom.asc" ] || { echo "::error::$a $v POM is not signed"; exit 1; }
-          done
-          echo "all POMs present and signed"
+          V="${TAG_NAME#v}"
+          PLAN_ARGS=()
+          if [ "$PUBLISH_PLANNED" = "true" ]; then
+            PLAN_ARGS+=("-Pwatchface.publishSet=$PUBLISH_SET")
+          fi
+          ./gradlew -Prelease publishToMavenLocal "${PLAN_ARGS[@]}"
+          # Each coordinate is checked at the version it will carry: the tag for what this release
+          # publishes, the recorded version for what it skips. An empty publish set is passed as an
+          # empty `--publish-set`; omitting it means "no plan ran".
+          if [ "$PUBLISH_PLANNED" = "true" ]; then
+            .github/scripts/expected-poms.py --version "$V" --publish-set "$PUBLISH_SET" > /tmp/expected-poms
+          else
+            .github/scripts/expected-poms.py --version "$V" > /tmp/expected-poms
+          fi
+          count=0
+          while read -r m v; do
+            pom="$HOME/.m2/repository/ee/schimke/watchface/$m/$v/$m-$v.pom"
+            [ -f "$pom" ] || { echo "::error::$m did not produce a POM at $v"; exit 1; }
+            [ -f "$pom.asc" ] || { echo "::error::$m $v POM is not signed"; exit 1; }
+            count=$((count + 1))
+          done < /tmp/expected-poms
+          echo "$count coordinates produced signed artifacts"
 
       - name: Publish to Maven Central
         env:
@@ -129,7 +181,9 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-        run: ./gradlew -Prelease :wff-core:publishToMavenCentral :wff-packager:publishToMavenCentral
+        # Task resolution, the empty-plan `exit 0` and the upload live in a script so their
+        # branches are tested (.github/scripts/tests/, run by ci.yml).
+        run: .github/scripts/publish-to-central.sh
 
       - name: Publish the GitHub release
-        run: gh release edit "$TAG_NAME" --draft=false
+        run: gh release edit "$TAG_NAME" --draft=false --latest
