@@ -6,6 +6,8 @@ Rules for every coding agent working in this repository.
   (Claude, Codex, ChatGPT, Copilot, Gemini) or using an agent email, and no agent as author or
   committer identity. Commits are attributed to the human committer only. Links to an agent session
   are fine. Scrub the PR title and body too.
+- Install the local hooks once per clone with `scripts/install-git-hooks.sh`; CI's
+  `Reject agent attribution` check runs the same detector.
 - **Branch names are always `agent/…`** (never `claude/…`, `codex/…`, …).
 - **Conventional Commits** for commit subjects and PR titles (`feat:`, `fix:`, `docs:`, `test:`,
   `build:`, `ci:`, `chore:`). Use `feat:`/`fix:` only for changes that affect the published library.
