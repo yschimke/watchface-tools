@@ -89,4 +89,19 @@ class WffXmlTest {
     val ok = WffXmlParser.parse("<Compare expression=\"[X] &lt; 2\"/>")
     assertEquals("[X] < 2", ok.root.attributes.single().value)
   }
+
+  @Test
+  fun carriageReturnInCDataSurvives() {
+    val doc = WffDocument(WffElement("E", children = listOf(WffCData("a\rb"))))
+    val once = doc.toXml()
+    assertEquals("a\rb", WffXmlParser.parse(once).root.textContent())
+    assertEquals(once, WffXmlParser.parse(once).toXml())
+  }
+
+  @Test
+  fun forbiddenCharacterReferencesFail() {
+    assertFailsWith<WffParseException> { WffXmlParser.parse("<T>&#0;</T>") }
+    assertFailsWith<WffParseException> { WffXmlParser.parse("<T>&#xD800;</T>") }
+    assertEquals("\uFFFD", WffXmlParser.parse("<T>&#xFFFD;</T>").root.textContent())
+  }
 }

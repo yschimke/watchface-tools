@@ -173,10 +173,32 @@ public object WffBundleLayout {
           strings.entries
             .sortedBy { it.key }
             .map { (k, v) ->
-              WffElement("string", listOf(WffAttribute("name", k)), listOf(WffText(v)))
+              WffElement(
+                "string",
+                listOf(WffAttribute("name", k)),
+                listOf(WffText(androidStringEscape(v))),
+              )
             },
       ),
     )
+
+  /**
+   * Escapes [value] for an Android `<string>` resource, before XML escaping: backslash, both quote
+   * kinds, a leading `@` or `?` (which would read as a reference) and newlines and tabs.
+   */
+  public fun androidStringEscape(value: String): String = buildString {
+    value.forEachIndexed { i, c ->
+      when {
+        c == '\\' -> append("\\\\")
+        c == '\'' -> append("\\'")
+        c == '"' -> append("\\\"")
+        c == '\n' -> append("\\n")
+        c == '\t' -> append("\\t")
+        i == 0 && (c == '@' || c == '?') -> append('\\').append(c)
+        else -> append(c)
+      }
+    }
+  }
 
   /**
    * The source files of [bundle], keyed by bundle-relative path. Iteration order is deterministic

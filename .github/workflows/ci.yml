@@ -18,9 +18,16 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
+      - name: Android SDK (aapt2, zipalign, android.jar for :wff-packager)
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;36.0.0" "platforms;android-36" "platforms;android-37.0"
       - name: Format
         run: ./gradlew ktfmtCheck
       - name: Test
-        run: ./gradlew :wff-core:jvmTest :wff-core:compileKotlinWasmJs
+        env:
+          # Make the SDK-dependent packager tests fail instead of skipping when the SDK is absent.
+          WFF_REQUIRE_SDK: "1"
+        run: ./gradlew :wff-core:jvmTest :wff-core:compileKotlinWasmJs :wff-packager:test
       - name: Push app (assemble + unit tests)
         run: ./gradlew :push-app:assembleDebug :push-app:testDebugUnitTest

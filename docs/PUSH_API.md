@@ -22,6 +22,9 @@ the app as `BuildConfig.MARKETPLACE_PACKAGE` / `PushConstants.PACKAGE_PREFIX`). 
 API rejects any other package. `faceName` is `[A-Za-z0-9_]+`; the packager derives it from the
 design id. The client refuses designs whose `packageName` does not follow the rule.
 
+To produce a conforming APK with `:wff-packager`, pass
+`--push-marketplace ee.schimke.watchface.push --face-name <faceName>` (see `wff-packager/README.md`).
+
 `:wff-packager` output contract consumed here: APK bytes, push validation token (generated with
 `<marketplacePackage>` as `--package_name`), and the package name above. Per the push docs the APK
 must be `hasCode=false`, `minSdk >= 33`, and contain only `AndroidManifest.xml`, `resources.arsc`,
