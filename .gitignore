@@ -12,3 +12,5 @@ kotlin-js-store/
 *.jks
 *.keystore
 *.p12
+__pycache__/
+*.pyc

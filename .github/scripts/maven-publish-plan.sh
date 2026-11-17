@@ -63,6 +63,11 @@ CENTRAL = "https://repo1.maven.org/maven2"
 
 head, manifest_path, write_manifest_path = sys.argv[1], sys.argv[2], sys.argv[3]
 
+# The BOM is not a module of its own in the plan's output: `printPublishTasks` publishes it with any
+# non-empty set. A change confined to its own build script still has to publish it, so it is listed
+# (by artifact id) when `bom/` moved since the BOM's own published version.
+BOM, BOM_DIR = "watchface-tools-bom", "bom"
+
 def git(*args):
     return subprocess.run(["git", *args], capture_output=True, text=True).stdout
 
@@ -119,7 +124,8 @@ else:
     # Eight at a time: 69 sequential round-trips is most of this script's wall clock, and Central
     # serves these as static files.
     with ThreadPoolExecutor(max_workers=8) as pool:
-        found = dict(zip(sorted(modules), pool.map(central_release, sorted(modules))))
+        lookups = sorted(modules) + [BOM]
+        found = dict(zip(lookups, pool.map(central_release, lookups)))
     recorded = {aid: v for aid, v in found.items() if v}
     print(f"  baseline: Maven Central ({len(recorded)} of {len(modules)} coordinates)",
           file=sys.stderr)
@@ -415,6 +421,10 @@ while stack:
             stack.append(r)
 
 print(f"  {len(dirty)} of {len(modules)} modules publish", file=sys.stderr)
-for aid in sorted(dirty):
+out = set(dirty)
+if not dirty and BOM in recorded and changed_since(recorded[BOM], BOM_DIR):
+    print(f"  {BOM_DIR}: changed since v{recorded[BOM]}; publishing the BOM alone", file=sys.stderr)
+    out.add(BOM)
+for aid in sorted(out):
     print(aid)
 PY
