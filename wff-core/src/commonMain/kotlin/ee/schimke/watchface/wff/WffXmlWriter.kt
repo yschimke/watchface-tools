@@ -63,8 +63,12 @@ public object WffXmlWriter {
       is WffElement -> writeElement(n, depth)
       is WffText -> escapeText(n.text)
       is WffComment -> append("<!--").append(n.text).append("-->")
-      is WffCData ->
-        append("<![CDATA[").append(n.text.replace("]]>", "]]]]><![CDATA[>")).append("]]>")
+      is WffCData -> {
+        // A CR inside CDATA would be normalised to LF on parse, so close the section around it
+        // and write it as a character reference.
+        val body = n.text.replace("]]>", "]]]]><![CDATA[>").replace("\r", "]]>&#13;<![CDATA[")
+        append("<![CDATA[").append(body).append("]]>")
+      }
     }
   }
 

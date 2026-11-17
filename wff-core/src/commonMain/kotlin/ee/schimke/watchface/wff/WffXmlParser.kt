@@ -224,7 +224,7 @@ public object WffXmlParser {
 
     private fun codePointToString(cp: Int): String? =
       when {
-        cp < 0 || cp > 0x10FFFF -> null
+        !isXmlChar(cp) -> null
         cp <= 0xFFFF -> cp.toChar().toString()
         else -> {
           val o = cp - 0x10000
@@ -254,3 +254,12 @@ public object WffXmlParser {
 internal fun String.isXmlWhitespace(): Boolean = all {
   it == ' ' || it == '\t' || it == '\n' || it == '\r'
 }
+
+/** XML 1.0 `Char`: #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]. */
+internal fun isXmlChar(cp: Int): Boolean =
+  cp == 0x9 ||
+    cp == 0xA ||
+    cp == 0xD ||
+    cp in 0x20..0xD7FF ||
+    cp in 0xE000..0xFFFD ||
+    cp in 0x10000..0x10FFFF
