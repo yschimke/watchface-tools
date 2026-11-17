@@ -1,10 +1,17 @@
 [versions]
 kotlin = "2.4.21"
 ktfmt = "0.28.0"
+apksig = "8.11.0"
+validatorPush = "1.1.0-alpha01"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 
+apksig = { module = "com.android.tools.build:apksig", version.ref = "apksig" }
+# Google's official Watch Face Push validator; bundles the WFF XSD validator and memory footprint.
+validator-push = { module = "com.google.android.wearable.watchface.validator:validator-push", version.ref = "validatorPush" }
+
 [plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
