@@ -1,0 +1,10 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>yschimke/renovate-config",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "platformAutomerge": true,
+  "description": "Extends the shared preset at yschimke/renovate-config, which owns the release-train grouping (kotlin, androidx, and this repository's own `watchface-tools` train for the ee.schimke.watchface coordinates other repositories consume). Automerge follows the preset (minor/patch/digest/pin; majors stay manual), and `platformAutomerge` hands the merge to GitHub's native auto-merge, which waits for the checks the `Protect Main` ruleset requires (yschimke/renovate-config `repo-policy/`).",
+  "timezone": "UTC"
+}
