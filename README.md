@@ -9,6 +9,7 @@ parser, a version-aware schema, and the bundle layout of a watch face resource p
 | Module | Targets | Purpose |
 | --- | --- | --- |
 | `:wff-core` | Kotlin Multiplatform: `jvm`, `wasmJs` | Document model (`WffDocument`, `WffElement`, ...), canonical `WffXmlWriter`, `WffXmlParser`, `WffSchema`, `WffValidator`, `WffBundleLayout`. `commonMain` has no dependencies. |
+| `:push-app` | Android (Wear OS 6) | Marketplace app that links to a site account (device code + QR) and installs designs via Watch Face Push. See [`push-app/README.md`](push-app/README.md) and [`docs/PUSH_API.md`](docs/PUSH_API.md). |
 
 Planned (not in Phase 0): `wff-packager` (JVM, aapt2 to APK), `wff-validator` (JVM, Google XSD).
 
