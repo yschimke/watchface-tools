@@ -6,10 +6,10 @@ plugins {
 
 ktfmt { googleStyle() }
 
-kotlin {
-  explicitApi()
-  jvmToolchain(17)
-}
+// No jvmToolchain pin: wff-core's JVM jar is compiled for the JDK running Gradle (21 in CI), and
+// the
+// tests must run on a JVM at least that new. Google's validator itself only needs 17.
+kotlin { explicitApi() }
 
 dependencies {
   api(project(":wff-core"))
