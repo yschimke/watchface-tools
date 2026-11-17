@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 rootProject.name = "watchface-tools"
 
 include(":wff-core")
+include(":push-app")

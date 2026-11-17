@@ -22,3 +22,5 @@ jobs:
         run: ./gradlew ktfmtCheck
       - name: Test
         run: ./gradlew :wff-core:jvmTest :wff-core:compileKotlinWasmJs
+      - name: Push app (assemble + unit tests)
+        run: ./gradlew :push-app:assembleDebug :push-app:testDebugUnitTest
