@@ -243,4 +243,70 @@ class PureApkTest {
     assertEquals(emptyList(), push.failures.map { it.toString() })
     assertTrue(!push.validationToken.isNullOrBlank(), "no validation token")
   }
+
+  private fun refBundle(): Map<String, ByteArray> {
+    val b = TestSupport.sampleBundle("SimpleDigital").toMutableMap()
+    b["AndroidManifest.xml"] =
+      b.getValue("AndroidManifest.xml")
+        .decodeToString()
+        .replace(
+          Regex("android:versionName=\"[^\"]*\""),
+          "android:versionName=\"@string/version_name\"",
+        )
+        .encodeToByteArray()
+    b["res/values/strings.xml"] =
+      """<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="version_name">9.9</string>
+  <string name="title">Title</string>
+  <string name="app_name">@string/title</string>
+  <string name="literal">\@string/title</string>
+</resources>"""
+        .encodeToByteArray()
+    return b
+  }
+
+  @Test
+  fun referencesInVersionNameAndStringAliasesMatchAapt2() {
+    val sdk = TestSupport.requireSdk()
+    val bundle = refBundle()
+    val theirs =
+      WatchFacePackager(sdk, TestSupport.fakeValidators())
+        .pack(
+          bundle,
+          TestSupport.pushOptions(versionCode = 3, keyDir = tmp, face = "simpledigital"),
+        )
+    val ours =
+      WffApkBuilder.buildBlocking(
+        bundle,
+        WffApkOptions(PackageTarget.WatchFacePush("com.example.market", "simpledigital"), 3),
+        generateDebugApkSignerBlocking(),
+      )
+    val a = write("ref-aapt2.apk", theirs.apk)
+    val b = write("ref-pure.apk", ours.apk)
+    assertEquals(
+      normalise(aapt2(sdk, "dump", "xmltree", a.path, "--file", "AndroidManifest.xml")),
+      normalise(aapt2(sdk, "dump", "xmltree", b.path, "--file", "AndroidManifest.xml")),
+    )
+    val dump = normalise(aapt2(sdk, "dump", "resources", b.path))
+    assertTrue(dump.any { "app_name" in it }, dump.toString())
+    assertEquals(normalise(aapt2(sdk, "dump", "resources", a.path)), dump)
+  }
+
+  @Test
+  fun aStringAliasToAMissingResourceFails() {
+    val b = refBundle().toMutableMap()
+    b["res/values/strings.xml"] =
+      "<resources><string name=\"version_name\">1</string><string name=\"a\">@string/nope</string></resources>"
+        .encodeToByteArray()
+    val e =
+      kotlin.test.assertFailsWith<PackagingException> {
+        WffApkBuilder.buildBlocking(
+          b,
+          WffApkOptions(PackageTarget.WatchFacePush("com.example.market", "simpledigital"), 3),
+          generateDebugApkSignerBlocking(),
+        )
+      }
+    assertTrue("alias target @string/nope does not exist" in e.message!!, e.message)
+  }
 }

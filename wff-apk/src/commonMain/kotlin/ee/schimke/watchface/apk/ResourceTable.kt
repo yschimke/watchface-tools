@@ -10,6 +10,9 @@ internal sealed interface ResourceValue {
 
   /** A `<string>` value. */
   class Text(val text: String) : ResourceValue
+
+  /** A bare `@type/name` alias, stored as a reference rather than as text. */
+  class Ref(val type: String, val name: String) : ResourceValue
 }
 
 /**
@@ -49,7 +52,11 @@ private constructor(
     // Global value pool: every file path and string value, sorted.
     val values = HashSet<String>()
     for (byName in entries.values) for (byConfig in byName.values) for ((_, v) in byConfig.values) {
-      values += (v as? ResourceValue.File)?.path ?: (v as ResourceValue.Text).text
+      when (v) {
+        is ResourceValue.File -> values += v.path
+        is ResourceValue.Text -> values += v.text
+        is ResourceValue.Ref -> {}
+      }
     }
     val valueList = values.sorted()
     val keyNames = entries.values.flatMap { it.keys }.distinct().sorted()
@@ -102,9 +109,22 @@ private constructor(
                   u32(-1)
                 } else {
                   u32(body.size)
-                  val text = (v as? ResourceValue.File)?.path ?: (v as ResourceValue.Text).text
                   body.u16(8).u16(0).u32(keyNames.indexOf(n))
-                  body.u16(8).u8(0).u8(TYPE_STRING).u32(valueList.binarySearch(text))
+                  when (v) {
+                    is ResourceValue.Ref -> {
+                      val id =
+                        idOf(v.type, v.name)
+                          ?: throw PackagingException(
+                            "resources",
+                            "string/$n: alias target @${v.type}/${v.name} does not exist in the bundle",
+                          )
+                      body.u16(8).u8(0).u8(TYPE_REFERENCE).u32(id)
+                    }
+                    else -> {
+                      val text = (v as? ResourceValue.File)?.path ?: (v as ResourceValue.Text).text
+                      body.u16(8).u8(0).u8(TYPE_STRING).u32(valueList.binarySearch(text))
+                    }
+                  }
                 }
               }
               bytes(body.toByteArray())
@@ -164,6 +184,8 @@ private constructor(
       )
 
     const val TYPE_STRING = 0x03
+    const val TYPE_REFERENCE = 0x01
+    private val ALIAS = Regex("@([a-z]+)/([A-Za-z_][A-Za-z0-9_.]*)")
     private val NAME = Regex("[A-Za-z_][A-Za-z0-9_]*")
 
     /** Reads every `res/...` file of [files]. */
@@ -202,8 +224,8 @@ private constructor(
         val type = dir.substringBefore('-')
         val config = ResourceConfig.parse(dir.substringAfter('-', ""), path)
         if (type == "values") {
-          for ((name, text) in readStrings(path, bytes)) {
-            put("string", name, config, ResourceValue.Text(text), path)
+          for ((name, value) in readStrings(path, bytes)) {
+            put("string", name, config, value, path)
           }
           continue
         }
@@ -226,7 +248,7 @@ private constructor(
     }
 
     /** `<resources><string name="x">text</string></resources>`; any other element is an error. */
-    private fun readStrings(path: String, bytes: ByteArray): List<Pair<String, String>> {
+    private fun readStrings(path: String, bytes: ByteArray): List<Pair<String, ResourceValue>> {
       val doc =
         WffXmlParser.parseOrNull(bytes.decodeToString())
           ?: throw PackagingException("resources", "$path is not well-formed XML")
@@ -251,7 +273,12 @@ private constructor(
         if (!NAME.matches(name)) {
           throw PackagingException("resources", "$path: '$name' is not a valid resource name")
         }
-        name to unescape(e.textContent())
+        // An escaped `\@` stays text; only an unescaped bare @type/name is an alias.
+        val raw = e.textContent().trim()
+        val alias = ALIAS.matchEntire(raw)
+        name to
+          if (alias != null) ResourceValue.Ref(alias.groupValues[1], alias.groupValues[2])
+          else ResourceValue.Text(unescape(e.textContent()))
       }
     }
 
