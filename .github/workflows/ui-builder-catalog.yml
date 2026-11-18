@@ -1,0 +1,63 @@
+name: UI Builder catalog
+
+on:
+  pull_request:
+    paths: ['ui-builder-catalog/**', '.github/workflows/ui-builder-catalog.yml']
+  push:
+    branches: [main]
+    paths: ['ui-builder-catalog/**', '.github/workflows/ui-builder-catalog.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-builder-catalog-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 ui-builder-catalog/validate.py
+
+  publish:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Publish to design-artifacts/wff-watchface
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          branch=design-artifacts/wff-watchface
+          out="$RUNNER_TEMP/out"
+          git clone --quiet "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "$out" --no-checkout --depth 1 \
+            $(git ls-remote --exit-code --heads "https://github.com/${REPO}.git" "$branch" >/dev/null 2>&1 && echo "--branch $branch")
+          cd "$out"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            git checkout "$branch"
+          else
+            git checkout --orphan "$branch"
+          fi
+          git rm -rf --quiet --ignore-unmatch .
+          cp -R "$GITHUB_WORKSPACE/ui-builder-catalog/." .
+          rm -f validate.py README.md
+          printf '%s\n' "$SOURCE_SHA" > source-commit.txt
+          git add -A
+          if git diff --cached --quiet; then echo "nothing to publish"; exit 0; fi
+          git commit --quiet -m 'chore(wff-watchface): publish UI Builder catalog' -m "Source: ${REPO}@${SOURCE_SHA}"
+          git push origin "HEAD:${branch}"
