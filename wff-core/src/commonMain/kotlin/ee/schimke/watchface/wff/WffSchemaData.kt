@@ -176,6 +176,13 @@ internal val GENERATED_FUNCTIONS: Map<String, Int> =
     "textLength/1" to 1,
   )
 
+/** Per element, the position of each child its XSD orders (`xs:sequence`); equal = any order. */
+internal val GENERATED_CHILD_ORDER: Map<String, Map<String, Int>> =
+  mapOf(
+    "SecondHand" to mapOf("Variant" to 0, "Sweep" to 1, "Tick" to 1),
+    "TimeText" to mapOf("Variant" to 0, "TimeText.BitmapFont" to 1, "TimeText.Font" to 1),
+  )
+
 private val RULE_1: WffValueRule = WffValueRule.Enumeration(listOf("NONE", "CIRCLE", "RECTANGLE"))
 
 private val RULE_2: WffValueRule =

@@ -296,6 +296,40 @@ class Version:
     def _max(a, b):
         return None if a is None or b is None else max(a, b)
 
+    def leaves(self, m):
+        """Every element node under model [m]."""
+        if m[0] == "el":
+            return [m[1]]
+        if m[0] == "any":
+            return []
+        return [n for i in m[3] for n in self.leaves(i)]
+
+    def kinds(self, m):
+        if m[0] == "any":
+            return {"any"}
+        if m[0] == "el":
+            return {"el"}
+        return {k for i in m[3] for k in self.kinds(i)} | {m[0]}
+
+    def slots(self, m):
+        """Ordered slots of element nodes: a node in an earlier slot must precede one in a later
+        slot. Only an `xs:sequence` that occurs once keeps its items in order; everything else
+        collapses to one slot (no order within it). None when the model has a
+        wildcard (`xs:any`), where no order can be promised."""
+        if "any" in self.kinds(m):
+            return None
+        if m[0] == "el":
+            return [list(self.leaves(m))]
+        # Only a literal xs:sequence: the "seq" kind (a group reference, or a base type plus its
+        # extension) is not ordered in practice - Google's own samples put `Transform` after the
+        # shape in a `PartDraw`, which extends an `all` base with an `all`.
+        if m[0] == "sequence" and m[2] == 1:
+            out = []
+            for i in m[3]:
+                out += self.slots(i)
+            return out
+        return [self.leaves(m)]
+
     def bounds(self, m):
         """(total min, total max, {element node id: (min, max)}) of children under model [m]."""
         k = m[0]
@@ -399,6 +433,27 @@ class Version:
             text[0] = True
         return attrs, kids, text[0]
 
+    def record_order(self, ranks, model, cids):
+        """Fold the slot index of each child (by id) of [model] into [ranks]; a child with two
+        slots (or two different ranks across definitions sharing an id) gets None = unordered."""
+        slots = self.slots(model)
+        if slots is None:
+            for cid in cids.values():
+                ranks[cid] = None
+            return
+        here = {}
+        for idx, nodes in enumerate(slots):
+            for n in nodes:
+                cid = cids.get(id(n))
+                if cid is None:
+                    continue
+                here[cid] = idx if cid not in here or here[cid] == idx else None
+        for cid, r in here.items():
+            if cid in ranks and ranks[cid] != r:
+                ranks[cid] = None
+            else:
+                ranks[cid] = r
+
     def graph(self, ambiguous):
         """{id: (name, attrs, [(child id)], text)} for everything reachable from WatchFace."""
         out = {}
@@ -412,7 +467,7 @@ class Version:
             nid = name if (is_global or name not in ambiguous or parent_id is None) else f"{parent_id}.{name}"
             ids[id(node)] = nid
             attrs, kids, text = self.body(node)
-            entry = out.setdefault(nid, [name, {}, [], False, None, {}, ('any',)])
+            entry = out.setdefault(nid, [name, {}, [], False, None, {}, ('any',), {}])
             if self.text_rule(node) != ('any',):
                 entry[6] = self.text_rule(node)
             entry[1].update(attrs)
@@ -438,6 +493,7 @@ class Version:
                 for cid, (lo, hi) in merged.items():
                     plo, phi = entry[5].get(cid, (lo, hi))
                     entry[5][cid] = (min(plo, lo), self._max(phi, hi))
+                self.record_order(entry[7], model, cids)
             return nid
 
         visit(self.g["element"]["WatchFace"], None)
@@ -593,6 +649,33 @@ def main(repo):
         w(f"    {kt(n)} to {funcs[n]},\n")
     w("  )\n\n")
 
+    # Child order (xs:sequence): per element, each child's slot index in the latest version. A
+    # child is dropped (unordered) when the latest version has it unordered, or when an older
+    # version orders any pair of the surviving children differently, so the table only holds
+    # order every version agrees on.
+    child_order = {}
+    for nid in graphs[latest]:
+        ranks = {c: r for c, r in graphs[latest][nid][7].items() if r is not None}
+        for v in versions:
+            if v == latest or nid not in graphs[v]:
+                continue
+            old = graphs[v][nid][7]
+            for a in list(ranks):
+                for b in list(ranks):
+                    if a in ranks and b in ranks and ranks[a] < ranks[b]:
+                        if a in old and b in old and (old[a] is None or old[b] is None or old[a] >= old[b]):
+                            ranks.pop(a, None)
+                            ranks.pop(b, None)
+        if len(set(ranks.values())) > 1:
+            dense = {r: i for i, r in enumerate(sorted(set(ranks.values())))}
+            child_order[nid] = {c: dense[r] for c, r in ranks.items()}
+    w("/** Per element, the position of each child its XSD orders (`xs:sequence`); equal = any order. */\n")
+    w("internal val GENERATED_CHILD_ORDER: Map<String, Map<String, Int>> =\n  mapOf(\n")
+    for nid in sorted(child_order):
+        items = ", ".join(f"{kt(c)} to {r}" for c, r in sorted(child_order[nid].items(), key=lambda x: (x[1], x[0])))
+        w(f"    {kt(nid)} to mapOf({items}),\n")
+    w("  )\n\n")
+
     # Attribute value rules, shared between attributes that have the same type.
     order = list(graphs[latest].keys())
     rules = {}  # rendered text -> name
@@ -622,7 +705,7 @@ def main(repo):
 
     body = []
     for nid in order:
-        name, attrs, kids, text, total, per, trule = graphs[latest][nid]
+        name, attrs, kids, text, total, per, trule, _ = graphs[latest][nid]
         since = first(lambda v: nid in graphs[v])
         body.append(f"    WffElementSpec(\n      id = {kt(nid)},\n      name = {kt(name)},\n")
         body.append(f"      sinceVersion = WffVersion.V{since},\n")

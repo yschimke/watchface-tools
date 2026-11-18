@@ -72,4 +72,21 @@ class WffBundleLayoutTest {
     val xml = WffBundleLayout.stringsDocument(mapOf("label" to "It's")).toXml()
     assertTrue(xml.contains("<string name=\"label\">It\\'s</string>"), xml)
   }
+
+  /**
+   * developer.android.com/training/wearables/wff, "Versioning in WFF": WFF 1 = Wear OS 4 = API 33,
+   * 2 = Wear OS 5 = API 34, 3 = Wear OS 5.1 = API 35, 4 = Wear OS 6 = API 36. Version 5 is not in
+   * Google's table; 36 is an assumption (see `WffBundleLayout.minSdkFor`).
+   */
+  @Test
+  fun minSdkTableMatchesGoogleVersionTable() {
+    assertEquals(33, WffBundleLayout.minSdkFor(WffVersion.V1))
+    assertEquals(34, WffBundleLayout.minSdkFor(WffVersion.V2))
+    assertEquals(35, WffBundleLayout.minSdkFor(WffVersion.V3))
+    assertEquals(36, WffBundleLayout.minSdkFor(WffVersion.V4))
+    assertEquals(36, WffBundleLayout.minSdkFor(WffVersion.V5))
+    // a newer format never needs an older platform
+    val all = WffVersion.entries.map { WffBundleLayout.minSdkFor(it) }
+    assertEquals(all.sorted(), all)
+  }
 }

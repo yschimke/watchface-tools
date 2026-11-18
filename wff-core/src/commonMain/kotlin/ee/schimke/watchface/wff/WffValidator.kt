@@ -30,6 +30,11 @@ public enum class WffDiagnosticCode {
   TOO_MANY_CHILDREN,
   /** A value the XSD requires to be unique (a `slotId`, a `Metadata` key) appears twice. */
   DUPLICATE_ID,
+  /**
+   * Children in an order the XSD's `xs:sequence` forbids (`<Transform>` after `<Text>` in a
+   * `PartText`). Google's XSD validator rejects this at packaging.
+   */
+  ELEMENT_OUT_OF_ORDER,
 }
 
 /** One finding. [path] looks like `/WatchFace/Scene/Group[2]/PartText` (`[n]` is 1-based). */
@@ -57,6 +62,7 @@ public data class WffDiagnostic(
  *   `CONFIGURATION.`, `COMPLICATION.` and `REFERENCE.` are defined by the face);
  * - fewer or more children than the XSD's content model allows (a `Template` without a `Parameter`,
  *   a `ListOption` with two children): ERROR;
+ * - children out of the order the XSD's `xs:sequence` fixes (`Transform` after `Text`): ERROR;
  * - duplicate `slotId`, `Metadata` key, `BitmapFont` or `Reference` name: ERROR.
  */
 public object WffValidator {
@@ -237,6 +243,44 @@ public object WffValidator {
       }
     }
     checkOccurrences(e, spec, path, childCounts, out)
+    checkOrder(e, spec, path, out)
+  }
+
+  /**
+   * Children the XSD orders (`xs:sequence`) must not appear after one that belongs later. Only
+   * order every format version agrees on is checked; one finding per misplaced child.
+   */
+  private fun checkOrder(
+    e: WffElement,
+    spec: WffElementSpec,
+    path: String,
+    out: MutableList<WffDiagnostic>,
+  ) {
+    val ranks = GENERATED_CHILD_ORDER[spec.id] ?: return
+    val counts = e.childElements.groupingBy { it.name }.eachCount()
+    val seen = HashMap<String, Int>()
+    var latestName: String? = null
+    var latestRank = -1
+    for (child in e.childElements) {
+      val n = (seen[child.name] ?: 0) + 1
+      seen[child.name] = n
+      val id = WffSchema.child(spec, child.name)?.id ?: continue
+      val rank = ranks[id] ?: continue
+      if (rank < latestRank) {
+        val childPath = path + "/" + child.name + if ((counts[child.name] ?: 0) > 1) "[$n]" else ""
+        out +=
+          WffDiagnostic(
+            WffSeverity.ERROR,
+            WffDiagnosticCode.ELEMENT_OUT_OF_ORDER,
+            childPath,
+            "<${child.name}> must come before <$latestName> inside <${e.name}> " +
+              "(the XSD fixes the order of its children)",
+          )
+      } else if (rank > latestRank) {
+        latestRank = rank
+        latestName = child.name
+      }
+    }
   }
 
   private fun checkValue(
