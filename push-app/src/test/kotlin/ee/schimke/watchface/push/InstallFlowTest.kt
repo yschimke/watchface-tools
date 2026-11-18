@@ -107,6 +107,23 @@ class InstallFlowTest {
   }
 
   @Test
+  fun publicDesignInstallsWithoutATokenAndReportsNothing() = runTest {
+    val pusher = FakePusher()
+    val result = flow(pusher).install(null, aurora)
+    assertIs<InstallResult.Success>(result)
+    assertEquals(listOf(aurora.packageName), pusher.slots.map { it.packageName })
+    assertTrue(server.installs.isEmpty(), "anonymous installs send no telemetry")
+  }
+
+  @Test
+  fun privateDesignNeedsALinkedWatch() = runTest {
+    val pusher = FakePusher()
+    val result = flow(pusher).install(null, pulse)
+    assertEquals(InstallResult.DownloadFailed(true, "HTTP 401", anonymous = true), result)
+    assertTrue(pusher.pushedBytes.isEmpty())
+  }
+
+  @Test
   fun pushRejectionIsMappedAndReported() = runTest {
     val pusher = FakePusher()
     pusher.nextFailure = PushFailure(PushFailureKind.INVALID_VALIDATION_TOKEN)

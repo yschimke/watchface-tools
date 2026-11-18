@@ -78,7 +78,12 @@ sealed interface InstallResult {
 
   data object ChecksumMismatch : InstallResult
 
-  data class DownloadFailed(val unauthorized: Boolean, val message: String?) : InstallResult
+  /** [anonymous]: no device token was sent, so a 401 means the design is not public. */
+  data class DownloadFailed(
+    val unauthorized: Boolean,
+    val message: String?,
+    val anonymous: Boolean = false,
+  ) : InstallResult
 
   data class PushRejected(val kind: PushFailureKind, val message: String?) : InstallResult
 }
@@ -88,14 +93,17 @@ class InstallFlow(
   private val pusher: WatchFacePusher,
   private val cacheDir: File,
   private val wearOsApi: Int,
+  /** One line per step (download, verify, push); the emulator test asserts on them in logcat. */
+  private val log: (String) -> Unit = {},
 ) {
   /**
    * Installs or updates [design]: plan against the watch's slots, download, verify SHA-256, then
    * hand the file to the push API. [confirmReplace] must be true to overwrite a different design's
    * slot. With [activate] the new face is made active afterwards when the permission is held.
+   * Without a [deviceToken] (browsing public designs) nothing is reported to the server.
    */
   suspend fun install(
-    deviceToken: String,
+    deviceToken: String?,
     design: Design,
     confirmReplace: Boolean = false,
     activate: Boolean = false,
@@ -108,6 +116,9 @@ class InstallFlow(
         return InstallResult.PushRejected(e.kind, e.message)
       }
     val plan = InstallPlanner.plan(design, state, pusher.isSupported, pusher.wffVersion)
+    log(
+      "plan design=${design.id} plan=${plan.javaClass.simpleName} anonymous=${deviceToken == null}",
+    )
     if (plan is InstallPlan.Blocked) return InstallResult.Blocked(plan.reason)
     if (plan is InstallPlan.ReplaceOther && !confirmReplace)
       return InstallResult.NeedsReplaceConfirmation(plan.slot)
@@ -118,9 +129,13 @@ class InstallFlow(
         try {
           api.downloadApk(deviceToken, design, file)
         } catch (e: ApiException) {
-          return InstallResult.DownloadFailed(e.isUnauthorized, e.message)
+          log("download design=${design.id} failed status=${e.status}")
+          return InstallResult.DownloadFailed(e.isUnauthorized, e.message, deviceToken == null)
         }
-      if (!actual.equals(design.sha256, ignoreCase = true)) return InstallResult.ChecksumMismatch
+      log("download design=${design.id} bytes=${file.length()} sha256=$actual")
+      val verified = actual.equals(design.sha256, ignoreCase = true)
+      log("verify design=${design.id} sha256 ${if (verified) "ok" else "mismatch"}")
+      if (!verified) return InstallResult.ChecksumMismatch
 
       val face =
         try {
@@ -133,6 +148,7 @@ class InstallFlow(
             is InstallPlan.Blocked -> error("unreachable")
           }
         } catch (e: PushFailure) {
+          log("push design=${design.id} rejected kind=${e.kind} message=${e.message}")
           api.reportInstall(
             deviceToken,
             InstallEvent(design.id, design.version, "failed", e.kind.name, wearOsApi),
@@ -140,6 +156,7 @@ class InstallFlow(
           return InstallResult.PushRejected(e.kind, e.message)
         }
 
+      log("push design=${design.id} installed slot=${face.slotId} package=${face.packageName}")
       val activation =
         if (activate && pusher.canSetActive()) {
           try {
@@ -149,6 +166,7 @@ class InstallFlow(
             Activation.Manual(e.kind)
           }
         } else Activation.NotRequested
+      log("activate design=${design.id} activation=$activation")
       api.reportInstall(
         deviceToken,
         InstallEvent(

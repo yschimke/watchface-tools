@@ -46,12 +46,12 @@ class LinkControllerTest {
 
     override suspend fun poll(code: String, pollSecret: String) = polls.removeFirst()()
 
-    override suspend fun listDesigns(deviceToken: String): List<Design> = error("unused")
+    override suspend fun listDesigns(deviceToken: String?): List<Design> = error("unused")
 
-    override suspend fun downloadApk(deviceToken: String, design: Design, target: File): String =
+    override suspend fun downloadApk(deviceToken: String?, design: Design, target: File): String =
       error("unused")
 
-    override suspend fun reportInstall(deviceToken: String, event: InstallEvent) = Unit
+    override suspend fun reportInstall(deviceToken: String?, event: InstallEvent) = Unit
   }
 
   @Test

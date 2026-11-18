@@ -2,6 +2,7 @@ package ee.schimke.watchface.push
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import coil3.ImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import ee.schimke.watchface.push.data.CatalogServers
@@ -30,7 +31,11 @@ class AppGraph(
   knownServers: List<String>,
   fake: Boolean,
   val allowInsecureServers: Boolean,
+  /** Debug only: extra designs for the fake's catalog (see [FakePushServer]). */
+  extraCatalogUrl: String? = null,
 ) {
+  /** Diagnostics to logcat under [LOG_TAG]; the emulator workflow asserts on these lines. */
+  val log: (String) -> Unit = { Log.i(LOG_TAG, it) }
   val tokens: TokenStore = DataStoreTokenStore(context)
   val serverPresets: List<String> =
     if (fake) CatalogServers.presets(FAKE_SERVER, listOf(defaultServer) + knownServers, true)
@@ -48,12 +53,14 @@ class AppGraph(
     val builder = OkHttpClient.Builder()
     if (fake) {
       val host = FAKE_SERVER.substringAfter("://")
-      builder.addInterceptor(FakePushServer(host, previewPng = PreviewArt::render))
+      builder.addInterceptor(
+        FakePushServer(host, previewPng = PreviewArt::render, extraCatalogUrl = extraCatalogUrl),
+      )
     }
     val client = builder.build()
     switching = SwitchingPushApi(serverPresets.first(), client)
     api = switching
-    installFlow = InstallFlow(api, pusher, context.cacheDir, Build.VERSION.SDK_INT)
+    installFlow = InstallFlow(api, pusher, context.cacheDir, Build.VERSION.SDK_INT, log)
     linkController =
       LinkController(api, tokens, deviceName = Build.MODEL, wearOsApi = Build.VERSION.SDK_INT)
     imageLoader =
@@ -64,7 +71,8 @@ class AppGraph(
 
   fun switchServer(server: String) = switching.switchTo(server)
 
-  private companion object {
+  companion object {
     const val FAKE_SERVER = "https://fake.watchface.invalid"
+    const val LOG_TAG = "FacesPush"
   }
 }

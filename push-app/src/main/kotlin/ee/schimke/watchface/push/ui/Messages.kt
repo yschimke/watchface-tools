@@ -49,7 +49,8 @@ object Messages {
       is InstallResult.NeedsReplaceConfirmation -> "Replace the current face?"
       InstallResult.ChecksumMismatch -> "The download was corrupted (checksum mismatch). Try again."
       is InstallResult.DownloadFailed ->
-        if (result.unauthorized) "Your account link expired. Link again."
+        if (result.unauthorized && result.anonymous) "This face is private. Link your account."
+        else if (result.unauthorized) "Your account link expired. Link again."
         else "Download failed. Check the connection."
       is InstallResult.PushRejected -> failure(result.kind)
     }

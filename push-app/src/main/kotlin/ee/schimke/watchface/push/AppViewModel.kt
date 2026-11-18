@@ -30,6 +30,9 @@ sealed interface Session {
 
   data object Unlinked : Session
 
+  /** Not linked, browsing the server's public designs. */
+  data object Browsing : Session
+
   data class Linked(val account: LinkedAccount) : Session
 }
 
@@ -62,7 +65,11 @@ class AppViewModel(
   val serverPresets: List<String>,
   /** Debug builds accept plain-http servers (a server on the developer's machine). */
   private val allowInsecureServers: Boolean = false,
+  /** Diagnostics, one line per event; the emulator test asserts on them in logcat. */
+  private val log: (String) -> Unit = {},
 ) : ViewModel() {
+  private val browsing = MutableStateFlow(false)
+
   private val _server = MutableStateFlow<String?>(null)
 
   /** The catalog server in use; null until the stored choice has loaded. */
@@ -112,7 +119,8 @@ class AppViewModel(
 
   init {
     viewModelScope.launch {
-      combine(servers.server, tokens.account, ::Pair).collect { (server, stored) ->
+      combine(servers.server, tokens.account, browsing, ::Triple).collect { (server, stored, browse)
+        ->
         if (server != _server.value) {
           cancelTokenWork()
           switchServer(server)
@@ -120,11 +128,35 @@ class AppViewModel(
         }
         // A token is only used with the server that issued it; another server's reads as unlinked.
         val account = stored?.takeIf { it.server == server }
-        _session.value = if (account == null) Session.Unlinked else Session.Linked(account)
-        if (account != null) refresh() else _designs.value = DesignsState.Loading
+        _session.value =
+          when {
+            account != null -> Session.Linked(account)
+            browse -> Session.Browsing
+            else -> Session.Unlinked
+          }
+        if (account != null || browse) refresh() else _designs.value = DesignsState.Loading
       }
     }
   }
+
+  /** Lists the server's public designs without linking; installs need no account. */
+  fun browsePublic() {
+    browsing.value = true
+  }
+
+  /** Leaves public browsing for the link screen (linking adds the account's own designs). */
+  fun stopBrowsing() {
+    cancelTokenWork()
+    browsing.value = false
+  }
+
+  /** The token to send: the linked account's, or none while browsing public designs. */
+  private fun currentToken(): Result<String?> =
+    when (val s = session.value) {
+      is Session.Linked -> Result.success(s.account.deviceToken)
+      Session.Browsing -> Result.success(null)
+      else -> Result.failure(IllegalStateException("no session"))
+    }
 
   fun startLink() {
     val server = _server.value ?: return
@@ -144,24 +176,47 @@ class AppViewModel(
     return true
   }
 
+  /**
+   * Debug builds and tests only: link to [server] with a token issued elsewhere (an emulator run
+   * against a live server, where nobody can approve a device code).
+   */
+  fun importToken(token: String, server: String) {
+    val normalized = CatalogServers.normalize(server, allowInsecureServers) ?: return
+    viewModelScope.launch { tokens.save(LinkedAccount(token, null, normalized)) }
+  }
+
   fun unlink() {
     cancelTokenWork()
+    browsing.value = false
     viewModelScope.launch { tokens.clear() }
     _install.value = InstallUi.Idle
   }
 
   fun refresh() {
-    val account = (session.value as? Session.Linked)?.account ?: return
+    val token =
+      currentToken().getOrElse {
+        return
+      }
     _designs.value = DesignsState.Loading
     launchWithToken {
       _designs.value =
         try {
-          DesignsState.Ready(api.listDesigns(account.deviceToken), loadPushState())
+          val designs = api.listDesigns(token)
+          val push = loadPushState()
+          log("list designs=${designs.joinToString(",") { it.id }} anonymous=${token == null}")
+          log("state ${push.describe()}")
+          DesignsState.Ready(designs, push)
         } catch (e: ApiException) {
-          if (e.isUnauthorized) {
-            tokens.clear()
-            DesignsState.Loading
-          } else DesignsState.Error(e.message ?: "Could not load designs")
+          log("list failed status=${e.status} anonymous=${token == null}")
+          when {
+            e.isUnauthorized && token != null -> {
+              tokens.clear()
+              DesignsState.Loading
+            }
+            e.isUnauthorized || e.status == 404 ->
+              DesignsState.Error("This server has no public faces. Link your account.")
+            else -> DesignsState.Error(e.message ?: "Could not load designs")
+          }
         }
     }
   }
@@ -176,14 +231,22 @@ class AppViewModel(
       }
 
   fun installDesign(design: Design, confirmReplace: Boolean, activate: Boolean) {
-    val account = (session.value as? Session.Linked)?.account ?: return
+    val token =
+      currentToken().getOrElse {
+        return
+      }
     if (_install.value is InstallUi.Working) return
     _install.value = InstallUi.Working(design.id)
     launchWithToken {
-      val result = installFlow.install(account.deviceToken, design, confirmReplace, activate)
-      if (result is InstallResult.DownloadFailed && result.unauthorized) tokens.clear()
+      val result = installFlow.install(token, design, confirmReplace, activate)
+      log("install design=${design.id} result=${result.javaClass.simpleName} $result")
+      // Anonymous 401: a private design; only a linked watch's 401 means its token was revoked.
+      if (result is InstallResult.DownloadFailed && result.unauthorized && token != null) {
+        tokens.clear()
+      }
       _install.value = InstallUi.Finished(design.id, result)
       val push = loadPushState()
+      log("state ${push.describe()}")
       _designs.update { state ->
         if (state is DesignsState.Ready) state.copy(push = push) else state
       }
@@ -212,3 +275,9 @@ class AppViewModel(
     _install.value = InstallUi.Idle
   }
 }
+
+private fun PushState?.describe(): String =
+  if (this == null) "unsupported"
+  else
+    "remaining=$remainingSlots installed=" +
+      installed.joinToString(",") { "${it.packageName}:${it.versionCode}:${it.slotId}" }

@@ -60,11 +60,20 @@ fun LinkScreen(
   server: String?,
   onRetry: () -> Unit,
   onChangeServer: () -> Unit,
+  onBrowse: () -> Unit = {},
 ) {
   val list = rememberTransformingLazyColumnState()
   ScreenScaffold(list) { padding ->
     TransformingLazyColumn(state = list, contentPadding = padding) {
       item { ListHeader { Text("Link your account") } }
+      // Public faces need no account: offered first, so linking stays optional.
+      item {
+        Button(
+          onClick = onBrowse,
+          label = { Text("Browse public faces") },
+          secondaryLabel = { Text("No account needed") },
+        )
+      }
       when (state) {
         LinkState.Requesting -> item { CircularProgressIndicator() }
         is LinkState.Waiting -> {
@@ -146,11 +155,13 @@ fun DesignListScreen(
   onOpen: (Design) -> Unit,
   onRefresh: () -> Unit,
   onUnlink: () -> Unit,
+  /** False while browsing public designs: the last button links instead of unlinking. */
+  linked: Boolean = true,
 ) {
   val list = rememberTransformingLazyColumnState()
   ScreenScaffold(list) { padding ->
     TransformingLazyColumn(state = list, contentPadding = padding) {
-      item { ListHeader { Text("Your designs") } }
+      item { ListHeader { Text(if (linked) "Your designs" else "Public faces") } }
       if (!pushSupported) {
         item {
           Text(
@@ -170,7 +181,8 @@ fun DesignListScreen(
           if (state.designs.isEmpty()) {
             item {
               Text(
-                "Nothing published yet. Publish a design from the site.",
+                if (linked) "Nothing published yet. Publish a design from the site."
+                else "No public faces yet.",
                 textAlign = TextAlign.Center,
               )
             }
@@ -215,9 +227,11 @@ fun DesignListScreen(
         Button(
           onClick = onUnlink,
           colors = ButtonDefaults.filledTonalButtonColors(),
-          label = { Text("Unlink") },
+          label = { Text(if (linked) "Unlink" else "Link account") },
           secondaryLabel = {
-            val who = listOfNotNull(accountName, server?.let(CatalogServers::label))
+            val who =
+              if (linked) listOfNotNull(accountName, server?.let(CatalogServers::label))
+              else listOf("Adds your own designs")
             if (who.isNotEmpty()) Text(who.joinToString(" · "))
           },
         )
