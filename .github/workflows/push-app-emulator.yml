@@ -41,8 +41,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # Wear OS 6.0: system-images;android-36;android-wear-signed;x86_64 (stable channel). Google
+  # ships the Wear OS 6 images only as `android-wear-signed`; there is no plain `android-wear`.
   API_LEVEL: 36
-  EMULATOR_TARGET: android-wear
+  EMULATOR_TARGET: android-wear-signed
   EMULATOR_PROFILE: wearos_large_round
 
 jobs:
@@ -77,6 +79,15 @@ jobs:
           nohup python3 -m http.server 8765 --bind 127.0.0.1 > "$RUNNER_TEMP/http.log" 2>&1 &
           sleep 1
           curl -fsS http://127.0.0.1:8765/extra.json > /dev/null
+      - name: Check the Wear OS system image exists
+        run: |
+          image="system-images;android-${API_LEVEL};${EMULATOR_TARGET};x86_64"
+          if ! "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --list 2>/dev/null | grep -qF "$image"; then
+            echo "::error::$image is not in sdkmanager's repository. Wear images available:"
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --list 2>/dev/null | grep -F 'android-wear' || true
+            exit 1
+          fi
+          echo "Found $image"
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -138,6 +149,16 @@ jobs:
       - name: Build the debug app
         if: steps.probe.outputs.live == 'true'
         run: ./gradlew :push-app:assembleDebug
+      - name: Check the Wear OS system image exists
+        if: steps.probe.outputs.live == 'true'
+        run: |
+          image="system-images;android-${API_LEVEL};${EMULATOR_TARGET};x86_64"
+          if ! "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --list 2>/dev/null | grep -qF "$image"; then
+            echo "::error::$image is not in sdkmanager's repository. Wear images available:"
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --list 2>/dev/null | grep -F 'android-wear' || true
+            exit 1
+          fi
+          echo "Found $image"
       - name: Enable KVM
         if: steps.probe.outputs.live == 'true'
         run: |
