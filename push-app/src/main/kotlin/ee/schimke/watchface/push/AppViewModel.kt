@@ -88,11 +88,33 @@ class AppViewModel(
 
   private var linkJob: Job? = null
 
+  /** Work that sends the device token: listing designs and installs (download + report). */
+  private val tokenJobs = mutableSetOf<Job>()
+
+  private fun launchWithToken(block: suspend () -> Unit): Job =
+    viewModelScope
+      .launch { block() }
+      .also { job ->
+        tokenJobs += job
+        job.invokeOnCompletion { tokenJobs -= job }
+      }
+
+  /**
+   * Stops everything that would send a device token, before the token is dropped or the API is
+   * pointed at another server. All of it runs on the main dispatcher, as the switch does, so a
+   * cancelled job cannot resume and reach [api] again: its next suspension point throws.
+   */
+  private fun cancelTokenWork() {
+    linkJob?.cancel()
+    tokenJobs.toList().forEach { it.cancel() }
+    if (_install.value is InstallUi.Working) _install.value = InstallUi.Idle
+  }
+
   init {
     viewModelScope.launch {
       combine(servers.server, tokens.account, ::Pair).collect { (server, stored) ->
         if (server != _server.value) {
-          linkJob?.cancel()
+          cancelTokenWork()
           switchServer(server)
           _server.value = server
         }
@@ -117,13 +139,13 @@ class AppViewModel(
    */
   fun selectServer(input: String): Boolean {
     val server = CatalogServers.normalize(input, allowInsecureServers) ?: return false
-    linkJob?.cancel()
+    cancelTokenWork()
     viewModelScope.launch { servers.select(server) }
     return true
   }
 
   fun unlink() {
-    linkJob?.cancel()
+    cancelTokenWork()
     viewModelScope.launch { tokens.clear() }
     _install.value = InstallUi.Idle
   }
@@ -131,7 +153,7 @@ class AppViewModel(
   fun refresh() {
     val account = (session.value as? Session.Linked)?.account ?: return
     _designs.value = DesignsState.Loading
-    viewModelScope.launch {
+    launchWithToken {
       _designs.value =
         try {
           DesignsState.Ready(api.listDesigns(account.deviceToken), loadPushState())
@@ -157,7 +179,7 @@ class AppViewModel(
     val account = (session.value as? Session.Linked)?.account ?: return
     if (_install.value is InstallUi.Working) return
     _install.value = InstallUi.Working(design.id)
-    viewModelScope.launch {
+    launchWithToken {
       val result = installFlow.install(account.deviceToken, design, confirmReplace, activate)
       if (result is InstallResult.DownloadFailed && result.unauthorized) tokens.clear()
       _install.value = InstallUi.Finished(design.id, result)

@@ -21,6 +21,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import okhttp3.OkHttpClient
+import okhttp3.ResponseBody.Companion.toResponseBody
 
 /** The session follows the chosen catalog server, and a token is only used with its own server. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -28,7 +29,29 @@ class AppViewModelServerTest {
   private val home = "https://$FAKE_HOST"
   private val other = "https://other.example"
   private val server = FakePushServer(FAKE_HOST)
-  private val api = SwitchingPushApi(home, OkHttpClient.Builder().addInterceptor(server).build())
+  /** Every request's URL and Authorization header, whichever server it went to. */
+  private val sent = java.util.Collections.synchronizedList(mutableListOf<Pair<String, String?>>())
+  private val api =
+    SwitchingPushApi(
+      home,
+      OkHttpClient.Builder()
+        .addInterceptor { chain ->
+          val request = chain.request()
+          sent += request.url.toString() to request.header("Authorization")
+          if (request.url.host == FAKE_HOST) chain.proceed(request)
+          else
+            okhttp3.Response.Builder()
+              .request(request)
+              .protocol(okhttp3.Protocol.HTTP_1_1)
+              .code(404)
+              .message("other")
+              .body("".toResponseBody())
+              .build()
+        }
+        .addInterceptor(server)
+        .build(),
+    )
+  private val pusher = FakePusher()
   private val switched = mutableListOf<String>()
   private val tokens = InMemoryTokenStore(LinkedAccount(server.deviceToken, "demo", home))
   private val servers = InMemoryServerStore(home)
@@ -38,7 +61,6 @@ class AppViewModelServerTest {
   @AfterTest fun reset() = Dispatchers.resetMain()
 
   private fun vm(): AppViewModel {
-    val pusher = FakePusher()
     return AppViewModel(
       api,
       tokens,
@@ -79,4 +101,31 @@ class AppViewModelServerTest {
     assertEquals(home, vm.server.value)
     assertIs<Session.Linked>(vm.session.value)
   }
+
+  @Test
+  fun anInstallInFlightNeverSendsItsTokenToTheNextServer(): Unit =
+    kotlinx.coroutines.runBlocking {
+      val vm = vm()
+      kotlinx.coroutines.withTimeout(5_000) {
+        while (vm.designs.value !is DesignsState.Ready) kotlinx.coroutines.delay(10)
+      }
+      val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+      pusher.gate = gate
+      vm.installDesign(server.designs.first(), confirmReplace = true, activate = false)
+      // The APK is downloaded; the push is now held at the gate.
+      kotlinx.coroutines.withTimeout(5_000) {
+        while (sent.none { it.first.endsWith("/apk") }) kotlinx.coroutines.delay(10)
+      }
+      kotlinx.coroutines.delay(100)
+      // Mid-install: unlink and move to another server, then let the push finish.
+      vm.unlink()
+      assertTrue(vm.selectServer(other))
+      gate.complete(Unit)
+      kotlinx.coroutines.delay(300)
+
+      val leaked = sent.filter { !it.first.startsWith(home) && it.second != null }
+      assertTrue(leaked.isEmpty(), "token sent to another server: $leaked")
+      assertTrue(server.installs.isEmpty(), "the cancelled install must not report")
+      assertIs<InstallUi.Idle>(vm.install.value)
+    }
 }
