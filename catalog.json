@@ -1,0 +1,7 @@
+{
+  "schema": "design-parity-catalog/v1",
+  "system": "wff-watchface",
+  "title": "Wear OS watch faces (WFF)",
+  "components": [],
+  "uiBuilderFile": "ui-builder.json"
+}
