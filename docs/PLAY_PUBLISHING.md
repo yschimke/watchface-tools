@@ -38,8 +38,10 @@ harmless, and it keeps one version per release.
 
 ## One-time setup
 
-1. **Create the app in Play Console** as a Wear OS app with package `ee.schimke.watchface.push`.
-   Use Play App Signing. Play holds the app signing key, and CI only ever has the *upload* key.
+1. **Create the app in Play Console** with package `ee.schimke.watchface.push`, then add **Wear OS**
+   under Test and release → Advanced settings → Form factors. (Play may add Android XR there by
+   default; remove it if the app shouldn't be offered on XR.) New apps use Play App Signing: Play
+   holds the app signing key, and CI only ever has the *upload* key.
 2. **Create an upload key** and keep a backup; it can be reset through Play support, but that takes
    days.
    ```
@@ -50,9 +52,15 @@ harmless, and it keeps one version per release.
    bundle sets its package and upload certificate. Add the four `PUSH_APP_*` secrets from step 5
    first, so the bundle is signed with the upload key. Then run the **Play release** workflow for
    the latest tag without `publish_play`. Download the `push-app-vX.Y.Z` artifact, and upload its `.aab` to the
-   Wear OS internal track in Play Console.
-4. **Add a service account** with access to this app's testing releases and store presence (Play
-   Console → Users and permissions), and create a JSON key for it.
+   Wear OS internal track in Play Console. Internal testing opens on the **Phones, Tablets,
+   Desktop** track; switch its selector to **Wear OS only** first, or Play rejects the bundle
+   because it requires `android.hardware.type.watch`. Each form factor's track has its own tester
+   lists, so pick them on the Wear OS track. A bundle Play has seen once stays in the library and
+   its version code can't be uploaded again: use **Add from library** to reuse it.
+4. **Add a service account** (Play Console → Users and permissions) with these app permissions:
+   *Release apps to testing tracks*, *Manage store presence* (for the listing), and *Edit and
+   delete draft apps* (until the app leaves draft). Leave production releases off. A service
+   account your other apps already publish with can be reused: add this app to its permissions.
 5. **Add the repository secrets**, then set the repository variable `PLAY_PUBLISH=true`:
 
    | Secret | |
@@ -73,6 +81,12 @@ harmless, and it keeps one version per release.
    gh variable set PLAY_PUBLISH -R yschimke/watchface-tools -b true
    ```
    A publishing run fails early, naming any secret that is missing.
+
+   An upload key can be shared with other apps; Play only checks that each app's uploads are
+   signed with the certificate it registered. This repository's key is the `watchface_push` alias
+   in the shared PKCS12 upload keystore beside the cadence, terrazzo and meshcore keys (one store
+   and key password, a PKCS12 limitation), so `PUSH_APP_KEY_PASSWORD` equals
+   `PUSH_APP_KEYSTORE_PASSWORD`.
 6. **Complete the Console forms** that Gradle Play Publisher doesn't manage: privacy policy, Data
    safety (the app stores a device token and talks to the site), content rating, app category, and
    internal testers.
