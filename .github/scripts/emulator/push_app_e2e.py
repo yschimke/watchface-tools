@@ -319,7 +319,8 @@ def run_server(a: argparse.Namespace) -> None:
     note("### Anonymous: public faces on the live server")
     tap_text("Browse public faces")
     wait_text("Public faces")
-    listed = wait_log(r"list (designs=(\S*)|failed status=\d+) anonymous=true")
+    listed = wait_log(r"list (designs=\S*|failed status=\d+) anonymous=true")
+    assert listed.group(1).startswith("designs="), f"the app could not list: {listed.group(0)}"
     screenshot("server-public-list")
     installable = [d for d in designs if d.get("wffVersion", 99) <= 4]
     if not installable:
@@ -337,7 +338,6 @@ def run_server(a: argparse.Namespace) -> None:
         screenshot("server-public-installed")
         assert result.group(1) == "Success", f"install of {design['id']}: {result.group(0)}"
         show_watch_face("server-watch-face")
-    del listed
 
     if token:
         note("### Linked with the device token secret")
