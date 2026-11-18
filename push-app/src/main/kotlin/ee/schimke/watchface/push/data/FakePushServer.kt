@@ -30,6 +30,8 @@ class FakePushServer(
   private val approveAfterPolls: Int = 2,
   private val previewPng: (title: String) -> ByteArray = { ByteArray(0) },
   private val extraCatalogUrl: String? = null,
+  /** False: never approve on its own; a test calls [approvePending] instead. */
+  private val autoApprove: Boolean = true,
   private val json: Json = DefaultJson,
 ) : Interceptor {
   val deviceToken = "fake-device-token"
@@ -37,6 +39,12 @@ class FakePushServer(
   private val polls = AtomicInteger()
   @Volatile var linked = false
   @Volatile var tamperApk = false
+  @Volatile private var approvedByTest = false
+
+  /** Approves the device code being polled (a new code needs approving again). */
+  fun approvePending() {
+    approvedByTest = true
+  }
 
   val designs: List<Design> =
     listOf(
@@ -96,6 +104,7 @@ class FakePushServer(
       }
       request.method == "POST" && path == "$api/device-codes" -> {
         polls.set(0)
+        approvedByTest = false
         ok(
           json.encodeToString(
             DeviceCode(
@@ -109,7 +118,9 @@ class FakePushServer(
         )
       }
       request.method == "POST" && path.startsWith("$api/device-codes/") && path.endsWith("/poll") ->
-        if (polls.incrementAndGet() > approveAfterPolls) {
+        if (
+          polls.incrementAndGet().let { autoApprove && it > approveAfterPolls } || approvedByTest
+        ) {
           linked = true
           ok(json.encodeToString(PollResponse("approved", deviceToken, "demo@example.com")))
         } else ok(json.encodeToString(PollResponse("pending")))

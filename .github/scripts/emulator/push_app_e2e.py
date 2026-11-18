@@ -180,7 +180,8 @@ def show_watch_face(name: str) -> None:
 
 def run_fake(a: argparse.Namespace) -> None:
     note("## Stage 1: in-process fake server")
-    extras = ["--ez", "fake", "true"]
+    # Approval only when the test says so: the anonymous stage must not race a device-code poll.
+    extras = ["--ez", "fake", "true", "--ez", "fake_auto_approve", "false"]
     if a.extra_catalog:
         extras += ["--es", "fake_extra_catalog", a.extra_catalog]
     launch(*extras)
@@ -213,13 +214,17 @@ def run_fake(a: argparse.Namespace) -> None:
     time.sleep(2)
     screenshot("public-placeholder-rejected")
     assert not any(p.endswith(".aurora") for p in pushed_packages())
+    assert "anonymous=false" not in logcat(), "the watch linked during the anonymous stage"
 
     note("### Linking: the fake approves the device code")
     back()
     tap_text("Link account")
     wait_text("Link your account")
-    time.sleep(1)
+    wait_text("AB7K-92QX", timeout=20)  # the fake's device code is on screen
     screenshot("link-code")
+    # Stands in for the user confirming the code on the site.
+    shell(f"am broadcast -a {PKG}.FAKE_APPROVE -p {PKG}")
+    wait_log(r"fake approve requested", timeout=10)
     wait_text("Your designs", timeout=30)
     linked = wait_log(r"list designs=(\S*) anonymous=false")
     linked_ids = linked.group(1).split(",")

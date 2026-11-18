@@ -58,4 +58,22 @@ class FakePushServerTest {
     assertEquals(fake.designs + real, withExtra.listDesigns(fake.deviceToken))
     extra.close()
   }
+
+  @Test
+  fun withoutAutoApprovalOnlyAnExplicitApprovalLinks() = runTest {
+    val fake = FakePushServer(FAKE_HOST, autoApprove = false)
+    val manual =
+      HttpPushApi("https://$FAKE_HOST", OkHttpClient.Builder().addInterceptor(fake).build())
+    val code = manual.createDeviceCode(ee.schimke.watchface.push.data.DeviceCodeRequest())
+    repeat(5) { assertEquals("pending", manual.poll(code.code, code.pollSecret).status) }
+
+    fake.approvePending()
+    val approved = manual.poll(code.code, code.pollSecret)
+    assertEquals("approved", approved.status)
+    assertEquals(fake.deviceToken, approved.deviceToken)
+
+    // A new code needs approving again.
+    val next = manual.createDeviceCode(ee.schimke.watchface.push.data.DeviceCodeRequest())
+    assertEquals("pending", manual.poll(next.code, next.pollSecret).status)
+  }
 }

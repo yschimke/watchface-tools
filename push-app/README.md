@@ -92,7 +92,9 @@ activate, `listWatchFaces` state).
 
 The debug-only launch extras: `--es base_url`, `--ez fake`, `--es fake_extra_catalog <url>` (more
 designs for the fake's catalog, a `DesignList` JSON) and `--es device_token <token>` (link to
-`base_url` with a token issued elsewhere).
+`base_url` with a token issued elsewhere). `--ez fake_auto_approve false` makes the fake wait for
+`adb shell am broadcast -a ee.schimke.watchface.push.FAKE_APPROVE -p ee.schimke.watchface.push`
+before approving a code, so the emulator test decides when the watch links.
 
 ## Design notes
 
