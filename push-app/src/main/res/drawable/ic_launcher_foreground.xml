@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A watch dial with a face arriving into it. Kept inside the adaptive icon's 66dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+  <path
+      android:pathData="M54,29a25,25 0,1 1,0 50a25,25 0,1 1,0 -50z"
+      android:strokeWidth="6"
+      android:strokeColor="#C95FDB" />
+  <path
+      android:pathData="M54,41L54,64M44.5,55L54,64.5L63.5,55"
+      android:strokeWidth="5.5"
+      android:strokeColor="#5EE6B8"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round" />
+</vector>
