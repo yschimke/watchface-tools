@@ -5,6 +5,7 @@ import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Protocol
@@ -51,10 +52,17 @@ class FakePushServer(
       fakeDesign("aurora", "Aurora", 3, 2, "Analog face with a soft gradient sky."),
       fakeDesign("pulse", "Pulse", 1, 4, "Bold digital time with heart-rate ring."),
       fakeDesign("future", "Next Gen", 2, 5, "Needs a newer Watch Face Format than Wear OS 6."),
+      // Catalog faces come after the designs, as on the real server.
+      fakeCatalogFace(
+        CatalogInfo("wear-os-samples-watchfaces", "Wear OS samples"),
+        previewId = "SimpleAnalog",
+        title = "Simple Analog",
+        face = "c_wear_os_samples_watchfaces_simpleanalog_0a1b2c3d4e",
+      ),
     )
 
-  /** Designs anyone may list and download; `pulse` belongs to the linked demo account. */
-  val publicIds: Set<String> = setOf("aurora", "future")
+  /** Faces anyone may list and download; `pulse` belongs to the linked demo account. */
+  val publicIds: Set<String> = setOf("aurora", "future", CATALOG_FACE_ID)
 
   val publicDesigns: List<Design>
     get() = designs.filter { it.id in publicIds }
@@ -64,20 +72,58 @@ class FakePushServer(
   private fun sha(bytes: ByteArray) =
     MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
-  private fun fakeDesign(id: String, title: String, version: Long, wff: Int, description: String) =
+  /** A face from a public catalog: an id with a `/`, server-built URLs, attribution. */
+  private fun fakeCatalogFace(
+    catalog: CatalogInfo,
+    previewId: String,
+    title: String,
+    face: String,
+  ) =
+    fakeDesign(
+        "catalog:${catalog.system}/$previewId",
+        title,
+        version = 1,
+        wff = 1,
+        description = "From the ${catalog.title} catalog.",
+        face = face,
+        urlPath = "${PushConstants.API_PREFIX}/catalog-faces/${catalog.system}/$previewId",
+      )
+      .copy(
+        source = Design.SOURCE_CATALOG,
+        catalog = catalog,
+        attribution =
+          Attribution(
+            repoUrl = "https://github.com/android/wear-os-samples",
+            sourceUrl = "https://github.com/android/wear-os-samples/tree/main/WatchFaceFormat",
+            license = "Apache-2.0",
+          ),
+        visibility = "public",
+      )
+
+  private fun fakeDesign(
+    id: String,
+    title: String,
+    version: Long,
+    wff: Int,
+    description: String,
+    face: String = id,
+    urlPath: String = "${PushConstants.API_PREFIX}/designs/$id",
+  ) =
     Design(
       id = id,
       title = title,
       description = description,
-      previewUrl = "https://$baseHost/previews/$id.png",
+      previewUrl =
+        if (face == id) "https://$baseHost/previews/$id.png"
+        else "https://$baseHost$urlPath/preview",
       version = version,
       versionName = "1.$version",
       wffVersion = wff,
-      packageName = "${PushConstants.PACKAGE_PREFIX}$id",
-      apkUrl = "https://$baseHost${PushConstants.API_PREFIX}/designs/$id/apk",
+      packageName = "${PushConstants.PACKAGE_PREFIX}$face",
+      apkUrl = "https://$baseHost$urlPath/apk?v=$version",
       sha256 = sha(apkBytes(id, version)),
       sizeBytes = apkBytes(id, version).size.toLong(),
-      validationToken = "fake-validation-token-$id",
+      validationToken = "fake-validation-token-$face",
     )
 
   override fun intercept(chain: Interceptor.Chain): Response {
@@ -98,8 +144,8 @@ class FakePushServer(
     fun ok(body: String) = respond(200, body.toByteArray(), "application/json")
 
     return when {
-      request.method == "GET" && path.startsWith("/previews/") -> {
-        val design = designs.firstOrNull { path == "/previews/${it.id}.png" }
+      request.method == "GET" && designs.any { path == it.previewUrl.toHttpUrl().encodedPath } -> {
+        val design = designs.firstOrNull { path == it.previewUrl.toHttpUrl().encodedPath }
         if (design == null) respond(404) else respond(200, previewPng(design.title), "image/png")
       }
       request.method == "POST" && path == "$api/device-codes" -> {
@@ -131,8 +177,9 @@ class FakePushServer(
         val listed = if (anonymous) publicDesigns else designs
         ok(json.encodeToString(DesignList(listed + extraDesigns(chain))))
       }
-      request.method == "GET" && path.startsWith("$api/designs/") && path.endsWith("/apk") -> {
-        val design = designs.firstOrNull { path == "$api/designs/${it.id}/apk" }
+      request.method == "GET" && path.endsWith("/apk") -> {
+        // Matched on the listed apkUrl, never rebuilt from the id (catalog ids contain `/`).
+        val design = designs.firstOrNull { path == it.apkUrl.toHttpUrl().encodedPath }
         val anonymous = request.header("Authorization") == null
         if (design == null) respond(404)
         else if (anonymous && design.id !in publicIds) respond(401)
@@ -164,5 +211,10 @@ class FakePushServer(
     } catch (e: java.io.IOException) {
       emptyList()
     }
+  }
+
+  companion object {
+    /** The fake's catalog face, listed anonymously like the server's preview.coo.ee catalogs. */
+    const val CATALOG_FACE_ID = "catalog:wear-os-samples-watchfaces/SimpleAnalog"
   }
 }

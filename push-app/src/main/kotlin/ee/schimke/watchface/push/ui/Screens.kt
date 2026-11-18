@@ -145,6 +145,35 @@ fun statusLabel(design: Design, push: PushState?, deviceWff: Int): String =
     else -> "v${design.versionName ?: design.version}"
   }
 
+/** A run of the list: [title] null for the designs, else the catalog's name. */
+data class DesignSection(val title: String?, val designs: List<Design>)
+
+/**
+ * The designs first (untitled: the screen header names them), then one section per catalog, in the
+ * server's order.
+ */
+fun designSections(designs: List<Design>): List<DesignSection> {
+  val (catalog, own) = designs.partition { it.isCatalog }
+  val groups =
+    catalog
+      .groupBy { it.catalog?.system ?: "" }
+      .map { (system, faces) ->
+        DesignSection(faces.first().catalog?.title ?: system.ifEmpty { "Catalog" }, faces)
+      }
+  return listOfNotNull(DesignSection(null, own).takeIf { own.isNotEmpty() }) + groups
+}
+
+/** Credit lines for a catalog face's detail screen; empty for a design. */
+fun attributionLines(design: Design): List<String> {
+  if (!design.isCatalog) return emptyList()
+  val a = design.attribution
+  return listOfNotNull(
+    (design.catalog?.title ?: design.catalog?.system)?.let { "From $it" },
+    a?.license?.let { "License: $it" },
+    (a?.sourceUrl ?: a?.repoUrl)?.let { "Source: " + it.removePrefix("https://") },
+  )
+}
+
 @Composable
 fun DesignListScreen(
   state: DesignsState,
@@ -198,15 +227,19 @@ fun DesignListScreen(
               )
             }
           }
-          items(state.designs.size) { index ->
-            val design = state.designs[index]
-            TitleCard(
-              onClick = { onOpen(design) },
-              title = { Text(design.title) },
-              subtitle = { Text(statusLabel(design, state.push, deviceWff)) },
-            ) {
-              Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                PreviewImage(design, Modifier.size(96.dp))
+          val sections = designSections(state.designs)
+          for (section in sections) {
+            section.title?.let { title -> item { ListHeader { Text(title) } } }
+            items(section.designs.size) { index ->
+              val design = section.designs[index]
+              TitleCard(
+                onClick = { onOpen(design) },
+                title = { Text(design.title) },
+                subtitle = { Text(statusLabel(design, state.push, deviceWff)) },
+              ) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                  PreviewImage(design, Modifier.size(96.dp))
+                }
               }
             }
           }
@@ -297,6 +330,16 @@ fun DesignDetailScreen(
         )
       }
       design.description?.let { item { Text(it, style = MaterialTheme.typography.bodySmall) } }
+      for (line in attributionLines(design)) {
+        item {
+          Text(
+            line,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+          )
+        }
+      }
       item {
         Text(
           statusLabel(design, push, deviceWff),

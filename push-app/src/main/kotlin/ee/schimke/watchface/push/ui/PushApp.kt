@@ -7,10 +7,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.CircularProgressIndicator
 import androidx.wear.compose.material3.MaterialTheme
@@ -76,6 +75,7 @@ private fun DesignsNav(vm: AppViewModel, accountName: String?, server: String?, 
   val designs by vm.designs.collectAsStateWithLifecycle()
   val install by vm.install.collectAsStateWithLifecycle()
   var pendingActivation by remember { mutableStateOf<Pair<String, String>?>(null) }
+  var openId by rememberSaveable { mutableStateOf<String?>(null) }
   val permission =
     rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
       val pending = pendingActivation
@@ -91,17 +91,18 @@ private fun DesignsNav(vm: AppViewModel, accountName: String?, server: String?, 
         server = server ?: current,
         deviceWff = vm.wffVersion,
         pushSupported = vm.pushSupported,
-        onOpen = { nav.navigate("design/${it.id}") },
+        onOpen = {
+          // Catalog ids contain `/`, so the id is kept here rather than in the route.
+          openId = it.id
+          nav.navigate("design")
+        },
         onRefresh = vm::refresh,
         onUnlink = if (linked) vm::unlink else vm::stopBrowsing,
         linked = linked,
       )
     }
-    composable(
-      "design/{id}",
-      arguments = listOf(navArgument("id") { type = NavType.StringType }),
-    ) { entry ->
-      val id = entry.arguments?.getString("id")
+    composable("design") {
+      val id = openId
       val ready = designs as? DesignsState.Ready
       val design = ready?.designs?.firstOrNull { it.id == id }
       if (design != null) {

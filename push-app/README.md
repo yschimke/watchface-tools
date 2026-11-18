@@ -78,14 +78,17 @@ screenshot per step plus logcat as the `push-app-emulator-*` artifact, and asser
 `FacesPush` logcat lines the app writes for each step (list, plan, download, verify, push,
 activate, `listWatchFaces` state).
 
-- **Stage 1 (fake):** browses public faces without an account, installs the placeholder `aurora`
+- **Stage 1 (fake):** browses public faces without an account (including the fake's catalog face), installs the placeholder `aurora`
   (download and SHA-256 verify pass; the push service rejects the placeholder bytes, the
   documented outcome), links, checks the private design is listed, then installs a real face:
-  `SimpleDigital` packaged by `:wff-packager` with a validation token, listed through the fake via
+  `SimpleDigital` packaged by `:wff-packager` with a validation token, as a **catalog face**
+  (`catalog:wear-os-samples-watchfaces/SimpleDigital`, under "Wear OS samples", with its licence
+  checked on the detail screen), listed through the fake via
   `--es fake_extra_catalog` and served from the runner over `adb reverse`. It checks
   `listWatchFaces` holds that face and screenshots the watch face.
 - **Stage 2 (server):** `workflow_dispatch` with `stage: server` and `base_url` (default
-  `https://ui.coo.ee`). Browses and installs a public face from the live server; with the
+  `https://ui.coo.ee`). Browses and installs a public face from the live server (a
+  wear-os-samples catalog face when the server lists one); with the
   `WATCHFACE_PUSH_DEVICE_TOKEN` repository secret it also launches linked (`--es device_token`)
   and checks the linked list. It skips with a notice while the server answers `404` for
   `/api/watchface-push/v1/designs`.
