@@ -17,6 +17,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -56,7 +57,10 @@ class AppViewModelServerTest {
   private var tokens = InMemoryTokenStore(LinkedAccount(server.deviceToken, "demo", home))
   private val servers = InMemoryServerStore(home)
 
-  @BeforeTest fun main() = Dispatchers.setMain(UnconfinedTestDispatcher())
+  /** Drives the ViewModel's delays (link polling); IO still runs on real threads. */
+  private val scheduler = kotlinx.coroutines.test.TestCoroutineScheduler()
+
+  @BeforeTest fun main() = Dispatchers.setMain(UnconfinedTestDispatcher(scheduler))
 
   @AfterTest fun reset() = Dispatchers.resetMain()
 
@@ -184,5 +188,28 @@ class AppViewModelServerTest {
       assertIs<ee.schimke.watchface.push.push.InstallResult.DownloadFailed>(result)
       assertTrue(result.anonymous)
       assertIs<Session.Browsing>(vm.session.value)
+    }
+
+  @Test
+  fun browsingCancelsTheLinkAttemptTheLinkScreenStarted(): Unit =
+    kotlinx.coroutines.runBlocking {
+      tokens = InMemoryTokenStore()
+      val vm = vm()
+      vm.startLink()
+      kotlinx.coroutines.withTimeout(5_000) {
+        while (vm.link.value !is ee.schimke.watchface.push.link.LinkState.Waiting) {
+          kotlinx.coroutines.delay(10)
+        }
+      }
+      vm.browsePublic()
+      // The fake approves on the third poll, one second apart: run well past that.
+      repeat(8) {
+        scheduler.advanceTimeBy(1_000)
+        scheduler.runCurrent()
+        kotlinx.coroutines.delay(100) // real time, for a poll's IO to come back
+      }
+      assertIs<Session.Browsing>(vm.session.value)
+      assertEquals(null, tokens.account.first())
+      assertFalse(server.linked, "no poll may reach approval while browsing")
     }
 }

@@ -141,6 +141,10 @@ class AppViewModel(
 
   /** Lists the server's public designs without linking; installs need no account. */
   fun browsePublic() {
+    // The link screen started a device-code attempt; an approval landing now would link the
+    // watch behind the user's back. "Link account" starts a fresh one.
+    linkJob?.cancel()
+    linkJob = null
     browsing.value = true
   }
 
