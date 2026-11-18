@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/yschimke/watchface-tools/compare/v0.3.0...v0.3.1) (2026-11-18)
+
+
+### Bug Fixes
+
+* **wff-core:** publish Java 17 bytecode for the JVM target ([#19](https://github.com/yschimke/watchface-tools/issues/19)) ([9f704bd](https://github.com/yschimke/watchface-tools/commit/9f704bd827624b452c40b2f3c8eca2378e7b59ea))
+
 ## [0.3.0](https://github.com/yschimke/watchface-tools/compare/v0.2.1...v0.3.0) (2026-11-18)
 
 
