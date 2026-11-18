@@ -296,4 +296,65 @@ class WffValueValidationTest {
     assertTrue(all.size >= 4, all.toString())
     assertTrue(all.all { it.path.startsWith("/WatchFace/") }, all.toString())
   }
+
+  /**
+   * Google's documented data-source table (developer.android.com/training/wearables/wff/common/
+   * attributes/source-type, checked 2026-11-18) and its VersionRegistry list none of these seven,
+   * so the version is the XSD's first listing and cannot be corrected from a Google source. The
+   * documented weather names are `WEATHER.DAY_TEMPERATURE_HIGH` and `..._LOW` (version 2); the bare
+   * `WEATHER.TEMPERATURE_HIGH`/`_LOW` appear only in the XSDs, from version 2.
+   */
+  @Test
+  fun dataSourcesGoogleDoesNotDocumentKeepTheXsdVersion() {
+    for (n in
+      listOf(
+        "LANGUAGE_CODE",
+        "LANGUAGE_COUNTRY_CODE",
+        "LANGUAGE_TEXT_DIRECTION",
+        "AMPM_STRING_ENG",
+        "AMPM_STRING_SHORT",
+      )) {
+      assertEquals(1, GENERATED_DATA_SOURCES[n], n)
+    }
+    for (n in listOf("WEATHER.TEMPERATURE_HIGH", "WEATHER.TEMPERATURE_LOW")) {
+      assertEquals(2, GENERATED_DATA_SOURCES[n], n)
+    }
+    // the documented spellings, version 2
+    assertEquals(2, GENERATED_DATA_SOURCES["WEATHER.DAY_TEMPERATURE_HIGH"])
+    assertEquals(2, GENERATED_DATA_SOURCES["WEATHER.DAY_TEMPERATURE_LOW"])
+    assertEquals(1, GENERATED_DATA_SOURCES["LANGUAGE_LOCALE_NAME"])
+  }
+
+  @Test
+  fun childrenOutOfSequenceOrderAreReported() {
+    // SecondHand is `Variant*` then `Sweep | Tick` (an xs:sequence).
+    fun hand(children: String) =
+      face(
+        """<AnalogClock x="0" y="0" width="450" height="450"><SecondHand resource="s" x="0" y="0" width="10" height="10">$children</SecondHand></AnalogClock>""",
+      )
+    val variant = """<Variant mode="AMBIENT" target="alpha" value="0"/>"""
+    val bad = hand("""<Sweep frequency="15"/>$variant""")
+    val d = bad.let { errors(it).filter { e -> e.code == WffDiagnosticCode.ELEMENT_OUT_OF_ORDER } }
+    assertEquals(1, d.size, errors(bad).toString())
+    assertEquals("/WatchFace/Scene/AnalogClock/SecondHand/Variant", d.single().path)
+    assertTrue("<Variant> must come before <Sweep>" in d.single().message, d.single().message)
+    // the right order, and two Variants around nothing, are fine
+    val good = hand("""$variant$variant<Sweep frequency="15"/>""")
+    assertEquals(
+      emptyList(),
+      errors(good).filter { it.code == WffDiagnosticCode.ELEMENT_OUT_OF_ORDER },
+    )
+  }
+
+  @Test
+  fun requiredChildrenQuery() {
+    val template = WffSchema.elements.getValue("Template")
+    assertEquals(listOf("Parameter"), WffSchema.requiredChildren(template).map { it.id })
+    assertTrue(!WffSchema.mayRemoveChild(template, "Parameter", listOf("Parameter")))
+    assertTrue(WffSchema.mayRemoveChild(template, "Parameter", listOf("Parameter", "Parameter")))
+    assertTrue(!WffSchema.mayRemoveChild(template, "Parameter", listOf("Other")))
+    val listOption = WffSchema.elements.getValue("ListConfiguration.ListOption")
+    // a scene-level ListOption needs exactly one child
+    assertTrue(!WffSchema.mayRemoveChild(listOption, "Group", listOf("Group")))
+  }
 }

@@ -143,6 +143,33 @@ public object WffSchema {
     return maxOf(edge.sinceVersion, elements.getValue(edge.id).sinceVersion)
   }
 
+  /**
+   * The children [parent] cannot be without: each [WffChildSpec] with [WffChildSpec.minOccurs]
+   * above zero (`Template` needs a `Parameter`). A child that is one of several alternatives is not
+   * listed; [parent]'s [WffElementSpec.minChildren] bounds those. Use [mayRemoveChild] to decide
+   * whether a particular node can be deleted.
+   */
+  public fun requiredChildren(parent: WffElementSpec): List<WffChildSpec> =
+    parent.children.filter { it.minOccurs > 0 }
+
+  /**
+   * Whether removing one child named [childName] from [parent], whose element children are now
+   * [siblingNames] (document order, [childName] included), still satisfies the content model's
+   * minimum counts: the child keeps its [WffChildSpec.minOccurs] and the parent keeps its
+   * [WffElementSpec.minChildren]. False when [childName] is not in [siblingNames]. Unknown children
+   * (passthrough) can always be removed. Maximum counts and order are not a concern when removing.
+   */
+  public fun mayRemoveChild(
+    parent: WffElementSpec,
+    childName: String,
+    siblingNames: List<String>,
+  ): Boolean {
+    if (childName !in siblingNames) return false
+    val edge = childEdge(parent, childName) ?: return true
+    if (siblingNames.count { it == childName } - 1 < edge.minOccurs) return false
+    return siblingNames.size - 1 >= parent.minChildren
+  }
+
   private fun childEdge(parent: WffElementSpec, name: String): WffChildSpec? =
     parent.children.firstOrNull { elements.getValue(it.id).name == name }
 }

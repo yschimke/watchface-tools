@@ -32,12 +32,23 @@ What the generator does:
   Kotlin/Wasm's regex engine rejects.
 - **Content model.** Per element, the generator folds `sequence`/`choice`/`all` into the loosest
   min and max occurrence of each child and of the children in total (`minChildren`, `maxChildren`),
-  so `Template` needs a `Parameter` and a scene-level `ListOption` holds exactly one child. Element
-  order is not recorded.
+  so `Template` needs a `Parameter` and a scene-level `ListOption` holds exactly one child.
+- **Child order.** Only a literal `xs:sequence` that occurs once is ordered; `all`, `choice`,
+  repeated groups, group references and base-plus-extension types collapse to one unordered slot,
+  and `xs:any` disables the check. (Group references and extensions are left out on evidence:
+  Google's own Wear OS samples put `Transform` after the shape inside `PartDraw`, whose XSD
+  extends an `all` base with an `all`; Google's validator accepts it.) Each child gets its slot
+  index in the latest version (`GENERATED_CHILD_ORDER`), and any child whose relative order differs
+  in an older version is dropped, so a recorded order holds in every version. That leaves a
+  handful of elements: `SecondHand` and `TimeText` (`Variant` before the hand/font).
 - **Data sources and functions.** The first version in which each name appears in `sourceType.xsd`
   and `_functionType`, overridden by Google's own table
   (`tools/dwf-validator/.../VersionRegistry.kt` in the same checkout) where it has an entry; the
-  older XSDs misname some weather sources. Names it lacks are not invented.
+  older XSDs misname some weather sources. Names it lacks are not invented. Google's public
+  data-source table (developer.android.com/training/wearables/wff/common/attributes/source-type)
+  does not list `LANGUAGE_CODE`, `LANGUAGE_COUNTRY_CODE`, `LANGUAGE_TEXT_DIRECTION`,
+  `AMPM_STRING_ENG`, `AMPM_STRING_SHORT` or `WEATHER.TEMPERATURE_HIGH`/`_LOW` either (it documents
+  `WEATHER.DAY_TEMPERATURE_HIGH`/`_LOW`, version 2), so those keep the XSD's first version.
 - **Attribute kinds** are inferred from XSD types and names: enumerations, `booleanType`, integer
   and float bases, `resourcePathType`, colours.
 

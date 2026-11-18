@@ -105,8 +105,21 @@ public object WffBundleLayout {
   public const val DEFAULT_TARGET_SDK: Int = 35
 
   /**
-   * Minimum SDK the manifest declares per format version. verify: V1 = Wear OS 4 (API 33), V2 =
-   * Wear OS 5 (API 34), V3 = API 35, V4 = API 36, V5 = API 36 (Wear OS 6.x; not yet confirmed).
+   * Minimum SDK the manifest declares per format version.
+   *
+   * Source for V1 to V4: Google's "Watch Face Format" overview, section "Versioning in WFF" (table
+   * "Each version of WFF aligns with a Wear OS release"),
+   * developer.android.com/training/wearables/wff (checked 2026-11-18): version 1 = Wear OS 4 = API
+   * 33, version 2 = Wear OS 5 = API 34, version 3 = Wear OS 5.1 = API 35, version 4 = Wear OS 6 =
+   * API 36. The Setup page says to set `minSdkVersion` to match the lowest format version that has
+   * the features used.
+   *
+   * V5 is NOT in that table (it stops at version 4), and neither the Setup, "Available features"
+   * and release-notes pages nor google/watchface state an API level for it. 36 is kept because
+   * version 5 adds no Wear OS platform of its own in anything Google has published; it is the same
+   * API level as V4 by assumption. TODO: when Google's table gains a row for version 5, change
+   * [WffVersion.V5] here and in `WffBundleLayoutTest`.
+   *
    * `ensureWffApk` in compose-ai-tools declares 33 even for version 2 because it only renders; real
    * packaging should use this table.
    */
@@ -114,9 +127,9 @@ public object WffBundleLayout {
     when (version) {
       WffVersion.V1 -> 33
       WffVersion.V2 -> 34
-      WffVersion.V3 -> 35 // verify
-      WffVersion.V4 -> 36 // verify
-      WffVersion.V5 -> 36 // verify
+      WffVersion.V3 -> 35
+      WffVersion.V4 -> 36
+      WffVersion.V5 -> 36 // unconfirmed, see the TODO above
     }
 
   public fun resourcePath(file: WffResourceFile): String = "res/${file.directory}/${file.fileName}"
