@@ -18,7 +18,10 @@ case "${1:?fake or server}" in
     adb reverse tcp:8765 tcp:8765
     python3 "$here/push_app_e2e.py" fake --out "$out" \
       --extra-catalog http://127.0.0.1:8765/extra.json \
-      --real-face simple_digital --real-title "Simple Digital"
+      --real-face "catalog:wear-os-samples-watchfaces/SimpleDigital" \
+      --real-package-face c_wear_os_samples_watchfaces_simpledigital_5e1d0c3a9b \
+      --real-title "Simple Digital" --real-catalog-title "Wear OS samples" \
+      --real-license Apache-2.0
     ;;
   server)
     python3 "$here/push_app_e2e.py" server --out "$out" --base-url "${BASE_URL:?}" \

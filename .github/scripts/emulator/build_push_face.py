@@ -55,6 +55,12 @@ def main() -> None:
     p.add_argument("--marketplace", default="ee.schimke.watchface.push")
     p.add_argument("--wff-version", type=int, default=1)
     p.add_argument("--version-code", type=int, default=1)
+    # A catalog face, as preview.coo.ee lists them: id catalog:<system>/<previewId>, attribution.
+    p.add_argument("--catalog-system")
+    p.add_argument("--catalog-title")
+    p.add_argument("--preview-id")
+    p.add_argument("--license", default="Apache-2.0")
+    p.add_argument("--repo-url", default="https://github.com/android/wear-os-samples")
     a = p.parse_args()
 
     out = a.out.resolve()
@@ -106,7 +112,7 @@ def main() -> None:
     data = apk.read_bytes()
     base = a.base_url.rstrip("/")
     design = {
-        "id": a.face_name,
+        "id": f"catalog:{a.catalog_system}/{a.preview_id}" if a.catalog_system else a.face_name,
         "title": a.title or a.face_name,
         "description": f"Packaged from the repository's {a.sample.name} sample by :wff-packager.",
         "previewUrl": f"{base}/preview.png",
@@ -114,11 +120,24 @@ def main() -> None:
         "versionName": f"1.{a.version_code}",
         "wffVersion": a.wff_version,
         "packageName": f"{a.marketplace}.watchfacepush.{a.face_name}",
-        "apkUrl": f"{base}/face.apk",
+        # Like the server's: absolute and versioned; clients use it exactly as given.
+        "apkUrl": f"{base}/face.apk?v={a.version_code}",
         "sha256": hashlib.sha256(data).hexdigest(),
         "sizeBytes": len(data),
         "validationToken": token_file.read_text().strip(),
     }
+    if a.catalog_system:
+        design.update(
+            source="catalog",
+            visibility="public",
+            catalog={"system": a.catalog_system, "title": a.catalog_title or a.catalog_system},
+            attribution={
+                "repoUrl": a.repo_url,
+                "sourceUrl": f"{a.repo_url}/tree/main/WatchFaceFormat/{a.sample.name}",
+                "license": a.license,
+            },
+            description=f"The {a.sample.name} sample, packaged by :wff-packager.",
+        )
     (out / "extra.json").write_text(json.dumps({"designs": [design]}, indent=2))
     print(json.dumps({k: v for k, v in design.items() if k != "validationToken"}, indent=2))
 
