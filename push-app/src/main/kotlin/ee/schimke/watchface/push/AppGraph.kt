@@ -4,12 +4,15 @@ import android.content.Context
 import android.os.Build
 import coil3.ImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import ee.schimke.watchface.push.data.CatalogServers
 import ee.schimke.watchface.push.data.FakePushServer
-import ee.schimke.watchface.push.data.HttpPushApi
 import ee.schimke.watchface.push.data.PreviewArt
 import ee.schimke.watchface.push.data.PushApi
+import ee.schimke.watchface.push.data.SwitchingPushApi
+import ee.schimke.watchface.push.link.DataStoreServerStore
 import ee.schimke.watchface.push.link.DataStoreTokenStore
 import ee.schimke.watchface.push.link.LinkController
+import ee.schimke.watchface.push.link.ServerStore
 import ee.schimke.watchface.push.link.TokenStore
 import ee.schimke.watchface.push.push.InstallFlow
 import ee.schimke.watchface.push.push.RealWatchFacePusher
@@ -17,9 +20,23 @@ import ee.schimke.watchface.push.push.WatchFacePusher
 import ee.schimke.watchface.push.push.WffSupport
 import okhttp3.OkHttpClient
 
-/** Hand-wired dependencies. [baseUrl] and [fake] come from BuildConfig, overridable in debug. */
-class AppGraph(context: Context, baseUrl: String, fake: Boolean) {
+/**
+ * Hand-wired dependencies. [defaultServer] and [knownServers] come from BuildConfig. With [fake]
+ * (debug builds) the in-process fake server is the default and the real servers stay selectable.
+ */
+class AppGraph(
+  context: Context,
+  defaultServer: String,
+  knownServers: List<String>,
+  fake: Boolean,
+  val allowInsecureServers: Boolean,
+) {
   val tokens: TokenStore = DataStoreTokenStore(context)
+  val serverPresets: List<String> =
+    if (fake) CatalogServers.presets(FAKE_SERVER, listOf(defaultServer) + knownServers, true)
+    else CatalogServers.presets(defaultServer, knownServers, allowInsecureServers)
+  val servers: ServerStore = DataStoreServerStore(context, serverPresets.first())
+  private val switching: SwitchingPushApi
   val api: PushApi
   val pusher: WatchFacePusher =
     RealWatchFacePusher(context, WffSupport.maxVersionForSdk(Build.VERSION.SDK_INT))
@@ -29,14 +46,13 @@ class AppGraph(context: Context, baseUrl: String, fake: Boolean) {
 
   init {
     val builder = OkHttpClient.Builder()
-    val effectiveBase =
-      if (fake) {
-        val host = "fake.watchface.invalid"
-        builder.addInterceptor(FakePushServer(host, previewPng = PreviewArt::render))
-        "https://$host"
-      } else baseUrl
+    if (fake) {
+      val host = FAKE_SERVER.substringAfter("://")
+      builder.addInterceptor(FakePushServer(host, previewPng = PreviewArt::render))
+    }
     val client = builder.build()
-    api = HttpPushApi(effectiveBase, client)
+    switching = SwitchingPushApi(serverPresets.first(), client)
+    api = switching
     installFlow = InstallFlow(api, pusher, context.cacheDir, Build.VERSION.SDK_INT)
     linkController =
       LinkController(api, tokens, deviceName = Build.MODEL, wearOsApi = Build.VERSION.SDK_INT)
@@ -44,5 +60,11 @@ class AppGraph(context: Context, baseUrl: String, fake: Boolean) {
       ImageLoader.Builder(context)
         .components { add(OkHttpNetworkFetcherFactory(callFactory = { client })) }
         .build()
+  }
+
+  fun switchServer(server: String) = switching.switchTo(server)
+
+  private companion object {
+    const val FAKE_SERVER = "https://fake.watchface.invalid"
   }
 }

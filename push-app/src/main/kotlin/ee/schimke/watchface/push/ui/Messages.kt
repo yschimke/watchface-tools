@@ -8,6 +8,9 @@ import ee.schimke.watchface.push.push.PushFailureKind
 
 /** User-facing copy for flow outcomes, kept out of composables so it is unit-testable. */
 object Messages {
+  fun badServer(input: String): String =
+    "\"${input.trim().take(40)}\" is not a server address. Use one like ui.coo.ee (https only)."
+
   fun blocked(reason: BlockReason, designWff: Int, deviceWff: Int): String =
     when (reason) {
       BlockReason.PUSH_UNSUPPORTED -> "This watch needs Wear OS 6 to install faces from here."

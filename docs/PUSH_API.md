@@ -5,8 +5,22 @@ Contract between the Wear OS push app (`:push-app`) and the hosted watch-face si
 `push-app/.../data/PushApi.kt`; an in-process fake of this contract lives in `FakePushServer.kt`
 and is what debug builds and the tests run against.
 
-All paths are under `/api/watchface-push/v1`. JSON bodies, UTF-8. The base URL is configurable
-(`-Ppush.baseUrl=...` at build time, or `--es base_url` on a debug launch).
+All paths are under `/api/watchface-push/v1`. JSON bodies, UTF-8.
+
+## Catalog servers
+
+Any site that implements this API can serve designs. The app starts on **`https://ui.coo.ee`**
+and its server picker (on the link screen) also offers `https://preview.coo.ee`. Any other server
+can be typed in on the watch. Builds can change both: `-Ppush.baseUrl=…` for the default and
+`-Ppush.servers=a,b` for the list. Debug builds also take `--es base_url` on launch.
+
+- Addresses are https only. Debug builds also accept `http://` for a server on the developer's
+  machine. User info, a query or a fragment is refused.
+- A device token belongs to the server that issued it, and is only ever sent to that server. Choosing
+  another server shows the link screen for it. Switching back to a server whose token the watch
+  still holds is linked again without a new code. The watch holds one token at a time, so linking a
+  second server replaces the first server's token.
+- The server can only be changed while unlinked. To move a linked watch, unlink first.
 
 ## Naming rule (shared with the packager)
 

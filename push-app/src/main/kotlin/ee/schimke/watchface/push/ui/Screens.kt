@@ -41,6 +41,7 @@ import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import ee.schimke.watchface.push.DesignsState
 import ee.schimke.watchface.push.InstallUi
+import ee.schimke.watchface.push.data.CatalogServers
 import ee.schimke.watchface.push.data.Design
 import ee.schimke.watchface.push.link.LinkState
 import ee.schimke.watchface.push.push.Activation
@@ -51,7 +52,12 @@ import ee.schimke.watchface.push.push.InstallResult
 import ee.schimke.watchface.push.push.PushState
 
 @Composable
-fun LinkScreen(state: LinkState, onRetry: () -> Unit) {
+fun LinkScreen(
+  state: LinkState,
+  server: String?,
+  onRetry: () -> Unit,
+  onChangeServer: () -> Unit,
+) {
   val list = rememberTransformingLazyColumnState()
   ScreenScaffold(list) { padding ->
     TransformingLazyColumn(state = list, contentPadding = padding) {
@@ -90,6 +96,14 @@ fun LinkScreen(state: LinkState, onRetry: () -> Unit) {
           item { Button(onClick = onRetry, label = { Text("Retry") }) }
         }
       }
+      item {
+        Button(
+          onClick = onChangeServer,
+          colors = ButtonDefaults.filledTonalButtonColors(),
+          label = { Text("Server") },
+          secondaryLabel = { server?.let { Text(CatalogServers.label(it)) } },
+        )
+      }
     }
   }
 }
@@ -123,6 +137,7 @@ fun statusLabel(design: Design, push: PushState?, deviceWff: Int): String =
 fun DesignListScreen(
   state: DesignsState,
   accountName: String?,
+  server: String?,
   deviceWff: Int,
   pushSupported: Boolean,
   onOpen: (Design) -> Unit,
@@ -196,7 +211,10 @@ fun DesignListScreen(
           onClick = onUnlink,
           colors = ButtonDefaults.filledTonalButtonColors(),
           label = { Text("Unlink") },
-          secondaryLabel = { accountName?.let { Text(it) } },
+          secondaryLabel = {
+            val who = listOfNotNull(accountName, server?.let(CatalogServers::label))
+            if (who.isNotEmpty()) Text(who.joinToString(" · "))
+          },
         )
       }
     }
