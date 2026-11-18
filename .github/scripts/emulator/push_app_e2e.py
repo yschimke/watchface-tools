@@ -36,6 +36,7 @@ import xml.etree.ElementTree as ET
 PKG = "ee.schimke.watchface.push"
 ACTIVITY = f"{PKG}/.MainActivity"
 TAG = "FacesPush"
+MAX_SWIPES = 15
 API = "/api/watchface-push/v1"
 
 out: pathlib.Path
@@ -140,12 +141,14 @@ def wait_header(text: str, timeout: float = 20) -> None:
 def wait_text(text: str, timeout: float = 30, scroll_to: bool = False) -> tuple[int, int]:
     deadline = time.time() + timeout
     swipes = 0
-    while time.time() < deadline:
+    # Scrolling is bounded by swipes, not the clock: a slow swipe plus a UI dump takes ~5 s, so
+    # 30 s reached only ~5 swipes, short of the list's end once catalog faces were added (#51).
+    while time.time() < deadline or (scroll_to and swipes < MAX_SWIPES):
         ensure_foreground()
         pos = find(text)
         if pos:
             return pos
-        if scroll_to and swipes < 12:
+        if scroll_to and swipes < MAX_SWIPES:
             scroll()
             swipes += 1
         else:
