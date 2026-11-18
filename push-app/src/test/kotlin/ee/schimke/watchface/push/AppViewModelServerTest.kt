@@ -17,6 +17,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -53,10 +54,13 @@ class AppViewModelServerTest {
     )
   private val pusher = FakePusher()
   private val switched = mutableListOf<String>()
-  private val tokens = InMemoryTokenStore(LinkedAccount(server.deviceToken, "demo", home))
+  private var tokens = InMemoryTokenStore(LinkedAccount(server.deviceToken, "demo", home))
   private val servers = InMemoryServerStore(home)
 
-  @BeforeTest fun main() = Dispatchers.setMain(UnconfinedTestDispatcher())
+  /** Drives the ViewModel's delays (link polling); IO still runs on real threads. */
+  private val scheduler = kotlinx.coroutines.test.TestCoroutineScheduler()
+
+  @BeforeTest fun main() = Dispatchers.setMain(UnconfinedTestDispatcher(scheduler))
 
   @AfterTest fun reset() = Dispatchers.resetMain()
 
@@ -127,5 +131,85 @@ class AppViewModelServerTest {
       assertTrue(leaked.isEmpty(), "token sent to another server: $leaked")
       assertTrue(server.installs.isEmpty(), "the cancelled install must not report")
       assertIs<InstallUi.Idle>(vm.install.value)
+    }
+
+  private fun awaitReady(vm: AppViewModel): DesignsState.Ready =
+    kotlinx.coroutines.runBlocking {
+      kotlinx.coroutines.withTimeout(5_000) {
+        while (vm.designs.value !is DesignsState.Ready) kotlinx.coroutines.delay(10)
+      }
+      vm.designs.value as DesignsState.Ready
+    }
+
+  @Test
+  fun browsesAndInstallsPublicFacesWithoutLinking(): Unit =
+    kotlinx.coroutines.runBlocking {
+      tokens = InMemoryTokenStore()
+      val vm = vm()
+      assertIs<Session.Unlinked>(vm.session.value)
+
+      vm.browsePublic()
+      assertIs<Session.Browsing>(vm.session.value)
+      val ready = awaitReady(vm)
+      assertEquals(server.publicIds, ready.designs.map { it.id }.toSet())
+
+      vm.installDesign(ready.designs.first { it.id == "aurora" }, false, activate = false)
+      kotlinx.coroutines.withTimeout(5_000) {
+        while (vm.install.value !is InstallUi.Finished) kotlinx.coroutines.delay(10)
+      }
+      assertIs<ee.schimke.watchface.push.push.InstallResult.Success>(
+        (vm.install.value as InstallUi.Finished).result,
+      )
+      assertTrue(sent.all { it.second == null }, "no token while browsing: $sent")
+
+      vm.stopBrowsing()
+      assertIs<Session.Unlinked>(vm.session.value)
+    }
+
+  @Test
+  fun linkedListingAddsTheAccountsOwnDesigns() {
+    val ready = awaitReady(vm())
+    assertEquals(server.designs.map { it.id }, ready.designs.map { it.id })
+    assertTrue(ready.designs.any { it.id !in server.publicIds })
+  }
+
+  @Test
+  fun anonymousRefusalOfAPrivateFaceKeepsTheSession(): Unit =
+    kotlinx.coroutines.runBlocking {
+      tokens = InMemoryTokenStore()
+      val vm = vm()
+      vm.browsePublic()
+      awaitReady(vm)
+      vm.installDesign(server.designs.first { it.id == "pulse" }, false, activate = false)
+      kotlinx.coroutines.withTimeout(5_000) {
+        while (vm.install.value !is InstallUi.Finished) kotlinx.coroutines.delay(10)
+      }
+      val result = (vm.install.value as InstallUi.Finished).result
+      assertIs<ee.schimke.watchface.push.push.InstallResult.DownloadFailed>(result)
+      assertTrue(result.anonymous)
+      assertIs<Session.Browsing>(vm.session.value)
+    }
+
+  @Test
+  fun browsingCancelsTheLinkAttemptTheLinkScreenStarted(): Unit =
+    kotlinx.coroutines.runBlocking {
+      tokens = InMemoryTokenStore()
+      val vm = vm()
+      vm.startLink()
+      kotlinx.coroutines.withTimeout(5_000) {
+        while (vm.link.value !is ee.schimke.watchface.push.link.LinkState.Waiting) {
+          kotlinx.coroutines.delay(10)
+        }
+      }
+      vm.browsePublic()
+      // The fake approves on the third poll, one second apart: run well past that.
+      repeat(8) {
+        scheduler.advanceTimeBy(1_000)
+        scheduler.runCurrent()
+        kotlinx.coroutines.delay(100) // real time, for a poll's IO to come back
+      }
+      assertIs<Session.Browsing>(vm.session.value)
+      assertEquals(null, tokens.account.first())
+      assertFalse(server.linked, "no poll may reach approval while browsing")
     }
 }

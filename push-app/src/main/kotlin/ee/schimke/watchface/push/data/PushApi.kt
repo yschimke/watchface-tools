@@ -24,14 +24,20 @@ interface PushApi {
 
   suspend fun poll(code: String, pollSecret: String): PollResponse
 
-  suspend fun listDesigns(deviceToken: String): List<Design>
+  /**
+   * The designs this watch may install. With no [deviceToken] (not linked) the server lists its
+   * public designs; with one, the account's own published designs as well.
+   */
+  suspend fun listDesigns(deviceToken: String?): List<Design>
 
   /**
    * Streams the design's APK to [target]; returns the lowercase hex SHA-256 of the bytes written.
+   * Public designs download without a [deviceToken].
    */
-  suspend fun downloadApk(deviceToken: String, design: Design, target: File): String
+  suspend fun downloadApk(deviceToken: String?, design: Design, target: File): String
 
-  suspend fun reportInstall(deviceToken: String, event: InstallEvent)
+  /** Install telemetry; needs a linked watch, so it is skipped without a [deviceToken]. */
+  suspend fun reportInstall(deviceToken: String?, event: InstallEvent)
 }
 
 class HttpPushApi(
@@ -91,7 +97,7 @@ class HttpPushApi(
         .build(),
     )
 
-  override suspend fun listDesigns(deviceToken: String): List<Design> =
+  override suspend fun listDesigns(deviceToken: String?): List<Design> =
     call<DesignList>(
         Request.Builder()
           .url(url("${PushConstants.API_PREFIX}/designs"))
@@ -101,7 +107,7 @@ class HttpPushApi(
       )
       .designs
 
-  override suspend fun downloadApk(deviceToken: String, design: Design, target: File): String {
+  override suspend fun downloadApk(deviceToken: String?, design: Design, target: File): String {
     val apkUrl = design.apkUrl.toHttpUrl()
     // Only send the device token to our own server, never to a CDN the apkUrl may point at.
     val token = if (apkUrl.host == base.host) deviceToken else null
@@ -130,7 +136,8 @@ class HttpPushApi(
     }
   }
 
-  override suspend fun reportInstall(deviceToken: String, event: InstallEvent) {
+  override suspend fun reportInstall(deviceToken: String?, event: InstallEvent) {
+    if (deviceToken == null) return
     // Best effort telemetry: never fail an install because of it.
     runCatching {
       execute(

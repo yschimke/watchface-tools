@@ -57,8 +57,10 @@ internal track with the listing in `src/main/play/`. Setup, secrets and versioni
 
 1. Create an AVD from the *Wear OS 6 (API 36) Small Round* system image.
 2. `./gradlew :push-app:installDebug`
-3. Launch **Faces**. The debug build uses the fake server: the watch shows a code and QR; the fake
-   approves after ~2 polls (no phone needed). Pointing at a real site instead:
+3. Launch **Faces**. **Browse public faces** lists the server's public designs with no account.
+   Or link: the debug build uses the fake server, so the watch shows a code and QR and the fake
+   approves after ~2 polls (no phone needed). Linking adds the account's private designs (`Pulse`
+   in the fake). Pointing at a real site instead:
    `adb shell am start -n ee.schimke.watchface.push/.MainActivity --es base_url https://<site> --ez fake false`
    then open the shown URL on a signed-in device and confirm.
 4. Open a design and tap **Install**. The fake serves placeholder bytes with a valid SHA-256, so the
@@ -66,6 +68,33 @@ internal track with the listing in `src/main/play/`. Setup, secrets and versioni
    token). To push a real face, run against a site that serves packager output.
 
 Unlink from the bottom of the design list.
+
+## Emulator test in CI
+
+`.github/workflows/push-app-emulator.yml` runs the app on a Wear OS 6 (API 36) emulator on every
+`push-app/**` change, and on demand. It is not a required check. It drives the UI with
+`uiautomator dump` + `adb shell input` (`.github/scripts/emulator/push_app_e2e.py`), uploads a
+screenshot per step plus logcat as the `push-app-emulator-*` artifact, and asserts on the
+`FacesPush` logcat lines the app writes for each step (list, plan, download, verify, push,
+activate, `listWatchFaces` state).
+
+- **Stage 1 (fake):** browses public faces without an account, installs the placeholder `aurora`
+  (download and SHA-256 verify pass; the push service rejects the placeholder bytes, the
+  documented outcome), links, checks the private design is listed, then installs a real face:
+  `SimpleDigital` packaged by `:wff-packager` with a validation token, listed through the fake via
+  `--es fake_extra_catalog` and served from the runner over `adb reverse`. It checks
+  `listWatchFaces` holds that face and screenshots the watch face.
+- **Stage 2 (server):** `workflow_dispatch` with `stage: server` and `base_url` (default
+  `https://ui.coo.ee`). Browses and installs a public face from the live server; with the
+  `WATCHFACE_PUSH_DEVICE_TOKEN` repository secret it also launches linked (`--es device_token`)
+  and checks the linked list. It skips with a notice while the server answers `404` for
+  `/api/watchface-push/v1/designs`.
+
+The debug-only launch extras: `--es base_url`, `--ez fake`, `--es fake_extra_catalog <url>` (more
+designs for the fake's catalog, a `DesignList` JSON) and `--es device_token <token>` (link to
+`base_url` with a token issued elsewhere). `--ez fake_auto_approve false` makes the fake wait for
+`adb shell am broadcast -a ee.schimke.watchface.push.FAKE_APPROVE -p ee.schimke.watchface.push`
+before approving a code, so the emulator test decides when the watch links.
 
 ## Design notes
 

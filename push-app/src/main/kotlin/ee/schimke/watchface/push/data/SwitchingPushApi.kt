@@ -25,11 +25,11 @@ class SwitchingPushApi(initial: String, private val client: OkHttpClient) : Push
 
   override suspend fun poll(code: String, pollSecret: String) = delegate.poll(code, pollSecret)
 
-  override suspend fun listDesigns(deviceToken: String) = delegate.listDesigns(deviceToken)
+  override suspend fun listDesigns(deviceToken: String?) = delegate.listDesigns(deviceToken)
 
-  override suspend fun downloadApk(deviceToken: String, design: Design, target: File) =
+  override suspend fun downloadApk(deviceToken: String?, design: Design, target: File) =
     delegate.downloadApk(deviceToken, design, target)
 
-  override suspend fun reportInstall(deviceToken: String, event: InstallEvent) =
+  override suspend fun reportInstall(deviceToken: String?, event: InstallEvent) =
     delegate.reportInstall(deviceToken, event)
 }

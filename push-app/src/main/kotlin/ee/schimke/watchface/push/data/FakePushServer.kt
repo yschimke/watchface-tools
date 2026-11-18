@@ -19,11 +19,19 @@ import okhttp3.ResponseBody.Companion.toResponseBody
  *
  * The "APKs" are deterministic placeholder bytes whose SHA-256 matches the design, so the whole
  * download/verify path runs; a real watch will reject them at the push API (no valid token).
+ *
+ * Like the real server, anonymous callers see the [publicIds] designs and may download them; a
+ * linked watch also sees the account's own (private) designs. With [extraCatalogUrl] the listing
+ * also carries the public designs of the [DesignList] JSON found there: the emulator test serves
+ * packager output that way, so a real, validated face goes through the fake catalog.
  */
 class FakePushServer(
   private val baseHost: String,
   private val approveAfterPolls: Int = 2,
   private val previewPng: (title: String) -> ByteArray = { ByteArray(0) },
+  private val extraCatalogUrl: String? = null,
+  /** False: never approve on its own; a test calls [approvePending] instead. */
+  private val autoApprove: Boolean = true,
   private val json: Json = DefaultJson,
 ) : Interceptor {
   val deviceToken = "fake-device-token"
@@ -31,6 +39,12 @@ class FakePushServer(
   private val polls = AtomicInteger()
   @Volatile var linked = false
   @Volatile var tamperApk = false
+  @Volatile private var approvedByTest = false
+
+  /** Approves the device code being polled (a new code needs approving again). */
+  fun approvePending() {
+    approvedByTest = true
+  }
 
   val designs: List<Design> =
     listOf(
@@ -38,6 +52,12 @@ class FakePushServer(
       fakeDesign("pulse", "Pulse", 1, 4, "Bold digital time with heart-rate ring."),
       fakeDesign("future", "Next Gen", 2, 5, "Needs a newer Watch Face Format than Wear OS 6."),
     )
+
+  /** Designs anyone may list and download; `pulse` belongs to the linked demo account. */
+  val publicIds: Set<String> = setOf("aurora", "future")
+
+  val publicDesigns: List<Design>
+    get() = designs.filter { it.id in publicIds }
 
   private fun apkBytes(id: String, version: Long) = "fake-apk:$id:$version".repeat(64).toByteArray()
 
@@ -84,6 +104,7 @@ class FakePushServer(
       }
       request.method == "POST" && path == "$api/device-codes" -> {
         polls.set(0)
+        approvedByTest = false
         ok(
           json.encodeToString(
             DeviceCode(
@@ -97,22 +118,31 @@ class FakePushServer(
         )
       }
       request.method == "POST" && path.startsWith("$api/device-codes/") && path.endsWith("/poll") ->
-        if (polls.incrementAndGet() > approveAfterPolls) {
+        if (
+          polls.incrementAndGet().let { autoApprove && it > approveAfterPolls } || approvedByTest
+        ) {
           linked = true
           ok(json.encodeToString(PollResponse("approved", deviceToken, "demo@example.com")))
         } else ok(json.encodeToString(PollResponse("pending")))
-      request.header("Authorization") != "Bearer $deviceToken" -> respond(401)
-      request.method == "GET" && path == "$api/designs" ->
-        ok(json.encodeToString(DesignList(designs)))
+      request.header("Authorization").let { it != null && it != "Bearer $deviceToken" } ->
+        respond(401)
+      request.method == "GET" && path == "$api/designs" -> {
+        val anonymous = request.header("Authorization") == null
+        val listed = if (anonymous) publicDesigns else designs
+        ok(json.encodeToString(DesignList(listed + extraDesigns(chain))))
+      }
       request.method == "GET" && path.startsWith("$api/designs/") && path.endsWith("/apk") -> {
         val design = designs.firstOrNull { path == "$api/designs/${it.id}/apk" }
+        val anonymous = request.header("Authorization") == null
         if (design == null) respond(404)
+        else if (anonymous && design.id !in publicIds) respond(401)
         else {
           val bytes = apkBytes(design.id, design.version)
           if (tamperApk) bytes[0] = (bytes[0] + 1).toByte()
           respond(200, bytes, "application/vnd.android.package-archive")
         }
       }
+      request.header("Authorization") == null -> respond(401)
       request.method == "POST" && path == "$api/installs" -> {
         val buffer = okio.Buffer()
         request.body?.writeTo(buffer)
@@ -120,6 +150,19 @@ class FakePushServer(
         respond(204)
       }
       else -> respond(404)
+    }
+  }
+
+  /** The designs at [extraCatalogUrl], fetched for real (it is not on [baseHost]). */
+  private fun extraDesigns(chain: Interceptor.Chain): List<Design> {
+    val url = extraCatalogUrl ?: return emptyList()
+    return try {
+      chain.proceed(okhttp3.Request.Builder().url(url).build()).use { response ->
+        if (!response.isSuccessful) emptyList()
+        else json.decodeFromString<DesignList>(response.body.string()).designs
+      }
+    } catch (e: java.io.IOException) {
+      emptyList()
     }
   }
 }

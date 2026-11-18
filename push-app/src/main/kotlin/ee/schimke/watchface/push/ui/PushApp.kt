@@ -30,13 +30,16 @@ fun PushApp(vm: AppViewModel) {
       when (val s = session) {
         Session.Loading -> CircularProgressIndicator()
         Session.Unlinked -> UnlinkedNav(vm)
-        is Session.Linked -> LinkedNav(vm, s.account.accountName, s.account.server)
+        Session.Browsing -> DesignsNav(vm, accountName = null, server = null, linked = false)
+        is Session.Linked -> DesignsNav(vm, s.account.accountName, s.account.server, linked = true)
       }
     }
   }
 }
 
-/** Linking, and choosing the server to link with; the server can't change while linked. */
+/**
+ * Linking, browsing public faces, and choosing the server; the server can't change while linked.
+ */
 @Composable
 private fun UnlinkedNav(vm: AppViewModel) {
   val nav = rememberSwipeDismissableNavController()
@@ -51,6 +54,7 @@ private fun UnlinkedNav(vm: AppViewModel) {
         server = server,
         onRetry = vm::startLink,
         onChangeServer = { nav.navigate("server") },
+        onBrowse = vm::browsePublic,
       )
     }
     composable("server") {
@@ -64,9 +68,11 @@ private fun UnlinkedNav(vm: AppViewModel) {
   }
 }
 
+/** The design list and detail; [linked] false while browsing public faces without an account. */
 @Composable
-private fun LinkedNav(vm: AppViewModel, accountName: String?, server: String) {
+private fun DesignsNav(vm: AppViewModel, accountName: String?, server: String?, linked: Boolean) {
   val nav = rememberSwipeDismissableNavController()
+  val current by vm.server.collectAsStateWithLifecycle()
   val designs by vm.designs.collectAsStateWithLifecycle()
   val install by vm.install.collectAsStateWithLifecycle()
   var pendingActivation by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -82,12 +88,13 @@ private fun LinkedNav(vm: AppViewModel, accountName: String?, server: String) {
       DesignListScreen(
         state = designs,
         accountName = accountName,
-        server = server,
+        server = server ?: current,
         deviceWff = vm.wffVersion,
         pushSupported = vm.pushSupported,
         onOpen = { nav.navigate("design/${it.id}") },
         onRefresh = vm::refresh,
-        onUnlink = vm::unlink,
+        onUnlink = if (linked) vm::unlink else vm::stopBrowsing,
+        linked = linked,
       )
     }
     composable(

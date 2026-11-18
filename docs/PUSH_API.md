@@ -46,6 +46,11 @@ must be `hasCode=false`, `minSdk >= 33`, and contain only `AndroidManifest.xml`,
 
 ## Authentication
 
+Linking is optional. Without it the watch browses the server's **public** designs: `GET /designs`
+and the public designs' `GET /designs/{id}/apk` work with no `Authorization` header. Linking adds the
+account's own (private) designs. On the watch, the link screen offers "Browse public faces", and the
+public list offers "Link account".
+
 Account linking uses the OAuth device-code pattern so nothing is typed on the watch.
 
 1. The watch calls `POST /device-codes`, shows `code` and a QR of `verificationUrl`.
@@ -102,8 +107,9 @@ Response `200` with `status`:
 
 ### `GET /designs`
 
-Auth required. The designs the account has **published** for watch install (not drafts), newest
-first. Response `200`:
+Auth optional. Anonymous: every **public** design. With a device token: the public designs plus the
+ones the account has **published** for watch install (not drafts), newest first. A wrong or revoked
+token is `401`, never a silent fallback to the anonymous list. Response `200`:
 
 ```json
 {
@@ -141,15 +147,18 @@ first. Response `200`:
 
 ### `GET /designs/{id}/apk`
 
-Auth required. `200` with `application/vnd.android.package-archive`, body = the signed APK whose
-SHA-256 equals `sha256` in the listing. Must be immutable per `version` (use `ETag` and
-`Cache-Control: private`). `404` if unpublished.
+Auth optional for a public design; a private one without a token is `401` (the watch says "This face
+is private. Link your account."). A private design requested with another account's valid token is `404`, not `401`:
+a `401` tells a healthy watch to discard its token. `200` with `application/vnd.android.package-archive`, body = the
+signed APK whose SHA-256 equals `sha256` in the listing. Must be immutable per `version` (use `ETag`
+and `Cache-Control: private`). `404` if unpublished.
 
 ## Telemetry (optional)
 
 ### `POST /installs`
 
-Auth required. Fire-and-forget; failures are ignored by the client and never block an install.
+Auth required (an unlinked watch sends none). Fire-and-forget; failures are ignored by the client
+and never block an install.
 
 ```json
 { "designId": "aurora", "version": 3, "result": "installed", "wearOsApi": 36 }
@@ -180,9 +189,9 @@ paths:
   /device-codes/{code}/poll:
     post: { summary: Poll for approval, parameters: [{ name: code, in: path, required: true, schema: { type: string } }] }
   /designs:
-    get: { security: [{ device: [] }], summary: Published designs }
+    get: { security: [{}, { device: [] }], summary: Public designs, plus the account's own when linked }
   /designs/{id}/apk:
-    get: { security: [{ device: [] }], summary: Download the signed APK }
+    get: { security: [{}, { device: [] }], summary: Download the signed APK (public ones anonymously) }
   /installs:
     post: { security: [{ device: [] }], summary: Install telemetry (optional) }
 ```

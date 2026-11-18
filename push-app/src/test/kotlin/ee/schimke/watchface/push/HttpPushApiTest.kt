@@ -55,6 +55,15 @@ class HttpPushApiTest {
   }
 
   @Test
+  fun anonymousListingSendsNoAuthorization() = runTest {
+    server.enqueue(MockResponse.Builder().body("""{"designs":[]}""").build())
+    assertEquals(emptyList(), api.listDesigns(null))
+    val request = server.takeRequest()
+    assertEquals("/api/watchface-push/v1/designs", request.url.encodedPath)
+    assertNull(request.headers["Authorization"])
+  }
+
+  @Test
   fun unauthorizedIsSurfaced() = runTest {
     server.enqueue(MockResponse.Builder().code(401).build())
     val e = assertFailsWith<ApiException> { api.listDesigns("old") }
