@@ -1,0 +1,164 @@
+name: Push app emulator
+
+# End-to-end check of :push-app on a Wear OS 6 (API 36) emulator: browse public faces without an
+# account, link, download, verify and install through the Watch Face Push API. Not a required
+# check: emulator runs are slow and can flake, so it only reports.
+#
+# Stage 1 (every push-app change, and on demand): the debug build's in-process FakePushServer,
+# plus a real face packaged by :wff-packager and served from the runner through `adb reverse`.
+# Stage 2 (on demand, stage=server|both): a live catalog server; skips with a notice while the
+# server answers 404 for the push API.
+
+on:
+  pull_request:
+    paths:
+      - push-app/**
+      - .github/workflows/push-app-emulator.yml
+      - .github/scripts/emulator/**
+  push:
+    branches: [main]
+    paths:
+      - push-app/**
+      - .github/workflows/push-app-emulator.yml
+      - .github/scripts/emulator/**
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: Which stage to run
+        type: choice
+        options: [fake, server, both]
+        default: fake
+      base_url:
+        description: Catalog server for stage 2
+        type: string
+        default: https://ui.coo.ee
+
+permissions:
+  contents: read
+
+concurrency:
+  group: push-app-emulator-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  API_LEVEL: 36
+  EMULATOR_TARGET: android-wear
+  EMULATOR_PROFILE: wearos_large_round
+
+jobs:
+  fake:
+    name: Stage 1 (fake server)
+    if: github.event_name != 'workflow_dispatch' || inputs.stage != 'server'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Android SDK (build-tools and platforms for the app and :wff-packager)
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;36.0.0" "platforms;android-36" "platforms;android-37.0"
+      - name: Build the debug app and the packager
+        run: ./gradlew :push-app:assembleDebug :wff-packager:installDist
+      - name: Package a real push face from a repository sample
+        run: |
+          python3 .github/scripts/emulator/build_push_face.py \
+            --packager wff-packager/build/install/wff-packager/bin/wff-packager \
+            --sample wff-core/src/jvmTest/resources/wear-os-samples/SimpleDigital \
+            --face-name simple_digital --title "Simple Digital" \
+            --out "$RUNNER_TEMP/face" --base-url http://127.0.0.1:8765
+      - name: Serve the packaged face on the runner
+        run: |
+          cd "$RUNNER_TEMP/face"
+          nohup python3 -m http.server 8765 --bind 127.0.0.1 > "$RUNNER_TEMP/http.log" 2>&1 &
+          sleep 1
+          curl -fsS http://127.0.0.1:8765/extra.json > /dev/null
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run on the Wear OS 6 emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: x86_64
+          profile: ${{ env.EMULATOR_PROFILE }}
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: .github/scripts/emulator/run-stage.sh fake
+      - name: Upload screenshots and logcat
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: push-app-emulator-fake
+          path: ${{ runner.temp }}/e2e
+          if-no-files-found: warn
+
+  server:
+    name: Stage 2 (live server)
+    if: github.event_name == 'workflow_dispatch' && inputs.stage != 'fake'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BASE_URL: ${{ inputs.base_url }}
+      # Optional: a device token issued by the server, for the linked listing.
+      WATCHFACE_PUSH_DEVICE_TOKEN: ${{ secrets.WATCHFACE_PUSH_DEVICE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Is the push API live?
+        id: probe
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL%/}/api/watchface-push/v1/designs" || echo 000)
+          echo "GET ${BASE_URL%/}/api/watchface-push/v1/designs -> $code"
+          if [ "$code" = "404" ]; then
+            echo "::notice::$BASE_URL has no /api/watchface-push/v1 yet (404). Stage 2 skipped."
+            echo "### Stage 2 skipped: $BASE_URL answers 404 for the push API" >> "$GITHUB_STEP_SUMMARY"
+            echo "live=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "live=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-java@v4
+        if: steps.probe.outputs.live == 'true'
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+        if: steps.probe.outputs.live == 'true'
+      - name: Android SDK
+        if: steps.probe.outputs.live == 'true'
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;36.0.0" "platforms;android-36" "platforms;android-37.0"
+      - name: Build the debug app
+        if: steps.probe.outputs.live == 'true'
+        run: ./gradlew :push-app:assembleDebug
+      - name: Enable KVM
+        if: steps.probe.outputs.live == 'true'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run on the Wear OS 6 emulator
+        if: steps.probe.outputs.live == 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: x86_64
+          profile: ${{ env.EMULATOR_PROFILE }}
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: .github/scripts/emulator/run-stage.sh server
+      - name: Upload screenshots and logcat
+        if: always() && steps.probe.outputs.live == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: push-app-emulator-server
+          path: ${{ runner.temp }}/e2e
+          if-no-files-found: warn
