@@ -85,6 +85,7 @@ jobs:
       contents: read
     with:
       tag_name: ${{ needs.release-please.outputs.tag_name }}
+      publish_play: ${{ vars.PLAY_PUBLISH == 'true' }}
     secrets:
       PUSH_APP_UPLOAD_KEYSTORE: ${{ secrets.PUSH_APP_UPLOAD_KEYSTORE }}
       PUSH_APP_KEYSTORE_PASSWORD: ${{ secrets.PUSH_APP_KEYSTORE_PASSWORD }}

@@ -15,7 +15,7 @@ on:
       publish_play:
         description: Publish the bundle (and listing) to Play internal testing.
         type: boolean
-        default: true
+        default: false
     secrets:
       # Optional so a missing one reaches the check step, which names it.
       PUSH_APP_UPLOAD_KEYSTORE: {required: false}
@@ -48,9 +48,10 @@ jobs:
     timeout-minutes: 30
     env:
       TAG_NAME: ${{ inputs.tag_name }}
-      # Opt-in: releases publish once the repository variable PLAY_PUBLISH is 'true', set after the
-      # Play app and the secrets exist. A manual dispatch with publish_play=true always publishes.
-      PUBLISH_PLAY: ${{ inputs.publish_play == true && (github.event_name == 'workflow_dispatch' || vars.PLAY_PUBLISH == 'true') }}
+      # Whether to publish is decided by whoever starts the run: release-please.yml passes the
+      # PLAY_PUBLISH repository variable, and a manual dispatch passes its publish_play choice.
+      # (A called workflow sees its caller's github.event_name, so it can't tell the two apart.)
+      PUBLISH_PLAY: ${{ inputs.publish_play == true }}
       PUBLISH_LISTING: ${{ vars.PLAY_PUBLISH_LISTING != 'false' }}
       HAS_UPLOAD_KEYSTORE: ${{ secrets.PUSH_APP_UPLOAD_KEYSTORE != '' }}
       HAS_PLAY_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
@@ -105,7 +106,7 @@ jobs:
           PUSH_APP_KEY_PASSWORD: ${{ secrets.PUSH_APP_KEY_PASSWORD }}
         run: ./gradlew :push-app:bundleRelease --stacktrace
 
-      - name: Publish to Play (internal track)
+      - name: Publish to Play (Wear OS internal track)
         if: env.PUBLISH_PLAY == 'true'
         env:
           ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
