@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/yschimke/watchface-tools/compare/v0.3.2...v0.4.0) (2026-11-18)
+
+
+### Features
+
+* package watch faces into signed APKs in pure Kotlin (wff-apk) ([#35](https://github.com/yschimke/watchface-tools/issues/35)) ([441a9d9](https://github.com/yschimke/watchface-tools/commit/441a9d93e7ef1efada0360620151f8f0b364626f))
+
+
+### Bug Fixes
+
+* **wff-apk:** encode [@string](https://github.com/string) references and string aliases as references ([#37](https://github.com/yschimke/watchface-tools/issues/37)) ([1784fec](https://github.com/yschimke/watchface-tools/commit/1784feca34dbacefb647666e515cc009bf00f4ac))
+
 ## [0.3.2](https://github.com/yschimke/watchface-tools/compare/v0.3.1...v0.3.2) (2026-11-18)
 
 
