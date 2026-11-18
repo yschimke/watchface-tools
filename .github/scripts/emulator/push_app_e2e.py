@@ -96,10 +96,10 @@ def nodes() -> list[tuple[str, tuple[int, int, int, int]]]:
     return found
 
 
-def find(text: str) -> tuple[int, int] | None:
+def find(text: str, prefix: bool = False) -> tuple[int, int] | None:
     w, h = screen_size()
     for label, (x1, y1, x2, y2) in nodes():
-        if label.strip() == text:
+        if label.strip() == text or (prefix and label.strip().startswith(text)):
             cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
             # On screen, edges included: the EdgeButton (Install) hugs the bottom of the disc.
             if 0 < cy < h and 0 < cx < w and x2 > x1 and y2 > y1:
@@ -110,8 +110,9 @@ def find(text: str) -> tuple[int, int] | None:
 def scroll(down: bool = True) -> None:
     w, h = screen_size()
     y1, y2 = (int(h * 0.7), int(h * 0.3)) if down else (int(h * 0.3), int(h * 0.7))
-    shell(f"input swipe {w // 2} {y1} {w // 2} {y2} 300")
-    time.sleep(0.8)
+    # A slow drag, so the list does not fling on: a tap on a moving list only stops it (run 12).
+    shell(f"input swipe {w // 2} {y1} {w // 2} {y2} 900")
+    time.sleep(1.2)
 
 
 def ensure_foreground() -> None:
@@ -153,10 +154,36 @@ def wait_text(text: str, timeout: float = 30, scroll_to: bool = False) -> tuple[
     raise AssertionError(f"'{text}' never appeared on screen")
 
 
+def settled(text: str, timeout: float = 30, scroll_to: bool = True) -> tuple[int, int]:
+    """[text]'s position once two dumps agree: the list has stopped moving under it."""
+    pos = wait_text(text, timeout, scroll_to)
+    for _ in range(5):
+        time.sleep(0.6)
+        again = find(text)
+        if again and abs(again[0] - pos[0]) <= 4 and abs(again[1] - pos[1]) <= 4:
+            return again
+        pos = again or wait_text(text, timeout, scroll_to)
+    return pos
+
+
 def tap_text(text: str, timeout: float = 30, scroll_to: bool = True) -> None:
-    x, y = wait_text(text, timeout, scroll_to)
+    x, y = settled(text, timeout, scroll_to)
     shell(f"input tap {x} {y}")
     time.sleep(1.5)
+
+
+def open_design(title: str) -> None:
+    """Taps a design's card and checks its detail screen ("Version …") really opened."""
+    for attempt in range(3):
+        tap_text(title)
+        deadline = time.time() + 8
+        while time.time() < deadline:
+            if find("Version ", prefix=True):
+                return
+            time.sleep(1)
+        note(f"- tap on `{title}` did not open its detail screen (attempt {attempt + 1})")
+    screenshot(f"not-opened-{re.sub(r'[^a-z0-9]+', '-', title.lower())}")
+    raise AssertionError(f"tapping '{title}' never opened its detail screen")
 
 
 def logcat() -> str:
@@ -227,7 +254,7 @@ def run_fake(a: argparse.Namespace) -> None:
     wait_text("Aurora", scroll_to=True)
     screenshot("public-list")
 
-    tap_text("Aurora")
+    open_design("Aurora")
     # Install is the EdgeButton, shown at the end of the scrolled detail list.
     wait_text("Install", timeout=30, scroll_to=True)
     screenshot("public-detail")
@@ -269,7 +296,7 @@ def run_fake(a: argparse.Namespace) -> None:
     wait_header("Your designs")
     if a.real_catalog_title:
         wait_text(a.real_catalog_title, scroll_to=True)
-    tap_text(a.real_title)
+    open_design(a.real_title)
     # Install is the EdgeButton, shown at the end of the scrolled detail list.
     if a.real_license:
         wait_text(f"License: {a.real_license}", timeout=30, scroll_to=True)
@@ -363,7 +390,7 @@ def run_server(a: argparse.Namespace) -> None:
         note("::notice::The server lists no public face this watch can install. Skipped.")
     else:
         design = installable[0]
-        tap_text(design["title"])
+        open_design(design["title"])
         # Install is the EdgeButton, shown at the end of the scrolled detail list.
         wait_text("Install", timeout=30, scroll_to=True)
         screenshot("server-public-detail")
