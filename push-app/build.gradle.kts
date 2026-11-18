@@ -96,8 +96,8 @@ android {
     unitTests.all {
       it.systemProperty("screenshotDir", providers.gradleProperty("screenshotDir").getOrElse(""))
       it.systemProperty(
-        "playScreenshotDir",
-        providers.gradleProperty("playScreenshotDir").getOrElse(""),
+        "playGraphicsDir",
+        providers.gradleProperty("playGraphicsDir").getOrElse(""),
       )
     }
   }

@@ -33,7 +33,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Renders the Wear screens on a round 227dp display. Always asserts the screens compose; writes
  * PNGs to `-PscreenshotDir=<dir>` when given (used for the PR screenshots), and the square Play
- * Store shots to `-PplayScreenshotDir=<dir>`.
+ * Store shots to `-PplayGraphicsDir=<dir>` (see [PlayGraphicsTest]).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -52,7 +52,7 @@ class ScreenshotTest {
 
   private fun shot(
     name: String,
-    dirProperty: String = "screenshotDir",
+    dir: String = System.getProperty("screenshotDir").orEmpty(),
     content: @Composable () -> Unit,
   ) {
     rule.setContent {
@@ -71,7 +71,6 @@ class ScreenshotTest {
       rule.waitForIdle()
       Thread.sleep(100)
     }
-    val dir = System.getProperty(dirProperty).orEmpty()
     if (dir.isNotEmpty()) {
       File(dir).mkdirs()
       File(dir, "$name.png").outputStream().use {
@@ -167,7 +166,7 @@ class ScreenshotTest {
   // 227dp round display (454px at xhdpi), so each shows the screen's first viewport. Play orders
   // the listing's screenshots by file name.
   private fun playShot(name: String, content: @Composable () -> Unit) =
-    shot(name, dirProperty = "playScreenshotDir", content = content)
+    shot(name, dir = PlayGraphics.dir("wear-screenshots"), content = content)
 
   @Test
   fun playList() =
