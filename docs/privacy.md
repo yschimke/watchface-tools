@@ -43,8 +43,9 @@ through Wear OS's Watch Face Push API.
 
 ## Deleting your data
 
-Unlink the watch in the app, or remove the device on the design site, to revoke its token.
-Uninstalling the app deletes everything it stored on the watch. To have data held by `ui.coo.ee`
+Unlinking the watch in the app deletes the device token stored on the watch; it does not revoke the
+token on the design site. To revoke it, remove the device on the design site. Uninstalling the app
+deletes everything it stored on the watch. To have data held by `ui.coo.ee`
 or `preview.coo.ee` deleted, email the address below.
 
 ## Children
