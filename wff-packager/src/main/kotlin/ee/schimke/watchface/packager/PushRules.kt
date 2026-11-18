@@ -3,6 +3,7 @@ package ee.schimke.watchface.packager
 import ee.schimke.watchface.wff.WffBundleLayout
 import ee.schimke.watchface.wff.WffDocument
 import ee.schimke.watchface.wff.WffElement
+import ee.schimke.watchface.wff.WffVersion
 import ee.schimke.watchface.wff.WffXmlParser
 
 /**
@@ -124,13 +125,29 @@ public object PushRules {
     }
     walk(root)
     val minSdk = root.firstChild("uses-sdk")?.attr("android:minSdkVersion")
+    // Each WFF version needs the Wear OS release that introduced it (v2 needs API 34, not 33), so
+    // the floor comes from the declared format version; MIN_SDK is the floor for Push regardless.
+    val declaredVersion =
+      root
+        .firstChild("application")
+        ?.childElements("property")
+        ?.firstOrNull { it.attr("android:name") == WffBundleLayout.WFF_VERSION_PROPERTY }
+        ?.attr("android:value")
+        ?.toIntOrNull()
+        ?.let(WffVersion::fromNumber)
+    val required = maxOf(MIN_SDK, declaredVersion?.let(WffBundleLayout::minSdkFor) ?: MIN_SDK)
+    val why =
+      if (declaredVersion != null && required > MIN_SDK)
+        " for Watch Face Format version ${declaredVersion.number}"
+      else ""
     when {
       minSdk == null ->
-        out += error("manifest", "<uses-sdk android:minSdkVersion> is missing; need >= $MIN_SDK")
+        out +=
+          error("manifest", "<uses-sdk android:minSdkVersion> is missing; need >= $required$why")
       minSdk.toIntOrNull() == null ->
         out += error("manifest", "minSdkVersion '$minSdk' is not a number (codenames not allowed)")
-      minSdk.toInt() < MIN_SDK ->
-        out += error("manifest", "minSdkVersion is $minSdk but must be >= $MIN_SDK")
+      minSdk.toInt() < required ->
+        out += error("manifest", "minSdkVersion is $minSdk but must be >= $required$why")
     }
     val app = root.firstChild("application")
     if (app == null) {

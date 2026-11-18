@@ -96,20 +96,18 @@ public class WatchFacePackager(
       // 4. Official validators.
       val memory = validators.memory.evaluate(signed, wffVersion)
       memory.limitFailure?.let { diagnostics += error("memory-footprint", it) }
+      // Google's XSD validator runs for both targets: it is the only source of the actual cvc
+      // message (the push validator only says the face "does not match the specification").
+      val xml = files.getValue(WffBundleLayout.WATCH_FACE_PATH).decodeToString()
+      diagnostics += validators.format.validate(xml, wffVersion).map { error("wff-validator", it) }
       var token: String? = null
-      when (val target = options.target) {
-        is PackageTarget.WatchFacePush -> {
-          val result = validators.push.validate(signed, target.marketplacePackage)
-          diagnostics += result.failures
-          token = result.validationToken
-          if (!result.failures.hasErrors() && token.isNullOrEmpty()) {
-            diagnostics += error("push-validator", "Validator passed but returned no token")
-          }
-        }
-        is PackageTarget.Sideload -> {
-          val xml = files.getValue(WffBundleLayout.WATCH_FACE_PATH).decodeToString()
-          diagnostics +=
-            validators.format.validate(xml, wffVersion).map { error("wff-validator", it) }
+      val target = options.target
+      if (target is PackageTarget.WatchFacePush) {
+        val result = validators.push.validate(signed, target.marketplacePackage)
+        diagnostics += result.failures
+        token = result.validationToken
+        if (!result.failures.hasErrors() && token.isNullOrEmpty()) {
+          diagnostics += error("push-validator", "Validator passed but returned no token")
         }
       }
       if (diagnostics.hasErrors()) fail()

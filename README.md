@@ -81,10 +81,17 @@ un-drafts it. Do not confuse the library version with the WFF format version
 
 ## Status and caveats
 
-Phase 0. The schema is generated from the official XSDs, so element and attribute versions are
-authoritative. Attribute *values* and expressions (including which data sources such as
-`[WEATHER.*]` a version supports) are not validated yet, and `WffBundleLayout.minSdkFor` for
-versions 3–5 is unconfirmed (`// verify`).
+The schema is generated from the official XSDs, so element and attribute versions are
+authoritative, and so are the attribute value types: enumerations (with the version each value
+arrived in), integers and floats with their bounds, colours and other patterns, and the content
+model's required and maximum child counts. Expressions are parsed with the grammar of Google's
+`dwf-validator`, and the data sources and functions they use are checked against a table built from
+the XSDs and that validator's `VersionRegistry`, so `minimumVersion` accounts for `[WEATHER.*]` and
+friends. Sources that Google's registry has no entry for are not guessed at: a name that is neither
+in the table nor under `CONFIGURATION.`, `COMPLICATION.` or `REFERENCE.` is an error. Google's XSD
+validator in `wff-packager` stays the authority; `WffValidator` is the early, path-carrying
+approximation (it does not check element order). `WffBundleLayout.minSdkFor` for versions 3-5 is
+unconfirmed (`// verify`).
 
 ## Build
 
