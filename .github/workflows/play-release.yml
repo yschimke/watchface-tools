@@ -1,0 +1,141 @@
+# Builds the Wear OS push app (:push-app) for a release tag and publishes it to Google Play's
+# internal testing track. release-please.yml calls it for every release, beside the Maven
+# publish; a manual dispatch builds the bundle and publishes only when asked.
+#
+# Setup and the secrets it needs: docs/PLAY_PUBLISHING.md.
+name: Play release
+
+on:
+  workflow_call:
+    inputs:
+      tag_name:
+        description: The `vX.Y.Z` tag to build.
+        required: true
+        type: string
+      publish_play:
+        description: Publish the bundle (and listing) to Play internal testing.
+        type: boolean
+        default: true
+    secrets:
+      # Optional so a missing one reaches the check step, which names it.
+      PUSH_APP_UPLOAD_KEYSTORE: {required: false}
+      PUSH_APP_KEYSTORE_PASSWORD: {required: false}
+      PUSH_APP_KEY_ALIAS: {required: false}
+      PUSH_APP_KEY_PASSWORD: {required: false}
+      PLAY_SERVICE_ACCOUNT_JSON: {required: false}
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: The `vX.Y.Z` tag to build.
+        required: true
+        type: string
+      publish_play:
+        description: Publish the bundle (and listing) to Play internal testing.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: play-release-${{ inputs.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  play:
+    name: Build & publish push-app
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TAG_NAME: ${{ inputs.tag_name }}
+      # Opt-in: releases publish once the repository variable PLAY_PUBLISH is 'true', set after the
+      # Play app and the secrets exist. A manual dispatch with publish_play=true always publishes.
+      PUBLISH_PLAY: ${{ inputs.publish_play == true && (github.event_name == 'workflow_dispatch' || vars.PLAY_PUBLISH == 'true') }}
+      PUBLISH_LISTING: ${{ vars.PLAY_PUBLISH_LISTING != 'false' }}
+      HAS_UPLOAD_KEYSTORE: ${{ secrets.PUSH_APP_UPLOAD_KEYSTORE != '' }}
+      HAS_PLAY_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name }}
+          persist-credentials: false
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;36.0.0" "platforms;android-37.0"
+
+      - name: Check publishing configuration
+        if: env.PUBLISH_PLAY == 'true'
+        env:
+          PUSH_APP_KEYSTORE_PASSWORD: ${{ secrets.PUSH_APP_KEYSTORE_PASSWORD }}
+          PUSH_APP_KEY_ALIAS: ${{ secrets.PUSH_APP_KEY_ALIAS }}
+          PUSH_APP_KEY_PASSWORD: ${{ secrets.PUSH_APP_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=0
+          [[ $HAS_UPLOAD_KEYSTORE == true ]] || { echo "::error::Missing secret PUSH_APP_UPLOAD_KEYSTORE (see docs/PLAY_PUBLISHING.md)"; missing=1; }
+          [[ $HAS_PLAY_CREDENTIALS == true ]] || { echo "::error::Missing secret PLAY_SERVICE_ACCOUNT_JSON (see docs/PLAY_PUBLISHING.md)"; missing=1; }
+          for key in PUSH_APP_KEYSTORE_PASSWORD PUSH_APP_KEY_ALIAS PUSH_APP_KEY_PASSWORD; do
+            [[ -n ${!key} ]] || { echo "::error::Missing secret $key (see docs/PLAY_PUBLISHING.md)"; missing=1; }
+          done
+          exit "$missing"
+
+      - name: Decode upload keystore
+        if: env.HAS_UPLOAD_KEYSTORE == 'true'
+        env:
+          PUSH_APP_UPLOAD_KEYSTORE: ${{ secrets.PUSH_APP_UPLOAD_KEYSTORE }}
+        run: |
+          set -euo pipefail
+          keystore="${RUNNER_TEMP}/push-app-upload.jks"
+          printf '%s' "$PUSH_APP_UPLOAD_KEYSTORE" | base64 -d > "$keystore"
+          echo "PUSH_APP_KEYSTORE_PATH=$keystore" >> "$GITHUB_ENV"
+
+      - name: Build release bundle
+        env:
+          PUSH_APP_KEYSTORE_PASSWORD: ${{ secrets.PUSH_APP_KEYSTORE_PASSWORD }}
+          PUSH_APP_KEY_ALIAS: ${{ secrets.PUSH_APP_KEY_ALIAS }}
+          PUSH_APP_KEY_PASSWORD: ${{ secrets.PUSH_APP_KEY_PASSWORD }}
+        run: ./gradlew :push-app:bundleRelease --stacktrace
+
+      - name: Publish to Play (internal track)
+        if: env.PUBLISH_PLAY == 'true'
+        env:
+          ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          PUSH_APP_KEYSTORE_PASSWORD: ${{ secrets.PUSH_APP_KEYSTORE_PASSWORD }}
+          PUSH_APP_KEY_ALIAS: ${{ secrets.PUSH_APP_KEY_ALIAS }}
+          PUSH_APP_KEY_PASSWORD: ${{ secrets.PUSH_APP_KEY_PASSWORD }}
+        run: ./gradlew :push-app:publishReleaseBundle --stacktrace
+
+      - name: Publish store listing to Play
+        if: env.PUBLISH_PLAY == 'true' && env.PUBLISH_LISTING == 'true'
+        env:
+          ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: ./gradlew :push-app:publishReleaseListing --stacktrace
+
+      - name: Upload bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: push-app-${{ inputs.tag_name }}
+          path: push-app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+
+      - name: Publishing summary
+        if: always()
+        run: |
+          {
+            echo "## Play publishing (push-app)"
+            echo "- Tag: $TAG_NAME"
+            echo "- Internal rollout requested: $PUBLISH_PLAY"
+            echo "- Listing enabled: $PUBLISH_LISTING"
+            echo "- Upload key configured: $HAS_UPLOAD_KEYSTORE"
+            echo "- Play credentials configured: $HAS_PLAY_CREDENTIALS"
+            echo "- Job status: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"

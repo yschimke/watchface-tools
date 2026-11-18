@@ -3,6 +3,7 @@ maven-publish = "0.37.0"
 kotlin = "2.4.21"
 ktfmt = "0.28.0"
 agp = "9.5.1"
+playPublisher = "4.1.2"
 wearCompose = "1.7.1"
 composeBom = "2026.09.00"
 activityCompose = "1.13.0"
@@ -61,3 +62,4 @@ ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+play-publisher = { id = "com.github.triplet.play", version.ref = "playPublisher" }

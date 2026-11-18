@@ -1,13 +1,25 @@
+import com.github.triplet.gradle.androidpublisher.ReleaseStatus
+
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.ktfmt)
+  alias(libs.plugins.play.publisher)
 }
 
 ktfmt { googleStyle() }
 
 val marketplacePackage: String = providers.gradleProperty("watchface.marketplacePackage").get()
+
+// The app ships with the repository's releases: release-please rewrites watchfaceToolsVersion in
+// gradle.properties, and the version code follows it (major * 10_000 + minor * 100 + patch), so
+// every release uploads a higher code than the last. See docs/PLAY_PUBLISHING.md.
+val appVersionName: String = providers.gradleProperty("watchfaceToolsVersion").get()
+val appVersionCode: Int =
+  appVersionName.substringBefore('-').split('.').map(String::toInt).let { (major, minor, patch) ->
+    major * 10_000 + minor * 100 + patch
+  }
 
 android {
   namespace = "ee.schimke.watchface.push"
@@ -19,8 +31,8 @@ android {
     // WatchFacePushManagerFactory.isSupported() is false below 36.
     minSdk = 36
     targetSdk = 36
-    versionCode = 1
-    versionName = "0.1.0"
+    versionCode = appVersionCode
+    versionName = appVersionName
 
     buildConfigField("String", "MARKETPLACE_PACKAGE", "\"$marketplacePackage\"")
     buildConfigField(
@@ -28,6 +40,20 @@ android {
       "DEFAULT_BASE_URL",
       "\"${providers.gradleProperty("push.baseUrl").getOrElse("https://preview.coo.ee")}\"",
     )
+  }
+
+  // The Play upload key, only in CI (play-release.yml). Without it the release build is unsigned,
+  // which is all a local or CI bundle check needs.
+  val uploadKeystorePath = System.getenv("PUSH_APP_KEYSTORE_PATH")
+  signingConfigs {
+    if (uploadKeystorePath != null) {
+      create("release") {
+        storeFile = file(uploadKeystorePath)
+        storePassword = System.getenv("PUSH_APP_KEYSTORE_PASSWORD")
+        keyAlias = System.getenv("PUSH_APP_KEY_ALIAS")
+        keyPassword = System.getenv("PUSH_APP_KEY_PASSWORD")
+      }
+    }
   }
 
   buildTypes {
@@ -42,6 +68,9 @@ android {
     release {
       buildConfigField("boolean", "DEFAULT_FAKE_BACKEND", "false")
       isMinifyEnabled = false
+      if (uploadKeystorePath != null) {
+        signingConfig = signingConfigs.getByName("release")
+      }
     }
   }
 
@@ -61,6 +90,15 @@ android {
       it.systemProperty("screenshotDir", providers.gradleProperty("screenshotDir").getOrElse(""))
     }
   }
+}
+
+// Gradle Play Publisher. A Wear OS-only app publishes to the ordinary tracks; `-Pplay.track=…`
+// overrides (for example `wear:internal` if the app ever gains a phone form factor).
+play {
+  track.set(providers.gradleProperty("play.track").orElse("internal"))
+  defaultToAppBundles.set(true)
+  releaseStatus.set(ReleaseStatus.COMPLETED)
+  enabled.set(System.getenv("ANDROID_PUBLISHER_CREDENTIALS") != null)
 }
 
 dependencies {

@@ -35,5 +35,5 @@ jobs:
           python3 -m unittest discover -s .github/scripts/tests -v
           .github/scripts/tests/print-publish-tasks-test.sh
           .github/scripts/tests/release-pr-race-guard-test.sh
-      - name: Push app (assemble + unit tests)
-        run: ./gradlew :push-app:assembleDebug :push-app:testDebugUnitTest
+      - name: Push app (assemble, unit tests, unsigned release bundle)
+        run: ./gradlew :push-app:assembleDebug :push-app:testDebugUnitTest :push-app:bundleRelease

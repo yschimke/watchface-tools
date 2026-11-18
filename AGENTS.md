@@ -52,3 +52,7 @@ Set up like compose-preview-contracts; the rules and rationale are in
   (`SigningConfig.fromEnvironment`, `WFF_SIGNING_*`) and pins its certificate
   (`expectedCertificateSha256`); see `wff-packager/README.md` → Signing keys. These are distinct
   from the Maven `SIGNING_KEY*` GPG secrets above.
+- The push app ships to Google Play's internal track from the same release
+  (`play-release.yml`, called by `release-please.yml`), opt-in through the `PLAY_PUBLISH` repository
+  variable. Its version code follows `watchfaceToolsVersion`; setup and secrets are in
+  [`docs/PLAY_PUBLISHING.md`](docs/PLAY_PUBLISHING.md).

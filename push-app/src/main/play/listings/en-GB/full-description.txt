@@ -1,0 +1,12 @@
+Faces installs watch faces designed on the web onto your Wear OS watch, using Wear OS 6's Watch Face Push.
+
+• Link your watch by scanning a QR code or entering a short code on a signed-in phone or computer.
+• Browse the designs you have published and see a preview of each one.
+• Install a design with one tap. Installing the same design again updates it.
+• Make the new face your active watch face straight from the app.
+
+Wear OS 6 gives each marketplace app one watch face slot, so installing a different design replaces the one Faces installed before. The app says so and asks you to confirm.
+
+Every watch face is checked by Google's Watch Face Push validator before it can be installed.
+
+Requires Wear OS 6 (API 36) or newer.
