@@ -75,9 +75,18 @@ harmless, and it keeps one version per release.
    A publishing run fails early, naming any secret that is missing.
 6. **Complete the Console forms** that Gradle Play Publisher doesn't manage: privacy policy, Data
    safety (the app stores a device token and talks to the site), content rating, app category, and
-   internal testers. Wear OS store listings also need **Wear screenshots**; add them under
-   `push-app/src/main/play/listings/en-GB/graphics/wear-screenshots/` (the README screenshots in
-   `docs/screenshots/` are a starting point) or in the Console.
+   internal testers. The listing also needs a 512×512 **app icon** and a 1024×500 **feature
+   graphic** (Console, or `graphics/icon/` and `graphics/feature-graphic/` next to the screenshots).
+
+The **Wear screenshots** are checked in under
+`push-app/src/main/play/listings/en-GB/graphics/wear-screenshots/` and uploaded with the listing.
+Play wants them square (1:1, at least 384px), so they are rendered on the 227dp round display
+(454×454), not the tall README captures. Regenerate them after a UI change with:
+
+```bash
+./gradlew :push-app:testDebugUnitTest --tests '*ScreenshotTest*' --rerun \
+  -PplayScreenshotDir=$PWD/push-app/src/main/play/listings/en-GB/graphics/wear-screenshots
+```
 
 If Play still marks the app as a draft, finish its Console setup. Until then a `COMPLETED` release
 from the API may be rejected.

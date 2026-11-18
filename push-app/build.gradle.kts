@@ -95,6 +95,10 @@ android {
     unitTests.isIncludeAndroidResources = true
     unitTests.all {
       it.systemProperty("screenshotDir", providers.gradleProperty("screenshotDir").getOrElse(""))
+      it.systemProperty(
+        "playScreenshotDir",
+        providers.gradleProperty("playScreenshotDir").getOrElse(""),
+      )
     }
   }
 }
