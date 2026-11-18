@@ -123,6 +123,17 @@ def ensure_foreground() -> None:
         time.sleep(1.5)
 
 
+def scroll_to_top(swipes: int = 5) -> None:
+    for _ in range(swipes):
+        scroll(down=False)
+
+
+def wait_header(text: str, timeout: float = 20) -> None:
+    """A list header: the list can open scrolled past it (seen in run 6), so go to the top."""
+    scroll_to_top()
+    wait_text(text, timeout)
+
+
 def wait_text(text: str, timeout: float = 30, scroll_to: bool = False) -> tuple[int, int]:
     deadline = time.time() + timeout
     swipes = 0
@@ -203,8 +214,8 @@ def run_fake(a: argparse.Namespace) -> None:
 
     note("### Anonymous: browse and install a public face without linking")
     tap_text("Browse public faces")
-    wait_text("Public faces")
     listed = wait_log(r"list designs=(\S*) anonymous=true")
+    wait_header("Public faces")
     ids = listed.group(1).split(",")
     assert "aurora" in ids, ids
     assert "pulse" not in ids, f"private design listed anonymously: {ids}"
@@ -238,8 +249,8 @@ def run_fake(a: argparse.Namespace) -> None:
     # Stands in for the user confirming the code on the site.
     shell(f"am broadcast -a {PKG}.FAKE_APPROVE -p {PKG}")
     wait_log(r"fake approve requested", timeout=10)
-    wait_text("Your designs", timeout=30)
-    linked = wait_log(r"list designs=(\S*) anonymous=false")
+    linked = wait_log(r"list designs=(\S*) anonymous=false", timeout=30)
+    wait_header("Your designs")
     linked_ids = linked.group(1).split(",")
     assert "pulse" in linked_ids, f"linked list lacks the account's own design: {linked_ids}"
     screenshot("linked-list")
@@ -318,9 +329,9 @@ def run_server(a: argparse.Namespace) -> None:
 
     note("### Anonymous: public faces on the live server")
     tap_text("Browse public faces")
-    wait_text("Public faces")
     listed = wait_log(r"list (designs=\S*|failed status=\d+) anonymous=true")
     assert listed.group(1).startswith("designs="), f"the app could not list: {listed.group(0)}"
+    wait_header("Public faces")
     screenshot("server-public-list")
     installable = [d for d in designs if d.get("wffVersion", 99) <= 4]
     if not installable:
@@ -342,8 +353,8 @@ def run_server(a: argparse.Namespace) -> None:
     if token:
         note("### Linked with the device token secret")
         launch(*extras, "--es", "device_token", token)
-        wait_text("Your designs", timeout=30)
-        wait_log(r"list designs=(\S*) anonymous=false")
+        wait_log(r"list designs=(\S*) anonymous=false", timeout=30)
+        wait_header("Your designs")
         screenshot("server-linked-list")
     else:
         note("No device token secret; the linked listing was not checked.")
