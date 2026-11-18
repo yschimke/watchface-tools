@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/yschimke/watchface-tools/compare/v0.1.0...v0.2.0) (2026-11-18)
+
+
+### Features
+
+* **packager:** sign with a shared key from a secret and pin its certificate ([#9](https://github.com/yschimke/watchface-tools/issues/9)) ([2746373](https://github.com/yschimke/watchface-tools/commit/27463736a68436083ad563a79b890cc41e59964f))
+
 ## 0.1.0 (2026-11-17)
 
 
