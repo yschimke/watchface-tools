@@ -45,6 +45,12 @@ Optional properties: `-Ppush.baseUrl=https://…` (default `https://preview.coo.
 `-Ppush.fake=false` to make debug builds use the real server (debug defaults to the in-app fake).
 Regenerate the README screenshots with `-PscreenshotDir=docs/screenshots` on the test task.
 
+## Release to Google Play
+
+Each repository release builds the app and, once `PLAY_PUBLISH` is set, publishes it to Play's
+internal track with the listing in `src/main/play/`. Setup, secrets and versioning:
+[`docs/PLAY_PUBLISHING.md`](../docs/PLAY_PUBLISHING.md).
+
 ## Run on an emulator (Wear OS 6)
 
 1. Create an AVD from the *Wear OS 6 (API 36) Small Round* system image.
