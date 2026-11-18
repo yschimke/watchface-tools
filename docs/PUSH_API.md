@@ -145,6 +145,29 @@ token is `401`, never a silent fallback to the anonymous list. Response `200`:
 | `sha256` | Lowercase hex SHA-256 of the exact APK bytes served. The watch verifies it before calling the push API. |
 | `validationToken` | Watch Face Push validator token for *this APK* and the marketplace package. Tokens do not expire but are tied to the APK; re-issue when `version` changes. |
 
+### Catalog faces
+
+Besides accounts' designs, the anonymous listing carries the faces of public catalogs on
+preview.coo.ee (for example `wear-os-samples-watchfaces` and `bonstio-casino-gshark`). They come
+**after** the designs, and only catalogs under an allowed licence are listed: Apache-2.0, MIT,
+BSD-2-Clause, BSD-3-Clause, CC0-1.0, Unlicense or CC-BY-4.0. The extra fields are optional on every
+entry:
+
+| Field | Notes |
+| --- | --- |
+| `source` | `design` or `catalog`. Absent means `design`. |
+| `catalog` | `{ "system": "wear-os-samples-watchfaces", "title": "Wear OS samples" }`, only for `catalog`. The watch groups catalog faces by `system`, under `title`. |
+| `attribution` | `{ "repoUrl", "sourceUrl", "license" }`, only for `catalog`. `license` is an SPDX id. The detail screen shows the catalog, the licence and the source. |
+| `visibility` | `public` (display only). |
+
+For a catalog face:
+- `id` is `catalog:<system>/<previewId>`. It contains `/`, so clients never build a URL or a route
+  from it.
+- `apkUrl` and `previewUrl` are absolute and built by the server, under
+  `/api/watchface-push/v1/catalog-faces/<system>/<previewId>/apk?v=…`. Use them exactly as given.
+- `packageName` is `<marketplacePackage>.watchfacepush.c_<system>_<preview>_<10 hex>`.
+- `version`, `sha256`, `validationToken`, `wffVersion` and `sizeBytes` mean the same as for designs.
+
 ### `GET /designs/{id}/apk`
 
 Auth optional for a public design; a private one without a token is `401` (the watch says "This face

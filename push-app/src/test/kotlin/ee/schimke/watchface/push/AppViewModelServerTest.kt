@@ -118,7 +118,8 @@ class AppViewModelServerTest {
       vm.installDesign(server.designs.first(), confirmReplace = true, activate = false)
       // The APK is downloaded; the push is now held at the gate.
       kotlinx.coroutines.withTimeout(5_000) {
-        while (sent.none { it.first.endsWith("/apk") }) kotlinx.coroutines.delay(10)
+        while (sent.none { it.first.substringBefore('?').endsWith("/apk") }) kotlinx.coroutines
+          .delay(10)
       }
       kotlinx.coroutines.delay(100)
       // Mid-install: unlink and move to another server, then let the push finish.

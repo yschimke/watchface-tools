@@ -33,6 +33,10 @@ data class PollResponse(
 
 @Serializable
 data class Design(
+  /**
+   * Stable id. Catalog faces use `catalog:<system>/<previewId>`, which contains `/`: never build a
+   * URL or a navigation route from it; use [apkUrl] and [previewUrl] exactly as given.
+   */
   val id: String,
   val title: String,
   val description: String? = null,
@@ -48,6 +52,32 @@ data class Design(
   val sha256: String,
   val sizeBytes: Long? = null,
   val validationToken: String,
+  /** `design` (an account's design) or `catalog` (a face from a public catalog); null = design. */
+  val source: String? = null,
+  /** Which catalog a `catalog` face comes from. */
+  val catalog: CatalogInfo? = null,
+  /** Where a `catalog` face's source lives and under which licence. */
+  val attribution: Attribution? = null,
+  /** `public` or `private`; display only. */
+  val visibility: String? = null,
+) {
+  val isCatalog: Boolean
+    get() = source == SOURCE_CATALOG
+
+  companion object {
+    const val SOURCE_CATALOG = "catalog"
+  }
+}
+
+/** A public catalog of watch faces, e.g. `wear-os-samples-watchfaces` on preview.coo.ee. */
+@Serializable data class CatalogInfo(val system: String, val title: String? = null)
+
+/** Credit for a catalog face. [license] is an SPDX id, e.g. `Apache-2.0`. */
+@Serializable
+data class Attribution(
+  val repoUrl: String? = null,
+  val sourceUrl: String? = null,
+  val license: String? = null,
 )
 
 @Serializable

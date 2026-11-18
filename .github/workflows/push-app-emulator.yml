@@ -66,12 +66,14 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;36.0.0" "platforms;android-36" "platforms;android-37.0"
       - name: Build the debug app and the packager
         run: ./gradlew :push-app:assembleDebug :wff-packager:installDist
-      - name: Package a real push face from a repository sample
+      - name: Package a real push face from a repository sample, listed as a catalog face
         run: |
           python3 .github/scripts/emulator/build_push_face.py \
             --packager wff-packager/build/install/wff-packager/bin/wff-packager \
             --sample wff-core/src/jvmTest/resources/wear-os-samples/SimpleDigital \
-            --face-name simple_digital --title "Simple Digital" \
+            --face-name c_wear_os_samples_watchfaces_simpledigital_5e1d0c3a9b --title "Simple Digital" \
+            --catalog-system wear-os-samples-watchfaces --catalog-title "Wear OS samples" \
+            --preview-id SimpleDigital --license Apache-2.0 \
             --out "$RUNNER_TEMP/face" --base-url http://127.0.0.1:8765
       - name: Serve the packaged face on the runner
         run: |

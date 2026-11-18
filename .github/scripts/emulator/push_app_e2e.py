@@ -6,7 +6,9 @@ Used by .github/workflows/push-app-emulator.yml. The app logs one line per step 
 `uiautomator dump` + `input tap`, saves a screenshot per step, and fails on a missing marker.
 
   push_app_e2e.py fake   --out <dir> [--extra-catalog http://127.0.0.1:8765/extra.json
-                                      --real-face simple_digital --real-title "Simple Digital"]
+                                      --real-face <id> --real-package-face <face>
+                                      --real-title "Simple Digital" [--real-catalog-title T
+                                      --real-license SPDX]]
   push_app_e2e.py server --out <dir> --base-url https://ui.coo.ee [--device-token-env VAR]
 
 `fake`: the debug build's in-process FakePushServer. Browses public faces anonymously, installs
@@ -219,6 +221,7 @@ def run_fake(a: argparse.Namespace) -> None:
     ids = listed.group(1).split(",")
     assert "aurora" in ids, ids
     assert "pulse" not in ids, f"private design listed anonymously: {ids}"
+    assert "catalog:wear-os-samples-watchfaces/SimpleAnalog" in ids, f"fake catalog face: {ids}"
     if a.real_face:
         assert a.real_face in ids, f"extra catalog face missing: {ids}"
     wait_text("Aurora", scroll_to=True)
@@ -259,27 +262,35 @@ def run_fake(a: argparse.Namespace) -> None:
         note("No real face packaged; skipping the install that should succeed.")
         return
 
-    note(f"### Real face: `{a.real_face}` packaged by :wff-packager, validated token")
+    rid = re.escape(a.real_face)
+    face = re.escape(a.real_package_face)
+    note(f"### Catalog face: `{a.real_face}` packaged by :wff-packager, validated token")
+    # Catalog faces follow the designs, under their catalog's header.
+    wait_header("Your designs")
+    if a.real_catalog_title:
+        wait_text(a.real_catalog_title, scroll_to=True)
     tap_text(a.real_title)
     # Install is the EdgeButton, shown at the end of the scrolled detail list.
+    if a.real_license:
+        wait_text(f"License: {a.real_license}", timeout=30, scroll_to=True)
     wait_text("Install", timeout=30, scroll_to=True)
     screenshot("real-detail")
     tap_text("Install")
-    wait_log(rf"download design={a.real_face} bytes=\d+ sha256=[0-9a-f]{{64}}")
-    wait_log(rf"verify design={a.real_face} sha256 ok")
-    failed = re.search(rf"push design={a.real_face} rejected kind=\S+.*", logcat())
+    wait_log(rf"download design={rid} bytes=\d+ sha256=[0-9a-f]{{64}}")
+    wait_log(rf"verify design={rid} sha256 ok")
+    failed = re.search(rf"push design={rid} rejected kind=\S+.*", logcat())
     if failed:
         screenshot("real-rejected")
         raise AssertionError(f"push service rejected the packaged face: {failed.group(0)}")
-    wait_log(rf"push design={a.real_face} installed slot=\S+ package=\S+", timeout=90)
-    wait_log(rf"install design={a.real_face} result=Success")
-    wait_log(rf"state remaining=\d+ installed=\S*watchfacepush\.{a.real_face}:1:", timeout=30)
-    activation = wait_log(rf"activate design={a.real_face} activation=(\S+)")
+    wait_log(rf"push design={rid} installed slot=\S+ package=\S+", timeout=90)
+    wait_log(rf"install design={rid} result=Success")
+    wait_log(rf"state remaining=\d+ installed=\S*watchfacepush\.{face}:1:", timeout=30)
+    activation = wait_log(rf"activate design={rid} activation=(\S+)")
     time.sleep(2)
     screenshot("real-installed")
     packages = pushed_packages()
     note(f"- `pm list packages`: {packages}")
-    assert any(p.endswith(f".watchfacepush.{a.real_face}") for p in packages), packages
+    assert any(p.endswith(f".watchfacepush.{a.real_package_face}") for p in packages), packages
     if activation.group(1) != "Active":
         note(f"- activation was {activation.group(1)}; the home screen may show another face")
     show_watch_face("watch-face")
@@ -334,6 +345,20 @@ def run_server(a: argparse.Namespace) -> None:
     wait_header("Public faces")
     screenshot("server-public-list")
     installable = [d for d in designs if d.get("wffVersion", 99) <= 4]
+    # Prefer a face from the wear-os-samples catalog: the catalog path is what this stage proves.
+    samples = [
+        d
+        for d in installable
+        if d.get("source") == "catalog"
+        and (d.get("catalog") or {}).get("system", "").startswith("wear-os-samples")
+    ]
+    if samples:
+        installable = samples
+        note(f"- installing catalog face `{samples[0]['id']}`")
+    elif any(d.get("source") == "catalog" for d in designs):
+        note("::warning::The server lists catalog faces but none from wear-os-samples.")
+    else:
+        note("- the server lists no catalog faces yet; installing a design instead")
     if not installable:
         note("::notice::The server lists no public face this watch can install. Skipped.")
     else:
@@ -366,7 +391,10 @@ def main() -> None:
     p.add_argument("mode", choices=["fake", "server"])
     p.add_argument("--out", required=True, type=pathlib.Path)
     p.add_argument("--extra-catalog")
-    p.add_argument("--real-face")
+    p.add_argument("--real-face", help="design id; catalog ids look like catalog:<system>/<id>")
+    p.add_argument("--real-package-face", help="<face> in <marketplace>.watchfacepush.<face>")
+    p.add_argument("--real-catalog-title")
+    p.add_argument("--real-license")
     p.add_argument("--real-title")
     p.add_argument("--base-url", default="https://ui.coo.ee")
     p.add_argument("--device-token-env")
