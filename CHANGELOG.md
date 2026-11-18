@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/yschimke/watchface-tools/compare/v0.4.0...v0.5.0) (2026-11-18)
+
+
+### Features
+
+* expose typed watch-face configuration containers in the UI Builder catalog ([#40](https://github.com/yschimke/watchface-tools/issues/40)) ([d72021a](https://github.com/yschimke/watchface-tools/commit/d72021ac784985255b2840a20273135c01e97d6c))
+
 ## [0.4.0](https://github.com/yschimke/watchface-tools/compare/v0.3.2...v0.4.0) (2026-11-18)
 
 
