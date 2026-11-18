@@ -5,6 +5,7 @@ ktfmt = "0.28.0"
 agp = "9.5.1"
 playPublisher = "4.1.2"
 wearCompose = "1.7.1"
+wearInput = "1.2.0"
 composeBom = "2026.09.00"
 activityCompose = "1.13.0"
 lifecycle = "2.11.0"
@@ -29,6 +30,7 @@ apksig = { module = "com.android.tools.build:apksig", version.ref = "apksig" }
 validator-push = { module = "com.google.android.wearable.watchface.validator:validator-push", version.ref = "validatorPush" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 
+androidx-wear-input = { module = "androidx.wear:wear-input", version.ref = "wearInput" }
 androidx-wear-watchfacepush = { module = "androidx.wear.watchfacepush:watchfacepush", version.ref = "watchfacepush" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 compose-ui = { module = "androidx.compose.ui:ui" }

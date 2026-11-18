@@ -19,8 +19,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
-/** What the watch keeps after linking: the device token and a display name for the account. */
-data class LinkedAccount(val deviceToken: String, val accountName: String?)
+/**
+ * What the watch keeps after linking: the device token, a display name for the account, and the
+ * catalog [server] that issued the token. A token is only ever sent to its own server.
+ */
+data class LinkedAccount(val deviceToken: String, val accountName: String?, val server: String)
 
 interface TokenStore {
   val account: Flow<LinkedAccount?>
@@ -54,17 +57,21 @@ class DataStoreTokenStore(context: Context) : TokenStore {
   private val store = context.applicationContext.linkStore
   private val tokenKey = stringPreferencesKey("token")
   private val nameKey = stringPreferencesKey("name")
+  private val serverKey = stringPreferencesKey("server")
 
   override val account: Flow<LinkedAccount?> =
     store.data.map { prefs ->
       val token = prefs[tokenKey]?.let { runCatching { decrypt(it) }.getOrNull() }
-      token?.let { LinkedAccount(it, prefs[nameKey]) }
+      // A token saved before tokens recorded their server has no known owner: read as unlinked.
+      val server = prefs[serverKey]
+      if (token != null && server != null) LinkedAccount(token, prefs[nameKey], server) else null
     }
 
   override suspend fun save(account: LinkedAccount) {
     val encrypted = encrypt(account.deviceToken)
     store.edit {
       it[tokenKey] = encrypted
+      it[serverKey] = account.server
       account.accountName?.let { name -> it[nameKey] = name } ?: it.remove(nameKey)
     }
   }

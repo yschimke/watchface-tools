@@ -35,10 +35,17 @@ android {
     versionName = appVersionName
 
     buildConfigField("String", "MARKETPLACE_PACKAGE", "\"$marketplacePackage\"")
+    // The catalog server the app starts on, and the others its server picker offers (any other
+    // can be typed in on the watch). Override with -Ppush.baseUrl / -Ppush.servers.
     buildConfigField(
       "String",
       "DEFAULT_BASE_URL",
-      "\"${providers.gradleProperty("push.baseUrl").getOrElse("https://preview.coo.ee")}\"",
+      "\"${providers.gradleProperty("push.baseUrl").getOrElse("https://ui.coo.ee")}\"",
+    )
+    buildConfigField(
+      "String",
+      "KNOWN_SERVERS",
+      "\"${providers.gradleProperty("push.servers").getOrElse("https://ui.coo.ee,https://preview.coo.ee")}\"",
     )
   }
 
@@ -109,6 +116,7 @@ dependencies {
   implementation(libs.wear.compose.material3)
   implementation(libs.wear.compose.foundation)
   implementation(libs.wear.compose.navigation)
+  implementation(libs.androidx.wear.input)
   implementation(libs.androidx.activity.compose)
   implementation(libs.androidx.lifecycle.viewmodel.compose)
   implementation(libs.androidx.lifecycle.runtime.compose)

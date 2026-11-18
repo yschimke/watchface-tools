@@ -4,9 +4,9 @@ Wear OS 6 app that installs watch-face designs from the hosted site onto the wat
 [Watch Face Push API](https://developer.android.com/training/wearables/watch-face-push)
 (`androidx.wear.watchfacepush:watchfacepush:1.0.0`). Server contract: [`docs/PUSH_API.md`](../docs/PUSH_API.md).
 
-| Link | Designs | Detail (replace) | Detail (WFF too new) |
-| --- | --- | --- | --- |
-| ![](../docs/screenshots/link.png) | ![](../docs/screenshots/list.png) | ![](../docs/screenshots/detail-replace.png) | ![](../docs/screenshots/detail-wff.png) |
+| Link | Server | Designs | Detail (replace) | Detail (WFF too new) |
+| --- | --- | --- | --- | --- |
+| ![](../docs/screenshots/link.png) | ![](../docs/screenshots/server.png) | ![](../docs/screenshots/list.png) | ![](../docs/screenshots/detail-replace.png) | ![](../docs/screenshots/detail-wff.png) |
 
 ## Naming rule and package
 
@@ -41,7 +41,9 @@ build-brief ./gradlew :push-app:assembleDebug     # needs Android SDK platform 3
 build-brief ./gradlew :push-app:testDebugUnitTest # JDK 21 (Robolectric on SDK 36)
 ```
 
-Optional properties: `-Ppush.baseUrl=https://…` (default `https://preview.coo.ee`) and
+Optional properties: `-Ppush.baseUrl=https://…` (default `https://ui.coo.ee`), `-Ppush.servers=a,b`
+(the server picker's list; default `ui.coo.ee` and `preview.coo.ee`; see
+[`docs/PUSH_API.md`](../docs/PUSH_API.md#catalog-servers)) and
 `-Ppush.fake=false` to make debug builds use the real server (debug defaults to the in-app fake).
 Regenerate the README screenshots with `-PscreenshotDir=docs/screenshots` on the test task.
 

@@ -25,7 +25,10 @@ class LinkControllerTest {
   fun approvedAfterPollingStoresTokenAndEmitsLinked() = runTest {
     val (server, api) = fakeServerApi(FakePushServer(FAKE_HOST, approveAfterPolls = 2))
     val tokens = InMemoryTokenStore()
-    val states = LinkController(api, tokens, "Test", 36, now = { currentTime }).link().toList()
+    val states =
+      LinkController(api, tokens, "Test", 36, now = { currentTime })
+        .link("https://$FAKE_HOST")
+        .toList()
 
     assertEquals(LinkState.Requesting, states[0])
     val waiting = assertIs<LinkState.Waiting>(states[1])
@@ -33,6 +36,7 @@ class LinkControllerTest {
     assertEquals("https://$FAKE_HOST/link?code=AB7K-92QX", waiting.verificationUrl)
     assertEquals(LinkState.Linked("demo@example.com"), states.last())
     assertEquals(server.deviceToken, tokens.account.first()?.deviceToken)
+    assertEquals("https://$FAKE_HOST", tokens.account.first()?.server)
   }
 
   private class StubApi(val polls: ArrayDeque<() -> PollResponse>, val expires: Int = 600) :
@@ -54,7 +58,10 @@ class LinkControllerTest {
   fun deniedEndsWithoutStoringToken() = runTest {
     val tokens = InMemoryTokenStore()
     val api = StubApi(ArrayDeque(listOf({ PollResponse("pending") }, { PollResponse("denied") })))
-    val states = LinkController(api, tokens, "Test", 36, now = { currentTime }).link().toList()
+    val states =
+      LinkController(api, tokens, "Test", 36, now = { currentTime })
+        .link("https://$FAKE_HOST")
+        .toList()
     assertEquals(LinkState.Denied, states.last())
     assertEquals(null, tokens.account.first())
   }
@@ -71,7 +78,10 @@ class LinkControllerTest {
           ),
         ),
       )
-    val states = LinkController(api, tokens, "Test", 36, now = { currentTime }).link().toList()
+    val states =
+      LinkController(api, tokens, "Test", 36, now = { currentTime })
+        .link("https://$FAKE_HOST")
+        .toList()
     assertEquals(LinkState.Linked(null), states.last())
     assertEquals("tok", tokens.account.first()?.deviceToken)
   }
@@ -80,7 +90,9 @@ class LinkControllerTest {
   fun neverApprovedExpiresAtDeadline() = runTest {
     val api = StubApi(ArrayDeque(List(100) { { PollResponse("pending") } }), expires = 12)
     val states =
-      LinkController(api, InMemoryTokenStore(), "Test", 36, now = { currentTime }).link().toList()
+      LinkController(api, InMemoryTokenStore(), "Test", 36, now = { currentTime })
+        .link("https://$FAKE_HOST")
+        .toList()
     assertEquals(LinkState.Expired, states.last())
   }
 
@@ -88,7 +100,9 @@ class LinkControllerTest {
   fun goneCodeExpiresImmediately() = runTest {
     val api = StubApi(ArrayDeque(listOf({ throw ApiException(410, "gone") })))
     val states =
-      LinkController(api, InMemoryTokenStore(), "Test", 36, now = { currentTime }).link().toList()
+      LinkController(api, InMemoryTokenStore(), "Test", 36, now = { currentTime })
+        .link("https://$FAKE_HOST")
+        .toList()
     assertEquals(LinkState.Expired, states.last())
   }
 }

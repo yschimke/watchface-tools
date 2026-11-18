@@ -21,6 +21,7 @@ import ee.schimke.watchface.push.ui.DesignDetailScreen
 import ee.schimke.watchface.push.ui.DesignListScreen
 import ee.schimke.watchface.push.ui.LinkScreen
 import ee.schimke.watchface.push.ui.LocalPreviewPainter
+import ee.schimke.watchface.push.ui.ServerScreen
 import java.io.File
 import org.junit.Rule
 import org.junit.Test
@@ -90,8 +91,22 @@ class ScreenshotTest {
   fun link() =
     shot("link") {
       LinkScreen(
-        LinkState.Waiting("AB7K-92QX", "https://preview.coo.ee/link?code=AB7K-92QX"),
+        LinkState.Waiting("AB7K-92QX", "https://ui.coo.ee/link?code=AB7K-92QX"),
+        server = "https://ui.coo.ee",
         onRetry = {},
+        onChangeServer = {},
+      )
+    }
+
+  @Config(qualifiers = "w227dp-h400dp-round-xhdpi")
+  @Test
+  fun server() =
+    shot("server") {
+      ServerScreen(
+        current = "https://faces.example.org",
+        presets = listOf("https://ui.coo.ee", "https://preview.coo.ee"),
+        onSelect = { true },
+        onDone = {},
       )
     }
 
@@ -102,6 +117,7 @@ class ScreenshotTest {
       DesignListScreen(
         state = ee.schimke.watchface.push.DesignsState.Ready(designs, singleSlotFull),
         accountName = "demo@example.com",
+        server = "https://ui.coo.ee",
         deviceWff = 4,
         pushSupported = true,
         onOpen = {},

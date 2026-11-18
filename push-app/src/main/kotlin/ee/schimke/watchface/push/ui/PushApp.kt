@@ -29,19 +29,43 @@ fun PushApp(vm: AppViewModel) {
       val session by vm.session.collectAsStateWithLifecycle()
       when (val s = session) {
         Session.Loading -> CircularProgressIndicator()
-        Session.Unlinked -> {
-          val link by vm.link.collectAsStateWithLifecycle()
-          LaunchedEffect(Unit) { vm.startLink() }
-          LinkScreen(link, onRetry = vm::startLink)
-        }
-        is Session.Linked -> LinkedNav(vm, s.account.accountName)
+        Session.Unlinked -> UnlinkedNav(vm)
+        is Session.Linked -> LinkedNav(vm, s.account.accountName, s.account.server)
       }
     }
   }
 }
 
+/** Linking, and choosing the server to link with; the server can't change while linked. */
 @Composable
-private fun LinkedNav(vm: AppViewModel, accountName: String?) {
+private fun UnlinkedNav(vm: AppViewModel) {
+  val nav = rememberSwipeDismissableNavController()
+  val server by vm.server.collectAsStateWithLifecycle()
+  SwipeDismissableNavHost(navController = nav, startDestination = "link") {
+    composable("link") {
+      val link by vm.link.collectAsStateWithLifecycle()
+      // A new code whenever the server changes: a code belongs to the server that issued it.
+      LaunchedEffect(server) { vm.startLink() }
+      LinkScreen(
+        link,
+        server = server,
+        onRetry = vm::startLink,
+        onChangeServer = { nav.navigate("server") },
+      )
+    }
+    composable("server") {
+      ServerScreen(
+        current = server,
+        presets = vm.serverPresets,
+        onSelect = vm::selectServer,
+        onDone = { nav.popBackStack() },
+      )
+    }
+  }
+}
+
+@Composable
+private fun LinkedNav(vm: AppViewModel, accountName: String?, server: String) {
   val nav = rememberSwipeDismissableNavController()
   val designs by vm.designs.collectAsStateWithLifecycle()
   val install by vm.install.collectAsStateWithLifecycle()
@@ -58,6 +82,7 @@ private fun LinkedNav(vm: AppViewModel, accountName: String?) {
       DesignListScreen(
         state = designs,
         accountName = accountName,
+        server = server,
         deviceWff = vm.wffVersion,
         pushSupported = vm.pushSupported,
         onOpen = { nav.navigate("design/${it.id}") },

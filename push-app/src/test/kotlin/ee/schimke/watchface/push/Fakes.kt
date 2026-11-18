@@ -27,6 +27,9 @@ class FakePusher(
   var nextFailure: PushFailure? = null
   var activationFailure: PushFailure? = null
   var activeSlot: String? = null
+
+  /** When set, [add] and [update] wait for it: holds an install mid-flight in tests. */
+  var gate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
   private var nextId = 1
 
   override fun canSetActive() = permissionGranted
@@ -41,6 +44,7 @@ class FakePusher(
   }
 
   override suspend fun add(apk: File, token: String): InstalledFace {
+    gate?.await()
     maybeFail()
     if (slots.size >= slotLimit) throw PushFailure(PushFailureKind.SLOT_LIMIT_REACHED)
     pushedBytes += apk.readBytes()

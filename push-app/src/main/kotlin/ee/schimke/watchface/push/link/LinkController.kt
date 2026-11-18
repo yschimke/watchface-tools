@@ -31,8 +31,11 @@ class LinkController(
   private val wearOsApi: Int,
   private val now: () -> Long = { System.currentTimeMillis() },
 ) {
-  /** Cold flow; collect it to run one linking attempt, cancel the collector to abort. */
-  fun link(): Flow<LinkState> = flow {
+  /**
+   * Cold flow; collect it to run one linking attempt against [server] (the server [api] talks to
+   * now), cancel the collector to abort. The token is saved as belonging to [server].
+   */
+  fun link(server: String): Flow<LinkState> = flow {
     emit(LinkState.Requesting)
     val code: DeviceCode =
       try {
@@ -67,7 +70,7 @@ class LinkController(
           if (token.isNullOrEmpty()) {
             emit(LinkState.Failed("Server approved the code without a token"))
           } else {
-            tokens.save(LinkedAccount(token, response.accountName))
+            tokens.save(LinkedAccount(token, response.accountName, server))
             emit(LinkState.Linked(response.accountName))
           }
           return@flow
