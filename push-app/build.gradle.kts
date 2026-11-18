@@ -92,10 +92,11 @@ android {
   }
 }
 
-// Gradle Play Publisher. A Wear OS-only app publishes to the ordinary tracks; `-Pplay.track=…`
-// overrides (for example `wear:internal` if the app ever gains a phone form factor).
+// Gradle Play Publisher. Wear OS releases go to Play's dedicated Wear OS tracks, whose API names
+// carry the `wear:` prefix (developers.google.com/android-publisher/tracks#ff-track-name), as
+// cadence's Wear app does. `-Pplay.track=…` overrides it.
 play {
-  track.set(providers.gradleProperty("play.track").orElse("internal"))
+  track.set(providers.gradleProperty("play.track").orElse("wear:internal"))
   defaultToAppBundles.set(true)
   releaseStatus.set(ReleaseStatus.COMPLETED)
   enabled.set(System.getenv("ANDROID_PUBLISHER_CREDENTIALS") != null)

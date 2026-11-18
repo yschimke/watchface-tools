@@ -1,8 +1,8 @@
 # Play publishing: the push app
 
 The Wear OS marketplace app (`:push-app`, package `ee.schimke.watchface.push`) ships through Google
-Play's **internal** testing track, with `COMPLETED` status, so testers get each release without a
-separate rollout. Production promotion stays a Play Console action. The setup mirrors
+Play's **Wear OS internal** testing track (`wear:internal`), with `COMPLETED` status, so testers
+get each release without a separate rollout. Production promotion stays a Play Console action. The setup mirrors
 [yschimke/cadence](https://github.com/yschimke/cadence/blob/main/docs/play-publishing.md): Gradle
 Play Publisher in the app's build, and a release workflow that signs with the upload key.
 
@@ -12,12 +12,12 @@ Play Publisher in the app's build, and a release workflow that signs with the up
 2. `release-please.yml` then calls [`play-release.yml`](../.github/workflows/play-release.yml) for
    the tag, **beside** the Maven publish rather than after it, so neither can block the other.
 3. It builds `:push-app:bundleRelease` signed with the upload key, runs
-   `:push-app:publishReleaseBundle` (internal track) and `:push-app:publishReleaseListing` (the
+   `:push-app:publishReleaseBundle` (`wear:internal`) and `:push-app:publishReleaseListing` (the
    en-GB title and descriptions in `push-app/src/main/play/`), and keeps the bundle as a workflow
    artifact.
 
 Publishing is **opt-in**: releases publish only while the repository variable `PLAY_PUBLISH` is
-`true`. Until then the workflow still builds the bundle, which proves the release tag builds. Set
+`true` (release-please.yml passes it as the Play workflow's `publish_play`). Until then the workflow still builds the bundle, which proves the release tag builds. Set
 `PLAY_PUBLISH_LISTING=false` to skip listing uploads. Listings are app-wide, so an edit also changes
 the production listing.
 
@@ -50,7 +50,7 @@ harmless, and it keeps one version per release.
    bundle sets its package and upload certificate. Add the four `PUSH_APP_*` secrets from step 5
    first, so the bundle is signed with the upload key. Then run the **Play release** workflow for
    the latest tag without `publish_play`. Download the `push-app-vX.Y.Z` artifact, and upload its `.aab` to the
-   internal track in Play Console.
+   Wear OS internal track in Play Console.
 4. **Add a service account** with access to this app's testing releases and store presence (Play
    Console → Users and permissions), and create a JSON key for it.
 5. **Add the repository secrets**, then set the repository variable `PLAY_PUBLISH=true`:
