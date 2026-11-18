@@ -99,8 +99,8 @@ def find(text: str) -> tuple[int, int] | None:
     for label, (x1, y1, x2, y2) in nodes():
         if label.strip() == text:
             cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-            # Round screens: only tap what is comfortably inside the visible disc.
-            if 0.1 * h < cy < 0.9 * h and x2 > x1 and y2 > y1:
+            # On screen, edges included: the EdgeButton (Install) hugs the bottom of the disc.
+            if 0 < cy < h and 0 < cx < w and x2 > x1 and y2 > y1:
                 return cx, cy
     return None
 
@@ -202,9 +202,10 @@ def run_fake(a: argparse.Namespace) -> None:
     screenshot("public-list")
 
     tap_text("Aurora")
-    wait_text("Install", timeout=15)
+    # Install is the EdgeButton, shown at the end of the scrolled detail list.
+    wait_text("Install", timeout=30, scroll_to=True)
     screenshot("public-detail")
-    tap_text("Install", scroll_to=False)
+    tap_text("Install")
     wait_log(r"plan design=aurora plan=\w+ anonymous=true")
     wait_log(r"download design=aurora bytes=\d+ sha256=[0-9a-f]{64}")
     wait_log(r"verify design=aurora sha256 ok")
@@ -237,9 +238,10 @@ def run_fake(a: argparse.Namespace) -> None:
 
     note(f"### Real face: `{a.real_face}` packaged by :wff-packager, validated token")
     tap_text(a.real_title)
-    wait_text("Install", timeout=15)
+    # Install is the EdgeButton, shown at the end of the scrolled detail list.
+    wait_text("Install", timeout=30, scroll_to=True)
     screenshot("real-detail")
-    tap_text("Install", scroll_to=False)
+    tap_text("Install")
     wait_log(rf"download design={a.real_face} bytes=\d+ sha256=[0-9a-f]{{64}}")
     wait_log(rf"verify design={a.real_face} sha256 ok")
     failed = re.search(rf"push design={a.real_face} rejected kind=\S+.*", logcat())
@@ -300,9 +302,10 @@ def run_server(a: argparse.Namespace) -> None:
     else:
         design = installable[0]
         tap_text(design["title"])
-        wait_text("Install", timeout=15)
+        # Install is the EdgeButton, shown at the end of the scrolled detail list.
+        wait_text("Install", timeout=30, scroll_to=True)
         screenshot("server-public-detail")
-        tap_text("Install", scroll_to=False)
+        tap_text("Install")
         wait_log(rf"verify design={re.escape(design['id'])} sha256 ok", timeout=120)
         result = wait_log(rf"install design={re.escape(design['id'])} result=(\w+)", timeout=120)
         time.sleep(2)
