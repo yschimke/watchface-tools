@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/yschimke/watchface-tools/compare/v0.2.0...v0.2.1) (2026-11-18)
+
+
+### Bug Fixes
+
+* validate values, expressions and data sources; fail packaging on Google XSD findings ([#14](https://github.com/yschimke/watchface-tools/issues/14)) ([bfa28b5](https://github.com/yschimke/watchface-tools/commit/bfa28b514981188c3a7cb3beebf1273653371e4c))
+* **wff-core:** collapse XML whitespace in numeric values and reject NaN for bounded numbers ([#16](https://github.com/yschimke/watchface-tools/issues/16)) ([41b5681](https://github.com/yschimke/watchface-tools/commit/41b56810d8f6235c51b8e1a3d09442c4adf51aaa))
+
 ## [0.2.0](https://github.com/yschimke/watchface-tools/compare/v0.1.0...v0.2.0) (2026-11-18)
 
 
