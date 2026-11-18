@@ -144,7 +144,12 @@ internal object WffValueChecker {
   }
 
   private fun matchesNumber(rule: WffValueRule.Number, value: String): Boolean {
-    val n = parseNumber(value, rule.integer) ?: return false
+    // XSD numeric types have whiteSpace="collapse": surrounding XML whitespace is not part of the
+    // value, and WffXmlParser keeps attribute text verbatim.
+    val n = parseNumber(value.trim(' ', '\t', '\n', '\r'), rule.integer) ?: return false
+    // NaN compares false against any bound, so it would slip past every one of them; the XSD
+    // validator rejects it for a bounded type.
+    if (n.isNaN() && (rule.min != null || rule.max != null)) return false
     rule.min?.let { if (if (rule.minExclusive) n <= it else n < it) return false }
     rule.max?.let { if (if (rule.maxExclusive) n >= it else n > it) return false }
     return true

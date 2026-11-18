@@ -26,6 +26,29 @@ class WffValueValidationTest {
     errors(doc, v).single()
 
   @Test
+  fun numericValuesCollapseXmlWhitespace() {
+    // XSD numeric types collapse whitespace; WffXmlParser keeps attribute text verbatim.
+    val padded =
+      WffXmlParser.parse(
+        """<WatchFace width=" 450 " height="450  "><Scene><PartDraw x=" 0" y="0 " width="10" height="10">$SHAPE</PartDraw></Scene></WatchFace>""",
+      )
+    assertEquals(emptyList(), errors(padded))
+  }
+
+  @Test
+  fun nanFailsABoundedNumber() {
+    // Font size is a positive float: NaN compares false against every bound, so it must be refused
+    // explicitly, as the XSD validator does.
+    val doc =
+      face(
+        """<PartText x="0" y="0" width="450" height="50"><Text><Font family="SYNC_TO_DEVICE" size="NaN" color="#ffffffff">x</Font></Text></PartText>""",
+      )
+    val d = only(doc)
+    assertEquals(WffDiagnosticCode.INVALID_VALUE, d.code)
+    assertTrue(d.path.endsWith("/Font/@size"), d.path)
+  }
+
+  @Test
   fun badColourIsAnErrorWithItsPath() {
     // a/work: `<Fill color="not-a-colour"/>` packaged with exit 0.
     val doc =
