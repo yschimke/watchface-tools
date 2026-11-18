@@ -112,10 +112,22 @@ def scroll(down: bool = True) -> None:
     time.sleep(0.8)
 
 
+def ensure_foreground() -> None:
+    """Back out of system UI (charging screen, notifications) that covers the app."""
+    for _ in range(3):
+        top = shell("dumpsys activity activities | grep -m1 topResumedActivity", check=False)
+        if PKG in top or not top.strip():
+            return
+        note(f"- app covered by `{top.strip()[:120]}`; pressing Back")
+        shell("input keyevent KEYCODE_BACK", check=False)
+        time.sleep(1.5)
+
+
 def wait_text(text: str, timeout: float = 30, scroll_to: bool = False) -> tuple[int, int]:
     deadline = time.time() + timeout
     swipes = 0
     while time.time() < deadline:
+        ensure_foreground()
         pos = find(text)
         if pos:
             return pos
@@ -221,7 +233,7 @@ def run_fake(a: argparse.Namespace) -> None:
     back()
     tap_text("Link account")
     wait_text("Link your account")
-    wait_text("AB7K-92QX", timeout=20)  # the fake's device code is on screen
+    wait_text("AB7K-92QX", timeout=30, scroll_to=True)  # below the QR on a round screen
     screenshot("link-code")
     # Stands in for the user confirming the code on the site.
     shell(f"am broadcast -a {PKG}.FAKE_APPROVE -p {PKG}")
@@ -262,29 +274,42 @@ def run_fake(a: argparse.Namespace) -> None:
     show_watch_face("watch-face")
 
 
-def fetch_designs(base: str, token: str | None) -> tuple[int, list[dict]]:
-    req = urllib.request.Request(base.rstrip("/") + API + "/designs")
+class NotLive(Exception):
+    """The server has no push API yet (404): the live stage skips."""
+
+
+def fetch_designs(base: str, token: str | None) -> list[dict]:
+    """GET /designs. 404 raises [NotLive]; any other non-2xx or a bad body fails the stage."""
+    url = base.rstrip("/") + API + "/designs"
+    req = urllib.request.Request(url)
     if token:
         req.add_header("Authorization", f"Bearer {token}")
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
-            return r.status, json.load(r).get("designs", [])
+            body = json.load(r)
     except urllib.error.HTTPError as e:
-        return e.code, []
+        if e.code == 404:
+            raise NotLive(url) from e
+        who = "linked" if token else "anonymous"
+        raise AssertionError(f"{who} GET {url} answered HTTP {e.code}") from e
+    designs = body.get("designs") if isinstance(body, dict) else None
+    if not isinstance(designs, list):
+        raise AssertionError(f"GET {url}: no `designs` list in the response")
+    return designs
 
 
 def run_server(a: argparse.Namespace) -> None:
     base = a.base_url.rstrip("/")
     note(f"## Stage 2: live server {base}")
     token = os.environ.get(a.device_token_env) if a.device_token_env else None
-    status, designs = fetch_designs(base, None)
-    if status == 404:
+    try:
+        designs = fetch_designs(base, None)
+    except NotLive:
         note(f"::notice::{base}{API}/designs answers 404: the push API is not live yet. Skipped.")
         return
-    note(f"- anonymous GET /designs: HTTP {status}, {len(designs)} design(s)")
+    note(f"- anonymous GET /designs: {len(designs)} design(s)")
     if token:
-        t_status, t_designs = fetch_designs(base, token)
-        note(f"- linked GET /designs: HTTP {t_status}, {len(t_designs)} design(s)")
+        note(f"- linked GET /designs: {len(fetch_designs(base, token))} design(s)")
 
     extras = ["--ez", "fake", "false", "--es", "base_url", base]
     launch(*extras)
@@ -337,8 +362,12 @@ def main() -> None:
     a = p.parse_args()
     out = a.out
     out.mkdir(parents=True, exist_ok=True)
-    shell("settings put global stay_on_while_plugged_in 7", check=False)
-    shell("svc power stayon true", check=False)
+    # On charge, Wear's sysui opens its charging screen over the app: run the emulator on battery,
+    # and keep the screen on with a long timeout instead of "stay on while plugged in".
+    shell("dumpsys battery unplug", check=False)
+    shell("dumpsys battery set level 80", check=False)
+    shell("settings put system screen_off_timeout 1800000", check=False)
+    shell("input keyevent KEYCODE_WAKEUP", check=False)
     for s in ["window_animation_scale", "transition_animation_scale", "animator_duration_scale"]:
         shell(f"settings put global {s} 0", check=False)
     ok = False
