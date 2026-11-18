@@ -28,7 +28,7 @@ class PublishedArtifactsTest {
   fun `published modules are top-level projects named for their directory`() {
     val modules = publishedModules()
     // A guard on the guard: if the walk stops finding modules the rest passes vacuously.
-    assertEquals(listOf(":wff-core", ":wff-packager"), modules.sorted())
+    assertEquals(listOf(":wff-apk", ":wff-core", ":wff-packager"), modules.sorted())
     for (path in modules) assertEquals(1, path.removePrefix(":").split(":").size, path)
   }
 
@@ -38,6 +38,11 @@ class PublishedArtifactsTest {
     assertEquals(
       listOf("wff-core", "wff-core-jvm", "wff-core-wasm-js"),
       PublishedArtifacts.coordinates("wff-core", core),
+    )
+    val apk = repoRoot.resolve("wff-apk/build.gradle.kts").readText()
+    assertEquals(
+      listOf("wff-apk", "wff-apk-jvm", "wff-apk-wasm-js"),
+      PublishedArtifacts.coordinates("wff-apk", apk),
     )
     val packager = repoRoot.resolve("wff-packager/build.gradle.kts").readText()
     assertEquals(listOf("wff-packager"), PublishedArtifacts.coordinates("wff-packager", packager))

@@ -24,6 +24,24 @@ wff-packager pack --bundle dir --out face.apk --version-code 12 \
     [--package com.example.sideload] [--previous-version-code 11] [--token-out token.txt]
 ```
 
+## Relation to `wff-apk`
+
+`:wff-apk` (Kotlin Multiplatform, also runs in the browser) builds the same kind of APK in pure
+Kotlin: binary XML, `resources.arsc`, aligned zip and v2/v3 signing, with no aapt2, zipalign or
+apksig. The two share the checks that run before any APK exists (`ApkPreflight`, `PushRules`,
+`PackageTarget`, the diagnostics), which moved to `wff-apk` and keep their `ee.schimke.watchface.packager`
+package, so this module's API is unchanged. This module stays the one that runs **Google's
+validators**, which are JVM-only and issue the validation token; they accept any APK file, so an APK
+built by `WffApkBuilder` can be validated here exactly like an aapt2-built one (`PureApkTest` does it for
+every sample). aapt2 remains the reference for resource semantics: `PureApkTest` compares
+`aapt2 dump xmltree`, `resources` and `badging` of both APKs.
+
+Should the packager fall back to the pure path when no SDK is present? Not yet. The pure path covers
+the subset of resources a face uses and rejects the rest, so a silent fallback would make the same
+bundle succeed or fail depending on the machine. Offer it as an explicit option (`--pure`) first,
+and make it the default only after it has built the whole published corpus with the same validator
+verdicts.
+
 ## Pipeline
 
 1. Rewrite the manifest's `package` / `versionCode` from the options; check the push rules and the

@@ -22,6 +22,7 @@ nothing from the manifest to "fix" this: writing `0.1.0` there says it is alread
 | --- | --- |
 | `watchface-tools-bom` | `:bom`, a Gradle `java-platform` |
 | `wff-core`, `wff-core-jvm`, `wff-core-wasm-js` | `:wff-core` (Kotlin Multiplatform) |
+| `wff-apk`, `wff-apk-jvm`, `wff-apk-wasm-js` | `:wff-apk` (Kotlin Multiplatform) |
 | `wff-packager` | `:wff-packager` |
 
 `:push-app` is an app, not a library, and is never published. The modules are found, not listed: a
@@ -45,7 +46,7 @@ The baseline is read from Maven Central (`maven-metadata.xml`) and written to an
 
 1. **something that ships from it changed** since the tag *it* last published at. Changes confined to
    its test source sets (`src/test`, `src/jvmTest`, ... anything ending in `Test`) do not count;
-2. **a module it depends on publishes**, transitively (`wff-packager` depends on `wff-core`), so a
+2. **a module it depends on publishes**, transitively (`wff-apk` and `wff-packager` depend on `wff-core`, and `wff-packager` on `wff-apk`), so a
    POM never names a sibling version that was not uploaded; or
 3. **a shared build input changed**: `build-logic/` (not its tests), `gradle/`, the wrapper,
    `settings.gradle.kts` or the root `build.gradle.kts`. The version catalog is diffed entry by
