@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/yschimke/watchface-tools/compare/v0.2.1...v0.3.0) (2026-11-18)
+
+
+### Features
+
+* **wff-core:** cite WFF minSdk table, check xs:sequence order, expose required-children query ([#17](https://github.com/yschimke/watchface-tools/issues/17)) ([e23bb43](https://github.com/yschimke/watchface-tools/commit/e23bb433f8b33c3b22185db19255da72f8b5786f))
+
 ## [0.2.1](https://github.com/yschimke/watchface-tools/compare/v0.2.0...v0.2.1) (2026-11-18)
 
 

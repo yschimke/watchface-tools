@@ -51,7 +51,7 @@ while the model and schema API settle.
 
 ```kotlin
 dependencies {
-  implementation(platform("ee.schimke.watchface:watchface-tools-bom:0.2.1")) // x-release-please-version
+  implementation(platform("ee.schimke.watchface:watchface-tools-bom:0.3.0")) // x-release-please-version
   implementation("ee.schimke.watchface:wff-core")
   implementation("ee.schimke.watchface:wff-packager")
 }
