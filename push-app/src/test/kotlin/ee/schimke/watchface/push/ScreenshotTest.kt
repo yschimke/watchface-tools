@@ -32,7 +32,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Renders the Wear screens on a round 227dp display. Always asserts the screens compose; writes
- * PNGs to `-PscreenshotDir=<dir>` when given (used for the PR screenshots).
+ * PNGs to `-PscreenshotDir=<dir>` when given (used for the PR screenshots), and the square Play
+ * Store shots to `-PplayScreenshotDir=<dir>`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -49,7 +50,11 @@ class ScreenshotTest {
   private val designs = server.designs
   private val aurora = designs[0]
 
-  private fun shot(name: String, content: @Composable () -> Unit) {
+  private fun shot(
+    name: String,
+    dirProperty: String = "screenshotDir",
+    content: @Composable () -> Unit,
+  ) {
     rule.setContent {
       val painters = remember {
         designs.associate {
@@ -66,7 +71,7 @@ class ScreenshotTest {
       rule.waitForIdle()
       Thread.sleep(100)
     }
-    val dir = System.getProperty("screenshotDir").orEmpty()
+    val dir = System.getProperty(dirProperty).orEmpty()
     if (dir.isNotEmpty()) {
       File(dir).mkdirs()
       File(dir, "$name.png").outputStream().use {
@@ -155,6 +160,53 @@ class ScreenshotTest {
         onInstall = {},
         onRequestActivation = {},
         onDismissResult = {},
+      )
+    }
+
+  // Play Store Wear screenshots must be square (1:1, at least 384px). These use the class's
+  // 227dp round display (454px at xhdpi), so each shows the screen's first viewport. Play orders
+  // the listing's screenshots by file name.
+  private fun playShot(name: String, content: @Composable () -> Unit) =
+    shot(name, dirProperty = "playScreenshotDir", content = content)
+
+  @Test
+  fun playList() =
+    playShot("1-list") {
+      DesignListScreen(
+        state = ee.schimke.watchface.push.DesignsState.Ready(designs, singleSlotFull),
+        accountName = "demo@example.com",
+        server = "https://ui.coo.ee",
+        deviceWff = 4,
+        pushSupported = true,
+        onOpen = {},
+        onRefresh = {},
+        onUnlink = {},
+      )
+    }
+
+  @Test
+  fun playDetail() =
+    playShot("2-detail") {
+      DesignDetailScreen(
+        design = aurora,
+        push = PushState(emptyList(), remainingSlots = 1),
+        deviceWff = 4,
+        pushSupported = true,
+        install = InstallUi.Idle,
+        onInstall = {},
+        onRequestActivation = {},
+        onDismissResult = {},
+      )
+    }
+
+  @Test
+  fun playLink() =
+    playShot("3-link") {
+      LinkScreen(
+        LinkState.Waiting("AB7K-92QX", "https://ui.coo.ee/link?code=AB7K-92QX"),
+        server = "https://ui.coo.ee",
+        onRetry = {},
+        onChangeServer = {},
       )
     }
 }
