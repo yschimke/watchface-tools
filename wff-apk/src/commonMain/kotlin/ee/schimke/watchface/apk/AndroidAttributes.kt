@@ -40,7 +40,7 @@ internal object AndroidAttributes {
       "resource" to Attr(0x01010025, AttrKind.REF),
       "minSdkVersion" to Attr(0x0101020c, AttrKind.INT_OR_STRING),
       "versionCode" to Attr(0x0101021b, AttrKind.INT),
-      "versionName" to Attr(0x0101021c, AttrKind.STRING),
+      "versionName" to Attr(0x0101021c, AttrKind.STRING_OR_REF),
       "targetSdkVersion" to Attr(0x01010270, AttrKind.INT_OR_STRING),
       "maxSdkVersion" to Attr(0x01010271, AttrKind.INT),
       "allowBackup" to Attr(0x01010280, AttrKind.BOOL),
