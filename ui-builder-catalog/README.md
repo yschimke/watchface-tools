@@ -16,3 +16,5 @@ The published catalog that puts the **Watch Face Format** target in the Compose 
 at it from preview-coo-ee's `deploy/preview.coo.ee/catalogs.json`.
 
 When compose-ui-builder changes the WFF catalog, copy the fixture and designs here again.
+
+The published branch also carries `source-commit.txt`, the commit of this repository it was built from.
