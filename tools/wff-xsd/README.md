@@ -26,6 +26,18 @@ What the generator does:
 - **Substitution groups.** Abstract elements (`DrawElement`, `TextElement`, `ImageElement`,
   `AnimatableImageElement`, `BoundingShape`) are replaced by their members (`Arc`, `Text`, `Image`,
   `BoundingBox`, ...).
+- **Value rules.** Each attribute's XSD type is evaluated into a `WffValueRule` (enumeration,
+  pattern, number with bounds, expression, union, list). An enumeration value records the first
+  version that has it. Unions with free text collapse to "anything". Patterns drop escapes that
+  Kotlin/Wasm's regex engine rejects.
+- **Content model.** Per element, the generator folds `sequence`/`choice`/`all` into the loosest
+  min and max occurrence of each child and of the children in total (`minChildren`, `maxChildren`),
+  so `Template` needs a `Parameter` and a scene-level `ListOption` holds exactly one child. Element
+  order is not recorded.
+- **Data sources and functions.** The first version in which each name appears in `sourceType.xsd`
+  and `_functionType`, overridden by Google's own table
+  (`tools/dwf-validator/.../VersionRegistry.kt` in the same checkout) where it has an entry; the
+  older XSDs misname some weather sources. Names it lacks are not invented.
 - **Attribute kinds** are inferred from XSD types and names: enumerations, `booleanType`, integer
   and float bases, `resourcePathType`, colours.
 

@@ -2,6 +2,7 @@ package ee.schimke.watchface.packager
 
 import ee.schimke.watchface.wff.WffBundleLayout
 import ee.schimke.watchface.wff.WffVersion
+import ee.schimke.watchface.wff.WffXmlParser
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -173,5 +174,71 @@ class RulesTest {
     assertTrue(errors.isNotEmpty())
     assertTrue(errors.none { "TOP-SECRET" in it }, errors.toString())
     assertTrue(errors.any { "DOCTYPE" in it || "doctype" in it }, errors.toString())
+  }
+
+  @Test
+  fun minSdkIsDerivedFromTheWffVersionNotAlwaysThirtyThree() {
+    // b/dogfood: "need >= 33" for a v2 face; Wear OS 5 (API 34) is what format version 2 needs.
+    val v2 = TestSupport.sampleBundle("Complications")
+    assertTrue(
+      "android:minSdkVersion=\"${WffBundleLayout.minSdkFor(WffVersion.V2)}\"" in
+        v2.getValue(WffBundleLayout.MANIFEST_PATH).decodeToString(),
+    )
+    val tooLow = v2.toMutableMap()
+    tooLow[WffBundleLayout.MANIFEST_PATH] =
+      v2
+        .getValue(WffBundleLayout.MANIFEST_PATH)
+        .decodeToString()
+        .replace("android:minSdkVersion=\"34\"", "android:minSdkVersion=\"33\"")
+        .encodeToByteArray()
+    val msg = rejected(tooLow, TestSupport.pushOptions(keyDir = tmp))
+    assertTrue("minSdkVersion is 33 but must be >= 34" in msg, msg)
+    assertTrue("Watch Face Format version 2" in msg, msg)
+
+    val missing = v2.toMutableMap()
+    missing[WffBundleLayout.MANIFEST_PATH] =
+      v2
+        .getValue(WffBundleLayout.MANIFEST_PATH)
+        .decodeToString()
+        .replace(Regex("<uses-sdk[^>]*/>"), "")
+        .encodeToByteArray()
+    assertTrue("need >= 34" in rejected(missing, TestSupport.pushOptions(keyDir = tmp)))
+
+    // A v1 face still only needs 33.
+    val v1 =
+      WffXmlParser.parse(
+        TestSupport.sampleBundle("SimpleAnalog")
+          .getValue(WffBundleLayout.MANIFEST_PATH)
+          .decodeToString(),
+      )
+    assertEquals(emptyList(), PushRules.checkManifest(v1))
+  }
+
+  @Test
+  fun googleValidatorReportsItsMessageWithLineAndColumn() {
+    // Google's validator only logs (SEVERE) and swallows its exception; the findings must come
+    // back as messages, not as an empty list.
+    val bad = """<WatchFace width="450" height="450"><Scene><Bogus/></Scene></WatchFace>"""
+    val errors = GoogleWffValidator.validate(bad, WffVersion.V1)
+    assertTrue(errors.isNotEmpty(), "an XSD-invalid face must produce an error")
+    assertTrue(errors.any { "cvc-" in it && "Bogus" in it }, errors.toString())
+    assertTrue(
+      errors.any { Regex("""Line \d+:Column \d+""").containsMatchIn(it) },
+      errors.toString(),
+    )
+
+    val color =
+      """<WatchFace width="450" height="450"><Scene><PartDraw x="0" y="0" width="10" height="10"><Ellipse x="0" y="0" width="10" height="10"><Fill color="not-a-colour"/></Ellipse></PartDraw></Scene></WatchFace>"""
+    val colorErrors = GoogleWffValidator.validate(color, WffVersion.V1)
+    assertTrue(
+      colorErrors.any { "not-a-colour" in it && "cvc-pattern-valid" in it },
+      colorErrors.toString(),
+    )
+
+    val good =
+      """<WatchFace width="450" height="450"><Scene><PartDraw x="0" y="0" width="10" height="10"><Ellipse x="0" y="0" width="10" height="10"><Fill color="#ffffffff"/></Ellipse></PartDraw></Scene></WatchFace>"""
+    assertEquals(emptyList(), GoogleWffValidator.validate(good, WffVersion.V1))
+    // the capture is detached afterwards: a second call sees only its own findings
+    assertEquals(emptyList(), GoogleWffValidator.validate(good, WffVersion.V1))
   }
 }

@@ -8,6 +8,594 @@ import ee.schimke.watchface.wff.WffAttributeType.*
 
 internal val GENERATED_LATEST_VERSION: Int = 5
 
+/** Expression data sources (`[NAME]`) and the first format version that has each. */
+internal val GENERATED_DATA_SOURCES: Map<String, Int> =
+  mapOf(
+    "ACCELEROMETER_ANGLE_X" to 1,
+    "ACCELEROMETER_ANGLE_XY" to 1,
+    "ACCELEROMETER_ANGLE_Y" to 1,
+    "ACCELEROMETER_ANGLE_Z" to 1,
+    "ACCELEROMETER_IS_SUPPORTED" to 1,
+    "ACCELEROMETER_X" to 1,
+    "ACCELEROMETER_Y" to 1,
+    "ACCELEROMETER_Z" to 1,
+    "AMPM_POSITION" to 1,
+    "AMPM_STATE" to 1,
+    "AMPM_STRING" to 1,
+    "AMPM_STRING_ENG" to 1,
+    "AMPM_STRING_SHORT" to 1,
+    "BATTERY_CHARGING_STATUS" to 1,
+    "BATTERY_IS_LOW" to 1,
+    "BATTERY_PERCENT" to 1,
+    "BATTERY_TEMPERATURE_CELSIUS" to 1,
+    "BATTERY_TEMPERATURE_FAHRENHEIT" to 1,
+    "DAY" to 1,
+    "DAYS_IN_MONTH" to 1,
+    "DAY_0_30" to 1,
+    "DAY_0_30_HOUR" to 1,
+    "DAY_HOUR" to 1,
+    "DAY_OF_WEEK" to 1,
+    "DAY_OF_WEEK_F" to 1,
+    "DAY_OF_WEEK_S" to 1,
+    "DAY_OF_YEAR" to 1,
+    "DAY_Z" to 1,
+    "FIRST_DAY_OF_WEEK" to 2,
+    "HEART_RATE" to 1,
+    "HEART_RATE_Z" to 1,
+    "HOURS_SINCE_EPOCH" to 3,
+    "HOUR_0_11" to 1,
+    "HOUR_0_11_MINUTE" to 1,
+    "HOUR_0_11_Z" to 1,
+    "HOUR_0_23" to 1,
+    "HOUR_0_23_MINUTE" to 1,
+    "HOUR_0_23_Z" to 1,
+    "HOUR_1_12" to 1,
+    "HOUR_1_12_MINUTE" to 1,
+    "HOUR_1_12_Z" to 1,
+    "HOUR_1_24" to 1,
+    "HOUR_1_24_MINUTE" to 1,
+    "HOUR_1_24_Z" to 1,
+    "HOUR_TENS_DIGIT" to 2,
+    "HOUR_UNITS_DIGIT" to 2,
+    "IS_24_HOUR_MODE" to 1,
+    "IS_DAYLIGHT_SAVING_TIME" to 1,
+    "LANGUAGE_CODE" to 1,
+    "LANGUAGE_COUNTRY_CODE" to 1,
+    "LANGUAGE_LOCALE_NAME" to 1,
+    "LANGUAGE_TEXT_DIRECTION" to 1,
+    "MILLISECOND" to 1,
+    "MINUTE" to 1,
+    "MINUTES_SINCE_EPOCH" to 3,
+    "MINUTE_SECOND" to 1,
+    "MINUTE_TENS_DIGIT" to 2,
+    "MINUTE_UNITS_DIGIT" to 2,
+    "MINUTE_Z" to 1,
+    "MONTH" to 1,
+    "MONTH_0_11" to 1,
+    "MONTH_0_11_DAY" to 1,
+    "MONTH_DAY" to 1,
+    "MONTH_F" to 1,
+    "MONTH_S" to 1,
+    "MONTH_Z" to 1,
+    "MOON_PHASE_POSITION" to 1,
+    "MOON_PHASE_TYPE" to 1,
+    "MOON_PHASE_TYPE_STRING" to 1,
+    "SECOND" to 1,
+    "SECONDS_IN_DAY" to 1,
+    "SECONDS_SINCE_EPOCH" to 3,
+    "SECOND_MILLISECOND" to 1,
+    "SECOND_TENS_DIGIT" to 2,
+    "SECOND_UNITS_DIGIT" to 2,
+    "SECOND_Z" to 1,
+    "STEP_COUNT" to 1,
+    "STEP_GOAL" to 1,
+    "STEP_PERCENT" to 1,
+    "TIMEZONE" to 1,
+    "TIMEZONE_ABB" to 1,
+    "TIMEZONE_ID" to 1,
+    "TIMEZONE_OFFSET" to 1,
+    "TIMEZONE_OFFSET_DST" to 1,
+    "TIMEZONE_OFFSET_MINUTES" to 3,
+    "TIMEZONE_OFFSET_MINUTES_DST" to 3,
+    "UNREAD_NOTIFICATION_COUNT" to 1,
+    "UTC_TIMESTAMP" to 1,
+    "WEATHER.CHANCE_OF_PRECIPITATION" to 2,
+    "WEATHER.CONDITION" to 2,
+    "WEATHER.CONDITION_NAME" to 2,
+    "WEATHER.DAYS.{index}.CHANCE_OF_PRECIPITATION" to 2,
+    "WEATHER.DAYS.{index}.CHANCE_OF_PRECIPITATION_NIGHT" to 2,
+    "WEATHER.DAYS.{index}.CONDITION_DAY" to 2,
+    "WEATHER.DAYS.{index}.CONDITION_DAY_NAME" to 2,
+    "WEATHER.DAYS.{index}.CONDITION_NIGHT" to 2,
+    "WEATHER.DAYS.{index}.CONDITION_NIGHT_NAME" to 2,
+    "WEATHER.DAYS.{index}.IS_AVAILABLE" to 2,
+    "WEATHER.DAYS.{index}.TEMPERATURE_HIGH" to 2,
+    "WEATHER.DAYS.{index}.TEMPERATURE_LOW" to 2,
+    "WEATHER.DAYS.{index}.UV_INDEX" to 2,
+    "WEATHER.DAY_TEMPERATURE_HIGH" to 2,
+    "WEATHER.DAY_TEMPERATURE_LOW" to 2,
+    "WEATHER.HOURS.{index}.CONDITION" to 2,
+    "WEATHER.HOURS.{index}.CONDITION_NAME" to 2,
+    "WEATHER.HOURS.{index}.IS_AVAILABLE" to 2,
+    "WEATHER.HOURS.{index}.IS_DAY" to 2,
+    "WEATHER.HOURS.{index}.TEMPERATURE" to 2,
+    "WEATHER.HOURS.{index}.UV_INDEX" to 2,
+    "WEATHER.IS_AVAILABLE" to 2,
+    "WEATHER.IS_DAY" to 2,
+    "WEATHER.IS_ERROR" to 2,
+    "WEATHER.LAST_UPDATED" to 2,
+    "WEATHER.TEMPERATURE" to 2,
+    "WEATHER.TEMPERATURE_HIGH" to 2,
+    "WEATHER.TEMPERATURE_LOW" to 2,
+    "WEATHER.TEMPERATURE_UNIT" to 2,
+    "WEATHER.UV_INDEX" to 2,
+    "WEEK_IN_MONTH" to 1,
+    "WEEK_IN_YEAR" to 1,
+    "YEAR" to 1,
+    "YEAR_MONTH" to 1,
+    "YEAR_MONTH_DAY" to 1,
+    "YEAR_S" to 1,
+  )
+
+/** Expression functions as `name/arity` and the first format version that has each. */
+internal val GENERATED_FUNCTIONS: Map<String, Int> =
+  mapOf(
+    "abs/1" to 1,
+    "acos/1" to 1,
+    "asin/1" to 1,
+    "atan/1" to 1,
+    "cbrt/1" to 1,
+    "ceil/1" to 1,
+    "clamp/3" to 1,
+    "colorArgb/4" to 4,
+    "colorRgb/3" to 4,
+    "cos/1" to 1,
+    "deg/1" to 1,
+    "exp/1" to 1,
+    "expm1/1" to 1,
+    "extractColorFromColors/3" to 4,
+    "extractColorFromWeightedColors/4" to 4,
+    "floor/1" to 1,
+    "fract/1" to 1,
+    "icuBestText/1" to 1,
+    "icuBestText/2" to 2,
+    "icuText/1" to 1,
+    "icuText/2" to 2,
+    "log/1" to 1,
+    "log10/1" to 1,
+    "log2/1" to 1,
+    "numberFormat/2" to 1,
+    "pow/2" to 1,
+    "rad/1" to 1,
+    "rand/2" to 1,
+    "round/1" to 1,
+    "sin/1" to 1,
+    "sqrt/1" to 1,
+    "subText/3" to 1,
+    "tan/1" to 1,
+    "textLength/1" to 1,
+  )
+
+private val RULE_1: WffValueRule = WffValueRule.Enumeration(listOf("NONE", "CIRCLE", "RECTANGLE"))
+
+private val RULE_2: WffValueRule =
+  WffValueRule.Number(
+    integer = false,
+    min = null,
+    minExclusive = false,
+    max = null,
+    maxExclusive = false,
+  )
+
+private val RULE_3: WffValueRule =
+  WffValueRule.Number(
+    integer = true,
+    min = 1.0,
+    minExclusive = false,
+    max = null,
+    maxExclusive = false,
+  )
+
+private val RULE_4: WffValueRule = WffValueRule.ListOf(WffValueRule.Anything)
+
+private val RULE_5: WffValueRule =
+  WffValueRule.ListOf(WffValueRule.Pattern("(?:#([A-Fa-f0-9]{8}|[A-Fa-f0-9]{6}))"))
+
+private val RULE_6: WffValueRule =
+  WffValueRule.Enumeration(
+    listOf(
+      "APP_SHORTCUT",
+      "DATE",
+      "DAY_OF_WEEK",
+      "FAVORITE_CONTACT",
+      "NEXT_EVENT",
+      "STEP_COUNT",
+      "SUNRISE_SUNSET",
+      "TIME_AND_DATE",
+      "UNREAD_NOTIFICATION_COUNT",
+      "WATCH_BATTERY",
+      "WORLD_CLOCK",
+      "DAY_AND_DATE",
+      "EMPTY",
+      "HEART_RATE",
+    ),
+  )
+
+private val RULE_7: WffValueRule =
+  WffValueRule.Enumeration(
+    listOf(
+      "SHORT_TEXT",
+      "LONG_TEXT",
+      "MONOCHROMATIC_IMAGE",
+      "SMALL_IMAGE",
+      "PHOTO_IMAGE",
+      "RANGED_VALUE",
+      "GOAL_PROGRESS",
+      "WEIGHTED_ELEMENTS",
+      "EMPTY",
+    ),
+    since = mapOf("GOAL_PROGRESS" to 2, "WEIGHTED_ELEMENTS" to 2),
+  )
+
+private val RULE_8: WffValueRule = WffValueRule.Enumeration(listOf("SINGLE", "MULTIPLE"))
+
+private val RULE_9: WffValueRule =
+  WffValueRule.Number(
+    integer = true,
+    min = 0.0,
+    minExclusive = false,
+    max = null,
+    maxExclusive = false,
+  )
+
+private val RULE_10: WffValueRule = WffValueRule.Pattern("(?:.)")
+
+private val RULE_11: WffValueRule = WffValueRule.Pattern("(?:[a-z_]+[a-z0-9_]*)")
+
+private val RULE_12: WffValueRule = WffValueRule.Pattern("(?:.{1,})")
+
+private val RULE_13: WffValueRule =
+  WffValueRule.Pattern("(?:\\[[A-Z0-9]+([._]\\w+)*\\]|#([A-Fa-f0-9]{8}|[A-Fa-f0-9]{6}))")
+
+private val RULE_14: WffValueRule =
+  WffValueRule.Union(
+    listOf(
+      WffValueRule.Enumeration(listOf("0", "128", "255")),
+      WffValueRule.Number(
+        integer = true,
+        min = 0.0,
+        minExclusive = false,
+        max = 255.0,
+        maxExclusive = false,
+      ),
+    ),
+  )
+
+private val RULE_15: WffValueRule =
+  WffValueRule.Union(
+    listOf(
+      WffValueRule.Enumeration(listOf("0", "180", "360")),
+      WffValueRule.Number(
+        integer = false,
+        min = null,
+        minExclusive = false,
+        max = null,
+        maxExclusive = false,
+      ),
+    ),
+  )
+
+private val RULE_16: WffValueRule =
+  WffValueRule.Enumeration(
+    listOf(
+      "CLEAR",
+      "COLOR",
+      "COLOR_BURN",
+      "COLOR_DODGE",
+      "DARKEN",
+      "DIFFERENCE",
+      "DST",
+      "DST_ATOP",
+      "DST_IN",
+      "DST_OUT",
+      "DST_OVER",
+      "EXCLUSION",
+      "HARD_LIGHT",
+      "HUE",
+      "LIGHTEN",
+      "LUMINOSITY",
+      "MODULATE",
+      "MULTIPLY",
+      "OVERLAY",
+      "PLUS",
+      "SATURATION",
+      "SCREEN",
+      "SOFT_LIGHT",
+      "SRC",
+      "SRC_ATOP",
+      "SRC_IN",
+      "SRC_OUT",
+      "SRC_OVER",
+      "XOR",
+    ),
+  )
+
+private val RULE_17: WffValueRule = WffValueRule.Enumeration(listOf("SOURCE", "MASK", "ALL"))
+
+private val RULE_18: WffValueRule =
+  WffValueRule.Number(
+    integer = true,
+    min = null,
+    minExclusive = false,
+    max = null,
+    maxExclusive = false,
+  )
+
+private val RULE_19: WffValueRule =
+  WffValueRule.Enumeration(
+    listOf(
+      "BUDDHIST",
+      "CHINESE",
+      "COPTIC",
+      "DANGI",
+      "ETHIOPIC",
+      "ETHIOPIC_AMETE_ALEM",
+      "GREGORIAN",
+      "HEBREW",
+      "INDIAN",
+      "ISLAMIC",
+      "ISLAMIC_CIVIL",
+      "ISLAMIC_UMALQURA",
+      "JAPANESE",
+      "PERSIAN",
+      "ROC",
+    ),
+  )
+
+private val RULE_20: WffValueRule = WffValueRule.Expression
+
+private val RULE_21: WffValueRule = WffValueRule.Enumeration(listOf("TO", "BY"))
+
+private val RULE_22: WffValueRule =
+  WffValueRule.Enumeration(listOf("NONE", "CLOCKWISE", "COUNTER_CLOCKWISE"))
+
+private val RULE_23: WffValueRule =
+  WffValueRule.ListOf(
+    WffValueRule.Number(
+      integer = false,
+      min = null,
+      minExclusive = false,
+      max = null,
+      maxExclusive = false,
+    ),
+  )
+
+private val RULE_24: WffValueRule =
+  WffValueRule.Number(
+    integer = false,
+    min = 0.0,
+    minExclusive = false,
+    max = null,
+    maxExclusive = false,
+  )
+
+private val RULE_25: WffValueRule =
+  WffValueRule.Number(
+    integer = true,
+    min = -2147483648.0,
+    minExclusive = false,
+    max = 2147483647.0,
+    maxExclusive = false,
+  )
+
+private val RULE_26: WffValueRule =
+  WffValueRule.Enumeration(
+    listOf("LINEAR", "EASE_IN", "EASE_OUT", "EASE_IN_OUT", "OVERSHOOT", "CUBIC_BEZIER"),
+  )
+
+private val RULE_27: WffValueRule =
+  WffValueRule.Number(
+    integer = true,
+    min = -1.0,
+    minExclusive = false,
+    max = 2147483647.0,
+    maxExclusive = false,
+  )
+
+private val RULE_28: WffValueRule =
+  WffValueRule.Union(
+    listOf(
+      WffValueRule.Pattern("(?:#([A-Fa-f0-9]{8}|[A-Fa-f0-9]{6}))"),
+      WffValueRule.Number(
+        integer = true,
+        min = null,
+        minExclusive = false,
+        max = null,
+        maxExclusive = false,
+      ),
+      WffValueRule.Number(
+        integer = false,
+        min = null,
+        minExclusive = false,
+        max = null,
+        maxExclusive = false,
+      ),
+      WffValueRule.Number(
+        integer = false,
+        min = null,
+        minExclusive = false,
+        max = null,
+        maxExclusive = false,
+      ),
+    ),
+  )
+
+private val RULE_29: WffValueRule =
+  WffValueRule.Number(
+    integer = false,
+    min = 0.0,
+    minExclusive = false,
+    max = 1.0,
+    maxExclusive = false,
+  )
+
+private val RULE_30: WffValueRule = WffValueRule.Enumeration(listOf("AMBIENT"))
+
+private val RULE_31: WffValueRule = WffValueRule.Enumeration(listOf("START", "CENTER", "END"))
+
+private val RULE_32: WffValueRule =
+  WffValueRule.Enumeration(listOf("CLOCKWISE", "COUNTER_CLOCKWISE"))
+
+private val RULE_33: WffValueRule = WffValueRule.Enumeration(listOf("TRUE", "FALSE"))
+
+private val RULE_34: WffValueRule =
+  WffValueRule.Number(
+    integer = false,
+    min = 0.0,
+    minExclusive = true,
+    max = null,
+    maxExclusive = false,
+  )
+
+private val RULE_35: WffValueRule =
+  WffValueRule.Enumeration(listOf("TOP", "CENTER", "CENTER_ON_BASELINE", "BOTTOM"))
+
+private val RULE_36: WffValueRule = WffValueRule.Enumeration(listOf("NORMAL", "ITALIC"))
+
+private val RULE_37: WffValueRule =
+  WffValueRule.Enumeration(
+    listOf(
+      "THIN",
+      "ULTRA_LIGHT",
+      "EXTRA_LIGHT",
+      "LIGHT",
+      "NORMAL",
+      "MEDIUM",
+      "SEMI_BOLD",
+      "BOLD",
+      "ULTRA_BOLD",
+      "EXTRA_BOLD",
+      "BLACK",
+      "EXTRA_BLACK",
+    ),
+  )
+
+private val RULE_38: WffValueRule =
+  WffValueRule.Enumeration(
+    listOf(
+      "ULTRA_CONDENSED",
+      "EXTRA_CONDENSED",
+      "CONDENSED",
+      "SEMI_CONDENSED",
+      "NORMAL",
+      "SEMI_EXPANDED",
+      "EXPANDED",
+      "EXTRA_EXPANDED",
+      "ULTRA_EXPANDED",
+    ),
+  )
+
+private val RULE_39: WffValueRule =
+  WffValueRule.Number(
+    integer = false,
+    min = -5.0,
+    minExclusive = false,
+    max = null,
+    maxExclusive = false,
+  )
+
+private val RULE_40: WffValueRule =
+  WffValueRule.Union(
+    listOf(
+      WffValueRule.Enumeration(listOf("0.0", "0.5", "1.0")),
+      WffValueRule.Number(
+        integer = false,
+        min = 0.0,
+        minExclusive = false,
+        max = 1.0,
+        maxExclusive = false,
+      ),
+    ),
+  )
+
+private val RULE_41: WffValueRule =
+  WffValueRule.ListOf(
+    WffValueRule.Enumeration(
+      listOf("TAP", "ON_VISIBLE", "ON_NEXT_SECOND", "ON_NEXT_MINUTE", "ON_NEXT_HOUR"),
+    ),
+  )
+
+private val RULE_42: WffValueRule =
+  WffValueRule.Enumeration(listOf("FORWARD", "BACKWARD", "RANDOM"))
+
+private val RULE_43: WffValueRule =
+  WffValueRule.ListOf(WffValueRule.Enumeration(listOf("TAP", "ON_VISIBLE")))
+
+private val RULE_44: WffValueRule =
+  WffValueRule.Number(
+    integer = true,
+    min = 3.0,
+    minExclusive = false,
+    max = 10.0,
+    maxExclusive = false,
+  )
+
+private val RULE_45: WffValueRule =
+  WffValueRule.Enumeration(listOf("DO_NOTHING", "FIRST_FRAME", "THUMBNAIL", "HIDE"))
+
+private val RULE_46: WffValueRule = WffValueRule.Enumeration(listOf("IMAGE", "AGIF", "WEBP"))
+
+private val RULE_47: WffValueRule = WffValueRule.Pattern("(?:[1-9]|[1-5][0-9]|60)")
+
+private val RULE_48: WffValueRule = WffValueRule.Enumeration(listOf("BUTT", "ROUND", "SQUARE"))
+
+private val RULE_49: WffValueRule = WffValueRule.Enumeration(listOf("MITER", "ROUND", "BEVEL"))
+
+private val RULE_50: WffValueRule =
+  WffValueRule.Union(
+    listOf(
+      WffValueRule.ListOf(WffValueRule.Pattern("(?:#([A-Fa-f0-9]{8}|[A-Fa-f0-9]{6}))")),
+      WffValueRule.Pattern("(?:\\[[A-Z0-9]+([._]\\w+)*\\])"),
+    ),
+  )
+
+private val RULE_51: WffValueRule =
+  WffValueRule.Pattern("(?:\\[[A-Z0-9]+([._]\\w+)*\\]|true|True|TRUE|false|False|FALSE)")
+
+private val RULE_52: WffValueRule =
+  WffValueRule.Pattern("(?:\\[[A-Z0-9]+([._]\\w+)*\\]|((\\d+([fF]?|.\\d*[fF]?))|(.\\d+[fF]?))+)")
+
+private val RULE_53: WffValueRule =
+  WffValueRule.Enumeration(
+    listOf("2", "5", "10", "15", "SYNC_TO_DEVICE"),
+    since = mapOf("SYNC_TO_DEVICE" to 2),
+  )
+
+private val RULE_54: WffValueRule =
+  WffValueRule.Pattern(
+    "(?:h{2}_(10|1)|m{2}_(10|1)|s{2}_(10|1)|((h{1,2}):m{1,2}:s{1,2}|(h{1,2}):m{1,2})|(h{1,2})|m{1,2}|s{1,2})",
+  )
+
+private val RULE_55: WffValueRule = WffValueRule.Enumeration(listOf("12", "24", "SYNC_TO_DEVICE"))
+
+private val RULE_56: WffValueRule =
+  WffValueRule.ListOf(
+    WffValueRule.Enumeration(
+      listOf(
+        "SHORT_TEXT",
+        "LONG_TEXT",
+        "MONOCHROMATIC_IMAGE",
+        "SMALL_IMAGE",
+        "PHOTO_IMAGE",
+        "RANGED_VALUE",
+        "GOAL_PROGRESS",
+        "WEIGHTED_ELEMENTS",
+        "EMPTY",
+      ),
+      since = mapOf("GOAL_PROGRESS" to 2, "WEIGHTED_ELEMENTS" to 2),
+    ),
+  )
+
 internal val GENERATED_SCHEMA: List<WffElementSpec> =
   listOf(
     WffElementSpec(
@@ -16,19 +604,25 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("clipShape", ENUM, enumValues = listOf("NONE", "CIRCLE", "RECTANGLE")),
-          WffAttributeSpec("cornerRadiusX", FLOAT),
-          WffAttributeSpec("cornerRadiusY", FLOAT),
-          WffAttributeSpec("height", INT, required = true),
-          WffAttributeSpec("width", INT, required = true),
+          WffAttributeSpec(
+            "clipShape",
+            ENUM,
+            enumValues = listOf("NONE", "CIRCLE", "RECTANGLE"),
+            rule = RULE_1,
+          ),
+          WffAttributeSpec("cornerRadiusX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("cornerRadiusY", FLOAT, rule = RULE_2),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_3),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_3),
         ),
       children =
         listOf(
           WffChildSpec("Metadata", WffVersion.V1),
-          WffChildSpec("UserConfigurations", WffVersion.V1),
-          WffChildSpec("BitmapFonts", WffVersion.V1),
-          WffChildSpec("Scene", WffVersion.V1),
+          WffChildSpec("UserConfigurations", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("BitmapFonts", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Scene", WffVersion.V1, minOccurs = 1, maxOccurs = 1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "Metadata",
@@ -48,12 +642,14 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       attributes = listOf(),
       children =
         listOf(
-          WffChildSpec("UserConfigurations.ListConfiguration", WffVersion.V1),
-          WffChildSpec("UserConfigurations.BooleanConfiguration", WffVersion.V1),
-          WffChildSpec("UserConfigurations.ColorConfiguration", WffVersion.V1),
-          WffChildSpec("Flavors", WffVersion.V2),
-          WffChildSpec("PhotosConfiguration", WffVersion.V4),
+          WffChildSpec("UserConfigurations.ListConfiguration", WffVersion.V1, maxOccurs = 20),
+          WffChildSpec("UserConfigurations.BooleanConfiguration", WffVersion.V1, maxOccurs = 20),
+          WffChildSpec("UserConfigurations.ColorConfiguration", WffVersion.V1, maxOccurs = 20),
+          WffChildSpec("Flavors", WffVersion.V2, maxOccurs = 20),
+          WffChildSpec("PhotosConfiguration", WffVersion.V4, maxOccurs = 20),
         ),
+      minChildren = 1,
+      maxChildren = 20,
     ),
     WffElementSpec(
       id = "UserConfigurations.ListConfiguration",
@@ -70,8 +666,15 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
         ),
       children =
         listOf(
-          WffChildSpec("UserConfigurations.ListConfiguration.ListOption", WffVersion.V1),
+          WffChildSpec(
+            "UserConfigurations.ListConfiguration.ListOption",
+            WffVersion.V1,
+            minOccurs = 1,
+            maxOccurs = 100,
+          ),
         ),
+      minChildren = 1,
+      maxChildren = 100,
     ),
     WffElementSpec(
       id = "UserConfigurations.ListConfiguration.ListOption",
@@ -79,8 +682,13 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("childSettingIds", STRING, sinceVersion = WffVersion.V5),
-          WffAttributeSpec("complicationSlotIds", STRING, sinceVersion = WffVersion.V5),
+          WffAttributeSpec("childSettingIds", STRING, sinceVersion = WffVersion.V5, rule = RULE_4),
+          WffAttributeSpec(
+            "complicationSlotIds",
+            STRING,
+            sinceVersion = WffVersion.V5,
+            rule = RULE_4,
+          ),
           WffAttributeSpec("displayName", STRING),
           WffAttributeSpec("icon", STRING),
           WffAttributeSpec("id", ID, required = true),
@@ -118,8 +726,15 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
         ),
       children =
         listOf(
-          WffChildSpec("UserConfigurations.ColorConfiguration.ColorOption", WffVersion.V1),
+          WffChildSpec(
+            "UserConfigurations.ColorConfiguration.ColorOption",
+            WffVersion.V1,
+            minOccurs = 1,
+            maxOccurs = 100,
+          ),
         ),
+      minChildren = 1,
+      maxChildren = 100,
     ),
     WffElementSpec(
       id = "UserConfigurations.ColorConfiguration.ColorOption",
@@ -127,7 +742,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("colors", COLOR),
+          WffAttributeSpec("colors", COLOR, rule = RULE_5),
           WffAttributeSpec("displayName", STRING),
           WffAttributeSpec("icon", STRING),
           WffAttributeSpec("id", ID, required = true),
@@ -145,8 +760,10 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
         ),
       children =
         listOf(
-          WffChildSpec("Flavor", WffVersion.V2),
+          WffChildSpec("Flavor", WffVersion.V2, minOccurs = 1, maxOccurs = 20),
         ),
+      minChildren = 1,
+      maxChildren = 20,
     ),
     WffElementSpec(
       id = "Flavor",
@@ -161,9 +778,11 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
         ),
       children =
         listOf(
-          WffChildSpec("Configuration", WffVersion.V2),
-          WffChildSpec("Flavor.ComplicationSlot", WffVersion.V2),
+          WffChildSpec("Configuration", WffVersion.V2, maxOccurs = 100),
+          WffChildSpec("Flavor.ComplicationSlot", WffVersion.V2, maxOccurs = 100),
         ),
+      minChildren = 1,
+      maxChildren = 100,
     ),
     WffElementSpec(
       id = "Configuration",
@@ -187,8 +806,9 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
         ),
       children =
         listOf(
-          WffChildSpec("DefaultProviderPolicy", WffVersion.V2),
+          WffChildSpec("DefaultProviderPolicy", WffVersion.V2, maxOccurs = 1),
         ),
+      maxChildren = 1,
     ),
     WffElementSpec(
       id = "DefaultProviderPolicy",
@@ -217,6 +837,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "EMPTY",
                 "HEART_RATE",
               ),
+            rule = RULE_6,
           ),
           WffAttributeSpec(
             "defaultSystemProviderType",
@@ -234,6 +855,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "WEIGHTED_ELEMENTS",
                 "EMPTY",
               ),
+            rule = RULE_7,
           ),
           WffAttributeSpec("primaryProvider", STRING),
           WffAttributeSpec(
@@ -251,6 +873,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "WEIGHTED_ELEMENTS",
                 "EMPTY",
               ),
+            rule = RULE_7,
           ),
           WffAttributeSpec("secondaryProvider", STRING),
           WffAttributeSpec(
@@ -268,6 +891,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "WEIGHTED_ELEMENTS",
                 "EMPTY",
               ),
+            rule = RULE_7,
           ),
         ),
       children = listOf(),
@@ -283,6 +907,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
             ENUM,
             required = true,
             enumValues = listOf("SINGLE", "MULTIPLE"),
+            rule = RULE_8,
           ),
           WffAttributeSpec("displayName", STRING, sinceVersion = WffVersion.V5),
           WffAttributeSpec("highlight", STRING, sinceVersion = WffVersion.V5),
@@ -299,8 +924,9 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       attributes = listOf(),
       children =
         listOf(
-          WffChildSpec("BitmapFonts.BitmapFont", WffVersion.V1),
+          WffChildSpec("BitmapFonts.BitmapFont", WffVersion.V1, minOccurs = 1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "BitmapFonts.BitmapFont",
@@ -315,6 +941,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
           WffChildSpec("Character", WffVersion.V1),
           WffChildSpec("Word", WffVersion.V1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "Character",
@@ -322,14 +949,14 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("height", INT, required = true),
-          WffAttributeSpec("marginBottom", FLOAT, sinceVersion = WffVersion.V2),
-          WffAttributeSpec("marginLeft", FLOAT, sinceVersion = WffVersion.V2),
-          WffAttributeSpec("marginRight", FLOAT, sinceVersion = WffVersion.V2),
-          WffAttributeSpec("marginTop", FLOAT, sinceVersion = WffVersion.V2),
-          WffAttributeSpec("name", STRING, required = true),
-          WffAttributeSpec("resource", RESOURCE, required = true),
-          WffAttributeSpec("width", INT, required = true),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("marginBottom", FLOAT, sinceVersion = WffVersion.V2, rule = RULE_2),
+          WffAttributeSpec("marginLeft", FLOAT, sinceVersion = WffVersion.V2, rule = RULE_2),
+          WffAttributeSpec("marginRight", FLOAT, sinceVersion = WffVersion.V2, rule = RULE_2),
+          WffAttributeSpec("marginTop", FLOAT, sinceVersion = WffVersion.V2, rule = RULE_2),
+          WffAttributeSpec("name", STRING, required = true, rule = RULE_10),
+          WffAttributeSpec("resource", RESOURCE, required = true, rule = RULE_11),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
         ),
       children = listOf(),
     ),
@@ -339,14 +966,14 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("height", INT, required = true),
-          WffAttributeSpec("marginBottom", FLOAT, sinceVersion = WffVersion.V2),
-          WffAttributeSpec("marginLeft", FLOAT, sinceVersion = WffVersion.V2),
-          WffAttributeSpec("marginRight", FLOAT, sinceVersion = WffVersion.V2),
-          WffAttributeSpec("marginTop", FLOAT, sinceVersion = WffVersion.V2),
-          WffAttributeSpec("name", STRING, required = true),
-          WffAttributeSpec("resource", RESOURCE, required = true),
-          WffAttributeSpec("width", INT, required = true),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("marginBottom", FLOAT, sinceVersion = WffVersion.V2, rule = RULE_2),
+          WffAttributeSpec("marginLeft", FLOAT, sinceVersion = WffVersion.V2, rule = RULE_2),
+          WffAttributeSpec("marginRight", FLOAT, sinceVersion = WffVersion.V2, rule = RULE_2),
+          WffAttributeSpec("marginTop", FLOAT, sinceVersion = WffVersion.V2, rule = RULE_2),
+          WffAttributeSpec("name", STRING, required = true, rule = RULE_12),
+          WffAttributeSpec("resource", RESOURCE, required = true, rule = RULE_11),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
         ),
       children = listOf(),
     ),
@@ -356,7 +983,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("backgroundColor", COLOR),
+          WffAttributeSpec("backgroundColor", COLOR, rule = RULE_13),
         ),
       children =
         listOf(
@@ -371,7 +998,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
           WffChildSpec("Variant", WffVersion.V1),
           WffChildSpec("Transform", WffVersion.V4),
           WffChildSpec("Reference", WffVersion.V4),
-          WffChildSpec("ComplicationSlot", WffVersion.V1),
+          WffChildSpec("ComplicationSlot", WffVersion.V1, maxOccurs = 8),
           WffChildSpec("AnalogClock", WffVersion.V1),
           WffChildSpec("DigitalClock", WffVersion.V1),
         ),
@@ -382,8 +1009,8 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("alpha", COLOR),
-          WffAttributeSpec("angle", STRING),
+          WffAttributeSpec("alpha", COLOR, rule = RULE_14),
+          WffAttributeSpec("angle", STRING, rule = RULE_15),
           WffAttributeSpec(
             "blendMode",
             ENUM,
@@ -420,25 +1047,31 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "SRC_OVER",
                 "XOR",
               ),
+            rule = RULE_16,
           ),
-          WffAttributeSpec("height", INT, required = true),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
           WffAttributeSpec("id", ID),
           WffAttributeSpec("name", STRING, required = true),
-          WffAttributeSpec("pivotX", FLOAT),
-          WffAttributeSpec("pivotY", FLOAT),
-          WffAttributeSpec("renderMode", ENUM, enumValues = listOf("SOURCE", "MASK", "ALL")),
-          WffAttributeSpec("scaleX", FLOAT),
-          WffAttributeSpec("scaleY", FLOAT),
-          WffAttributeSpec("tintColor", COLOR),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("pivotX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("pivotY", FLOAT, rule = RULE_2),
+          WffAttributeSpec(
+            "renderMode",
+            ENUM,
+            enumValues = listOf("SOURCE", "MASK", "ALL"),
+            rule = RULE_17,
+          ),
+          WffAttributeSpec("scaleX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("scaleY", FLOAT, rule = RULE_2),
+          WffAttributeSpec("tintColor", COLOR, rule = RULE_13),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children =
         listOf(
-          WffChildSpec("Localization", WffVersion.V1),
-          WffChildSpec("Gyro", WffVersion.V1),
-          WffChildSpec("Launch", WffVersion.V1),
+          WffChildSpec("Localization", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Gyro", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Launch", WffVersion.V1, maxOccurs = 1),
           WffChildSpec("Transform", WffVersion.V1),
           WffChildSpec("Reference", WffVersion.V4),
           WffChildSpec("Variant", WffVersion.V1),
@@ -447,7 +1080,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
           WffChildSpec("PartImage", WffVersion.V1),
           WffChildSpec("PartAnimatedImage", WffVersion.V1),
           WffChildSpec("PartDraw", WffVersion.V1),
-          WffChildSpec("ScreenReader", WffVersion.V1),
+          WffChildSpec("ScreenReader", WffVersion.V1, maxOccurs = 1),
           WffChildSpec("Condition", WffVersion.V1),
           WffChildSpec("ListConfiguration", WffVersion.V1),
           WffChildSpec("BooleanConfiguration", WffVersion.V1),
@@ -482,8 +1115,9 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "PERSIAN",
                 "ROC",
               ),
+            rule = RULE_19,
           ),
-          WffAttributeSpec("locales", STRING),
+          WffAttributeSpec("locales", STRING, rule = RULE_4),
           WffAttributeSpec("timeZone", STRING),
         ),
       children = listOf(),
@@ -494,12 +1128,12 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("alpha", STRING),
-          WffAttributeSpec("angle", STRING),
-          WffAttributeSpec("scaleX", STRING),
-          WffAttributeSpec("scaleY", STRING),
-          WffAttributeSpec("x", STRING),
-          WffAttributeSpec("y", STRING),
+          WffAttributeSpec("alpha", STRING, rule = RULE_20),
+          WffAttributeSpec("angle", STRING, rule = RULE_20),
+          WffAttributeSpec("scaleX", STRING, rule = RULE_20),
+          WffAttributeSpec("scaleY", STRING, rule = RULE_20),
+          WffAttributeSpec("x", STRING, rule = RULE_20),
+          WffAttributeSpec("y", STRING, rule = RULE_20),
         ),
       children = listOf(),
     ),
@@ -519,14 +1153,15 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("mode", ENUM, enumValues = listOf("TO", "BY")),
+          WffAttributeSpec("mode", ENUM, enumValues = listOf("TO", "BY"), rule = RULE_21),
           WffAttributeSpec("target", STRING, required = true),
-          WffAttributeSpec("value", EXPRESSION, required = true),
+          WffAttributeSpec("value", EXPRESSION, required = true, rule = RULE_20),
         ),
       children =
         listOf(
-          WffChildSpec("Animation", WffVersion.V1),
+          WffChildSpec("Animation", WffVersion.V1, maxOccurs = 1),
         ),
+      maxChildren = 1,
     ),
     WffElementSpec(
       id = "Animation",
@@ -538,17 +1173,19 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
             "angleDirection",
             ENUM,
             enumValues = listOf("NONE", "CLOCKWISE", "COUNTER_CLOCKWISE"),
+            rule = RULE_22,
           ),
-          WffAttributeSpec("controls", STRING),
-          WffAttributeSpec("duration", FLOAT, required = true),
-          WffAttributeSpec("fps", INT),
+          WffAttributeSpec("controls", STRING, rule = RULE_23),
+          WffAttributeSpec("duration", FLOAT, required = true, rule = RULE_24),
+          WffAttributeSpec("fps", INT, rule = RULE_25),
           WffAttributeSpec(
             "interpolation",
             ENUM,
             enumValues =
               listOf("LINEAR", "EASE_IN", "EASE_OUT", "EASE_IN_OUT", "OVERSHOOT", "CUBIC_BEZIER"),
+            rule = RULE_26,
           ),
-          WffAttributeSpec("repeat", INT),
+          WffAttributeSpec("repeat", INT, rule = RULE_27),
         ),
       children = listOf(),
     ),
@@ -558,7 +1195,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V4,
       attributes =
         listOf(
-          WffAttributeSpec("defaultValue", STRING),
+          WffAttributeSpec("defaultValue", STRING, rule = RULE_28),
           WffAttributeSpec("name", STRING, required = true),
           WffAttributeSpec("source", STRING, required = true),
         ),
@@ -575,20 +1212,28 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
             ENUM,
             sinceVersion = WffVersion.V4,
             enumValues = listOf("NONE", "CLOCKWISE", "COUNTER_CLOCKWISE"),
+            rule = RULE_22,
           ),
-          WffAttributeSpec("controls", STRING, sinceVersion = WffVersion.V4),
-          WffAttributeSpec("duration", FLOAT, sinceVersion = WffVersion.V4),
+          WffAttributeSpec("controls", STRING, sinceVersion = WffVersion.V4, rule = RULE_23),
+          WffAttributeSpec("duration", FLOAT, sinceVersion = WffVersion.V4, rule = RULE_29),
           WffAttributeSpec(
             "interpolation",
             ENUM,
             sinceVersion = WffVersion.V4,
             enumValues =
               listOf("LINEAR", "EASE_IN", "EASE_OUT", "EASE_IN_OUT", "OVERSHOOT", "CUBIC_BEZIER"),
+            rule = RULE_26,
           ),
-          WffAttributeSpec("mode", ENUM, required = true, enumValues = listOf("AMBIENT")),
-          WffAttributeSpec("startOffset", FLOAT, sinceVersion = WffVersion.V4),
+          WffAttributeSpec(
+            "mode",
+            ENUM,
+            required = true,
+            enumValues = listOf("AMBIENT"),
+            rule = RULE_30,
+          ),
+          WffAttributeSpec("startOffset", FLOAT, sinceVersion = WffVersion.V4, rule = RULE_29),
           WffAttributeSpec("target", STRING, required = true),
-          WffAttributeSpec("value", EXPRESSION, required = true),
+          WffAttributeSpec("value", EXPRESSION, required = true, rule = RULE_20),
         ),
       children = listOf(),
     ),
@@ -598,8 +1243,8 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("alpha", COLOR),
-          WffAttributeSpec("angle", STRING),
+          WffAttributeSpec("alpha", COLOR, rule = RULE_14),
+          WffAttributeSpec("angle", STRING, rule = RULE_15),
           WffAttributeSpec(
             "blendMode",
             ENUM,
@@ -636,31 +1281,38 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "SRC_OVER",
                 "XOR",
               ),
+            rule = RULE_16,
           ),
-          WffAttributeSpec("height", INT, required = true),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
           WffAttributeSpec("name", STRING),
-          WffAttributeSpec("pivotX", FLOAT),
-          WffAttributeSpec("pivotY", FLOAT),
-          WffAttributeSpec("renderMode", ENUM, enumValues = listOf("SOURCE", "MASK", "ALL")),
-          WffAttributeSpec("scaleX", FLOAT),
-          WffAttributeSpec("scaleY", FLOAT),
-          WffAttributeSpec("tintColor", COLOR),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("pivotX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("pivotY", FLOAT, rule = RULE_2),
+          WffAttributeSpec(
+            "renderMode",
+            ENUM,
+            enumValues = listOf("SOURCE", "MASK", "ALL"),
+            rule = RULE_17,
+          ),
+          WffAttributeSpec("scaleX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("scaleY", FLOAT, rule = RULE_2),
+          WffAttributeSpec("tintColor", COLOR, rule = RULE_13),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children =
         listOf(
-          WffChildSpec("Localization", WffVersion.V1),
+          WffChildSpec("Localization", WffVersion.V1, maxOccurs = 1),
           WffChildSpec("Transform", WffVersion.V1),
           WffChildSpec("Reference", WffVersion.V4),
           WffChildSpec("Variant", WffVersion.V1),
-          WffChildSpec("Gyro", WffVersion.V1),
-          WffChildSpec("Launch", WffVersion.V1),
-          WffChildSpec("ScreenReader", WffVersion.V1),
-          WffChildSpec("TextCircular", WffVersion.V1),
-          WffChildSpec("Text", WffVersion.V1),
+          WffChildSpec("Gyro", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Launch", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("ScreenReader", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("TextCircular", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Text", WffVersion.V1, maxOccurs = 1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "ScreenReader",
@@ -681,7 +1333,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("expression", EXPRESSION, required = true),
+          WffAttributeSpec("expression", EXPRESSION, required = true, rule = RULE_20),
         ),
       children = listOf(),
     ),
@@ -691,31 +1343,44 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("align", ENUM, enumValues = listOf("START", "CENTER", "END")),
-          WffAttributeSpec("centerX", FLOAT, required = true),
-          WffAttributeSpec("centerY", FLOAT, required = true),
+          WffAttributeSpec(
+            "align",
+            ENUM,
+            enumValues = listOf("START", "CENTER", "END"),
+            rule = RULE_31,
+          ),
+          WffAttributeSpec("centerX", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("centerY", FLOAT, required = true, rule = RULE_2),
           WffAttributeSpec(
             "direction",
             ENUM,
             enumValues = listOf("CLOCKWISE", "COUNTER_CLOCKWISE"),
+            rule = RULE_32,
           ),
-          WffAttributeSpec("ellipsis", BOOLEAN, enumValues = listOf("TRUE", "FALSE")),
-          WffAttributeSpec("endAngle", STRING, required = true),
-          WffAttributeSpec("height", FLOAT, required = true),
+          WffAttributeSpec(
+            "ellipsis",
+            BOOLEAN,
+            enumValues = listOf("TRUE", "FALSE"),
+            rule = RULE_33,
+          ),
+          WffAttributeSpec("endAngle", STRING, required = true, rule = RULE_15),
+          WffAttributeSpec("height", FLOAT, required = true, rule = RULE_34),
           WffAttributeSpec(
             "isAutoSize",
             BOOLEAN,
             sinceVersion = WffVersion.V5,
             enumValues = listOf("TRUE", "FALSE"),
+            rule = RULE_33,
           ),
-          WffAttributeSpec("startAngle", STRING, required = true),
+          WffAttributeSpec("startAngle", STRING, required = true, rule = RULE_15),
           WffAttributeSpec(
             "verticalAlign",
             ENUM,
             sinceVersion = WffVersion.V5,
             enumValues = listOf("TOP", "CENTER", "CENTER_ON_BASELINE", "BOTTOM"),
+            rule = RULE_35,
           ),
-          WffAttributeSpec("width", FLOAT, required = true),
+          WffAttributeSpec("width", FLOAT, required = true, rule = RULE_34),
         ),
       children =
         listOf(
@@ -724,6 +1389,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
           WffChildSpec("Font", WffVersion.V1),
           WffChildSpec("BitmapFont", WffVersion.V1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "Font",
@@ -731,12 +1397,12 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("color", COLOR),
+          WffAttributeSpec("color", COLOR, rule = RULE_13),
           WffAttributeSpec("family", STRING, required = true),
-          WffAttributeSpec("letterSpacing", FLOAT, sinceVersion = WffVersion.V2),
-          WffAttributeSpec("minSize", INT, sinceVersion = WffVersion.V5),
-          WffAttributeSpec("size", FLOAT, required = true),
-          WffAttributeSpec("slant", ENUM, enumValues = listOf("NORMAL", "ITALIC")),
+          WffAttributeSpec("letterSpacing", FLOAT, sinceVersion = WffVersion.V2, rule = RULE_2),
+          WffAttributeSpec("minSize", INT, sinceVersion = WffVersion.V5, rule = RULE_3),
+          WffAttributeSpec("size", FLOAT, required = true, rule = RULE_34),
+          WffAttributeSpec("slant", ENUM, enumValues = listOf("NORMAL", "ITALIC"), rule = RULE_36),
           WffAttributeSpec(
             "weight",
             ENUM,
@@ -755,6 +1421,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "BLACK",
                 "EXTRA_BLACK",
               ),
+            rule = RULE_37,
           ),
           WffAttributeSpec(
             "width",
@@ -771,6 +1438,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "EXTRA_EXPANDED",
                 "ULTRA_EXPANDED",
               ),
+            rule = RULE_38,
           ),
         ),
       children =
@@ -795,10 +1463,10 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("color", COLOR, required = true),
-          WffAttributeSpec("offsetX", FLOAT),
-          WffAttributeSpec("offsetY", FLOAT),
-          WffAttributeSpec("radius", FLOAT),
+          WffAttributeSpec("color", COLOR, required = true, rule = RULE_13),
+          WffAttributeSpec("offsetX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("offsetY", FLOAT, rule = RULE_2),
+          WffAttributeSpec("radius", FLOAT, rule = RULE_2),
         ),
       children =
         listOf(
@@ -819,13 +1487,13 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("color", COLOR),
-          WffAttributeSpec("height", INT, required = true),
-          WffAttributeSpec("overlapLeft", FLOAT),
-          WffAttributeSpec("overlapRight", FLOAT),
+          WffAttributeSpec("color", COLOR, rule = RULE_13),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("overlapLeft", FLOAT, rule = RULE_2),
+          WffAttributeSpec("overlapRight", FLOAT, rule = RULE_2),
           WffAttributeSpec("resource", RESOURCE, required = true),
           WffAttributeSpec("source", STRING),
-          WffAttributeSpec("width", INT, required = true),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
         ),
       children =
         listOf(
@@ -840,8 +1508,9 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       attributes = listOf(),
       children =
         listOf(
-          WffChildSpec("Parameter", WffVersion.V1),
+          WffChildSpec("Parameter", WffVersion.V1, minOccurs = 1),
         ),
+      minChildren = 1,
       allowsText = true,
     ),
     WffElementSpec(
@@ -904,8 +1573,8 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("color", COLOR, required = true),
-          WffAttributeSpec("width", FLOAT),
+          WffAttributeSpec("color", COLOR, required = true, rule = RULE_13),
+          WffAttributeSpec("width", FLOAT, rule = RULE_34),
         ),
       children =
         listOf(
@@ -926,8 +1595,8 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("color", COLOR, required = true),
-          WffAttributeSpec("radius", FLOAT),
+          WffAttributeSpec("color", COLOR, required = true, rule = RULE_13),
+          WffAttributeSpec("radius", FLOAT, rule = RULE_2),
         ),
       children =
         listOf(
@@ -948,10 +1617,10 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("color", COLOR),
+          WffAttributeSpec("color", COLOR, rule = RULE_13),
           WffAttributeSpec("family", STRING, required = true),
-          WffAttributeSpec("letterSpacing", FLOAT, sinceVersion = WffVersion.V2),
-          WffAttributeSpec("size", FLOAT, required = true),
+          WffAttributeSpec("letterSpacing", FLOAT, sinceVersion = WffVersion.V2, rule = RULE_2),
+          WffAttributeSpec("size", FLOAT, required = true, rule = RULE_34),
         ),
       children =
         listOf(
@@ -970,21 +1639,33 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("align", ENUM, enumValues = listOf("START", "CENTER", "END")),
-          WffAttributeSpec("ellipsis", BOOLEAN, enumValues = listOf("TRUE", "FALSE")),
+          WffAttributeSpec(
+            "align",
+            ENUM,
+            enumValues = listOf("START", "CENTER", "END"),
+            rule = RULE_31,
+          ),
+          WffAttributeSpec(
+            "ellipsis",
+            BOOLEAN,
+            enumValues = listOf("TRUE", "FALSE"),
+            rule = RULE_33,
+          ),
           WffAttributeSpec(
             "isAutoSize",
             BOOLEAN,
             sinceVersion = WffVersion.V3,
             enumValues = listOf("TRUE", "FALSE"),
+            rule = RULE_33,
           ),
-          WffAttributeSpec("lineSpacing", FLOAT, sinceVersion = WffVersion.V5),
-          WffAttributeSpec("maxLines", INT),
+          WffAttributeSpec("lineSpacing", FLOAT, sinceVersion = WffVersion.V5, rule = RULE_39),
+          WffAttributeSpec("maxLines", INT, rule = RULE_18),
           WffAttributeSpec(
             "verticalAlign",
             ENUM,
             sinceVersion = WffVersion.V5,
             enumValues = listOf("TOP", "CENTER", "CENTER_ON_BASELINE", "BOTTOM"),
+            rule = RULE_35,
           ),
         ),
       children =
@@ -992,6 +1673,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
           WffChildSpec("Font", WffVersion.V1),
           WffChildSpec("BitmapFont", WffVersion.V1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "PartImage",
@@ -999,8 +1681,8 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("alpha", COLOR),
-          WffAttributeSpec("angle", STRING),
+          WffAttributeSpec("alpha", COLOR, rule = RULE_14),
+          WffAttributeSpec("angle", STRING, rule = RULE_15),
           WffAttributeSpec(
             "blendMode",
             ENUM,
@@ -1037,33 +1719,40 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "SRC_OVER",
                 "XOR",
               ),
+            rule = RULE_16,
           ),
-          WffAttributeSpec("height", INT, required = true),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
           WffAttributeSpec("name", STRING),
-          WffAttributeSpec("pivotX", FLOAT),
-          WffAttributeSpec("pivotY", FLOAT),
-          WffAttributeSpec("renderMode", ENUM, enumValues = listOf("SOURCE", "MASK", "ALL")),
-          WffAttributeSpec("scaleX", FLOAT),
-          WffAttributeSpec("scaleY", FLOAT),
-          WffAttributeSpec("tintColor", COLOR),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("pivotX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("pivotY", FLOAT, rule = RULE_2),
+          WffAttributeSpec(
+            "renderMode",
+            ENUM,
+            enumValues = listOf("SOURCE", "MASK", "ALL"),
+            rule = RULE_17,
+          ),
+          WffAttributeSpec("scaleX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("scaleY", FLOAT, rule = RULE_2),
+          WffAttributeSpec("tintColor", COLOR, rule = RULE_13),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children =
         listOf(
-          WffChildSpec("Localization", WffVersion.V1),
+          WffChildSpec("Localization", WffVersion.V1, maxOccurs = 1),
           WffChildSpec("Transform", WffVersion.V1),
           WffChildSpec("Reference", WffVersion.V4),
           WffChildSpec("Variant", WffVersion.V1),
-          WffChildSpec("Gyro", WffVersion.V1),
-          WffChildSpec("Launch", WffVersion.V1),
-          WffChildSpec("ScreenReader", WffVersion.V1),
-          WffChildSpec("ImageFilters", WffVersion.V1),
-          WffChildSpec("Image", WffVersion.V1),
-          WffChildSpec("Images", WffVersion.V1),
-          WffChildSpec("Photos", WffVersion.V4),
+          WffChildSpec("Gyro", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Launch", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("ScreenReader", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("ImageFilters", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Image", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Images", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Photos", WffVersion.V4, maxOccurs = 1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "ImageFilters",
@@ -1072,8 +1761,10 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       attributes = listOf(),
       children =
         listOf(
-          WffChildSpec("HsbFilter", WffVersion.V1),
+          WffChildSpec("HsbFilter", WffVersion.V1, minOccurs = 1, maxOccurs = 1),
         ),
+      minChildren = 1,
+      maxChildren = 1,
     ),
     WffElementSpec(
       id = "HsbFilter",
@@ -1081,9 +1772,9 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("brightness", STRING),
-          WffAttributeSpec("hueRotate", STRING),
-          WffAttributeSpec("saturate", STRING),
+          WffAttributeSpec("brightness", STRING, rule = RULE_40),
+          WffAttributeSpec("hueRotate", STRING, rule = RULE_15),
+          WffAttributeSpec("saturate", STRING, rule = RULE_40),
         ),
       children = listOf(),
     ),
@@ -1103,18 +1794,20 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("change", STRING),
+          WffAttributeSpec("change", STRING, rule = RULE_41),
           WffAttributeSpec(
             "changeDirection",
             ENUM,
             sinceVersion = WffVersion.V4,
             enumValues = listOf("FORWARD", "BACKWARD", "RANDOM"),
+            rule = RULE_42,
           ),
         ),
       children =
         listOf(
-          WffChildSpec("Image", WffVersion.V1),
+          WffChildSpec("Image", WffVersion.V1, minOccurs = 1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "Photos",
@@ -1122,12 +1815,12 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V4,
       attributes =
         listOf(
-          WffAttributeSpec("change", STRING),
-          WffAttributeSpec("changeAfterEvery", INT),
+          WffAttributeSpec("change", STRING, rule = RULE_43),
+          WffAttributeSpec("changeAfterEvery", INT, rule = RULE_44),
           WffAttributeSpec("defaultImageResource", STRING, required = true),
-          WffAttributeSpec("height", INT),
+          WffAttributeSpec("height", INT, rule = RULE_3),
           WffAttributeSpec("source", STRING, required = true),
-          WffAttributeSpec("width", INT),
+          WffAttributeSpec("width", INT, rule = RULE_3),
         ),
       children = listOf(),
     ),
@@ -1137,8 +1830,8 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("alpha", COLOR),
-          WffAttributeSpec("angle", STRING),
+          WffAttributeSpec("alpha", COLOR, rule = RULE_14),
+          WffAttributeSpec("angle", STRING, rule = RULE_15),
           WffAttributeSpec(
             "blendMode",
             ENUM,
@@ -1175,34 +1868,41 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "SRC_OVER",
                 "XOR",
               ),
+            rule = RULE_16,
           ),
-          WffAttributeSpec("height", INT, required = true),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
           WffAttributeSpec("name", STRING),
-          WffAttributeSpec("pivotX", FLOAT),
-          WffAttributeSpec("pivotY", FLOAT),
-          WffAttributeSpec("renderMode", ENUM, enumValues = listOf("SOURCE", "MASK", "ALL")),
-          WffAttributeSpec("scaleX", FLOAT),
-          WffAttributeSpec("scaleY", FLOAT),
-          WffAttributeSpec("tintColor", COLOR),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("pivotX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("pivotY", FLOAT, rule = RULE_2),
+          WffAttributeSpec(
+            "renderMode",
+            ENUM,
+            enumValues = listOf("SOURCE", "MASK", "ALL"),
+            rule = RULE_17,
+          ),
+          WffAttributeSpec("scaleX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("scaleY", FLOAT, rule = RULE_2),
+          WffAttributeSpec("tintColor", COLOR, rule = RULE_13),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children =
         listOf(
-          WffChildSpec("Localization", WffVersion.V1),
+          WffChildSpec("Localization", WffVersion.V1, maxOccurs = 1),
           WffChildSpec("Transform", WffVersion.V1),
           WffChildSpec("Reference", WffVersion.V4),
           WffChildSpec("Variant", WffVersion.V1),
-          WffChildSpec("Gyro", WffVersion.V1),
-          WffChildSpec("Launch", WffVersion.V1),
-          WffChildSpec("ScreenReader", WffVersion.V1),
-          WffChildSpec("Thumbnail", WffVersion.V1),
-          WffChildSpec("AnimationController", WffVersion.V1),
-          WffChildSpec("AnimatedImage", WffVersion.V1),
-          WffChildSpec("AnimatedImages", WffVersion.V1),
-          WffChildSpec("SequenceImages", WffVersion.V1),
+          WffChildSpec("Gyro", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Launch", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("ScreenReader", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Thumbnail", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("AnimationController", WffVersion.V1, minOccurs = 1, maxOccurs = 1),
+          WffChildSpec("AnimatedImage", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("AnimatedImages", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("SequenceImages", WffVersion.V1, maxOccurs = 1),
         ),
+      minChildren = 2,
     ),
     WffElementSpec(
       id = "Thumbnail",
@@ -1210,7 +1910,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("resource", RESOURCE, required = true),
+          WffAttributeSpec("resource", RESOURCE, required = true, rule = RULE_11),
         ),
       children = listOf(),
     ),
@@ -1224,18 +1924,25 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
             "afterPlaying",
             ENUM,
             enumValues = listOf("DO_NOTHING", "FIRST_FRAME", "THUMBNAIL", "HIDE"),
+            rule = RULE_45,
           ),
           WffAttributeSpec(
             "beforePlaying",
             ENUM,
             enumValues = listOf("DO_NOTHING", "FIRST_FRAME", "THUMBNAIL", "HIDE"),
+            rule = RULE_45,
           ),
-          WffAttributeSpec("delayPlay", FLOAT),
-          WffAttributeSpec("delayRepeat", FLOAT),
-          WffAttributeSpec("loopCount", INT),
-          WffAttributeSpec("play", STRING, required = true),
-          WffAttributeSpec("repeat", BOOLEAN, enumValues = listOf("TRUE", "FALSE")),
-          WffAttributeSpec("resumePlayBack", BOOLEAN, enumValues = listOf("TRUE", "FALSE")),
+          WffAttributeSpec("delayPlay", FLOAT, rule = RULE_24),
+          WffAttributeSpec("delayRepeat", FLOAT, rule = RULE_24),
+          WffAttributeSpec("loopCount", INT, rule = RULE_9),
+          WffAttributeSpec("play", STRING, required = true, rule = RULE_41),
+          WffAttributeSpec("repeat", BOOLEAN, enumValues = listOf("TRUE", "FALSE"), rule = RULE_33),
+          WffAttributeSpec(
+            "resumePlayBack",
+            BOOLEAN,
+            enumValues = listOf("TRUE", "FALSE"),
+            rule = RULE_33,
+          ),
         ),
       children = listOf(),
     ),
@@ -1250,8 +1957,9 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
             ENUM,
             required = true,
             enumValues = listOf("IMAGE", "AGIF", "WEBP"),
+            rule = RULE_46,
           ),
-          WffAttributeSpec("resource", RESOURCE, required = true),
+          WffAttributeSpec("resource", RESOURCE, required = true, rule = RULE_11),
           WffAttributeSpec("thumbnail", STRING),
         ),
       children = listOf(),
@@ -1262,12 +1970,13 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("change", STRING),
+          WffAttributeSpec("change", STRING, rule = RULE_41),
           WffAttributeSpec(
             "changeDirection",
             ENUM,
             sinceVersion = WffVersion.V4,
             enumValues = listOf("FORWARD", "BACKWARD", "RANDOM"),
+            rule = RULE_42,
           ),
         ),
       children =
@@ -1275,6 +1984,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
           WffChildSpec("AnimatedImage", WffVersion.V1),
           WffChildSpec("SequenceImages", WffVersion.V1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "SequenceImages",
@@ -1282,14 +1992,15 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("frameRate", STRING, sinceVersion = WffVersion.V2),
-          WffAttributeSpec("loopCount", INT),
+          WffAttributeSpec("frameRate", STRING, sinceVersion = WffVersion.V2, rule = RULE_47),
+          WffAttributeSpec("loopCount", INT, rule = RULE_3),
           WffAttributeSpec("thumbnail", STRING),
         ),
       children =
         listOf(
-          WffChildSpec("Image", WffVersion.V1),
+          WffChildSpec("Image", WffVersion.V1, minOccurs = 1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "PartDraw",
@@ -1297,8 +2008,8 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("alpha", COLOR),
-          WffAttributeSpec("angle", STRING),
+          WffAttributeSpec("alpha", COLOR, rule = RULE_14),
+          WffAttributeSpec("angle", STRING, rule = RULE_15),
           WffAttributeSpec(
             "blendMode",
             ENUM,
@@ -1335,34 +2046,41 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "SRC_OVER",
                 "XOR",
               ),
+            rule = RULE_16,
           ),
-          WffAttributeSpec("height", INT, required = true),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
           WffAttributeSpec("name", STRING),
-          WffAttributeSpec("pivotX", FLOAT),
-          WffAttributeSpec("pivotY", FLOAT),
-          WffAttributeSpec("renderMode", ENUM, enumValues = listOf("SOURCE", "MASK", "ALL")),
-          WffAttributeSpec("scaleX", FLOAT),
-          WffAttributeSpec("scaleY", FLOAT),
-          WffAttributeSpec("tintColor", COLOR),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("pivotX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("pivotY", FLOAT, rule = RULE_2),
+          WffAttributeSpec(
+            "renderMode",
+            ENUM,
+            enumValues = listOf("SOURCE", "MASK", "ALL"),
+            rule = RULE_17,
+          ),
+          WffAttributeSpec("scaleX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("scaleY", FLOAT, rule = RULE_2),
+          WffAttributeSpec("tintColor", COLOR, rule = RULE_13),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children =
         listOf(
-          WffChildSpec("Localization", WffVersion.V1),
+          WffChildSpec("Localization", WffVersion.V1, maxOccurs = 1),
           WffChildSpec("Transform", WffVersion.V1),
           WffChildSpec("Reference", WffVersion.V4),
           WffChildSpec("Variant", WffVersion.V1),
-          WffChildSpec("Gyro", WffVersion.V1),
-          WffChildSpec("Launch", WffVersion.V1),
-          WffChildSpec("ScreenReader", WffVersion.V1),
+          WffChildSpec("Gyro", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Launch", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("ScreenReader", WffVersion.V1, maxOccurs = 1),
           WffChildSpec("Arc", WffVersion.V1),
           WffChildSpec("Ellipse", WffVersion.V1),
           WffChildSpec("Line", WffVersion.V1),
           WffChildSpec("Rectangle", WffVersion.V1),
           WffChildSpec("RoundRectangle", WffVersion.V1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "Arc",
@@ -1370,22 +2088,23 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("centerX", FLOAT, required = true),
-          WffAttributeSpec("centerY", FLOAT, required = true),
+          WffAttributeSpec("centerX", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("centerY", FLOAT, required = true, rule = RULE_2),
           WffAttributeSpec(
             "direction",
             ENUM,
             enumValues = listOf("CLOCKWISE", "COUNTER_CLOCKWISE"),
+            rule = RULE_32,
           ),
-          WffAttributeSpec("endAngle", STRING, required = true),
-          WffAttributeSpec("height", FLOAT, required = true),
-          WffAttributeSpec("startAngle", STRING, required = true),
-          WffAttributeSpec("width", FLOAT, required = true),
+          WffAttributeSpec("endAngle", STRING, required = true, rule = RULE_15),
+          WffAttributeSpec("height", FLOAT, required = true, rule = RULE_34),
+          WffAttributeSpec("startAngle", STRING, required = true, rule = RULE_15),
+          WffAttributeSpec("width", FLOAT, required = true, rule = RULE_34),
         ),
       children =
         listOf(
-          WffChildSpec("Stroke", WffVersion.V1),
-          WffChildSpec("WeightedStroke", WffVersion.V2),
+          WffChildSpec("Stroke", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("WeightedStroke", WffVersion.V2, maxOccurs = 1),
           WffChildSpec("Transform", WffVersion.V1),
           WffChildSpec("Reference", WffVersion.V4),
         ),
@@ -1396,17 +2115,23 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("cap", ENUM, enumValues = listOf("BUTT", "ROUND", "SQUARE")),
-          WffAttributeSpec("color", COLOR, required = true),
-          WffAttributeSpec("dashIntervals", STRING),
-          WffAttributeSpec("dashPhase", FLOAT),
+          WffAttributeSpec(
+            "cap",
+            ENUM,
+            enumValues = listOf("BUTT", "ROUND", "SQUARE"),
+            rule = RULE_48,
+          ),
+          WffAttributeSpec("color", COLOR, required = true, rule = RULE_13),
+          WffAttributeSpec("dashIntervals", STRING, rule = RULE_23),
+          WffAttributeSpec("dashPhase", FLOAT, rule = RULE_2),
           WffAttributeSpec(
             "join",
             ENUM,
             sinceVersion = WffVersion.V5,
             enumValues = listOf("MITER", "ROUND", "BEVEL"),
+            rule = RULE_49,
           ),
-          WffAttributeSpec("thickness", FLOAT, required = true),
+          WffAttributeSpec("thickness", FLOAT, required = true, rule = RULE_24),
         ),
       children =
         listOf(
@@ -1423,12 +2148,12 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("colors", COLOR, required = true),
-          WffAttributeSpec("endX", FLOAT, required = true),
-          WffAttributeSpec("endY", FLOAT, required = true),
-          WffAttributeSpec("positions", STRING, required = true),
-          WffAttributeSpec("startX", FLOAT, required = true),
-          WffAttributeSpec("startY", FLOAT, required = true),
+          WffAttributeSpec("colors", COLOR, required = true, rule = RULE_50),
+          WffAttributeSpec("endX", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("endY", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("positions", STRING, required = true, rule = RULE_23),
+          WffAttributeSpec("startX", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("startY", FLOAT, required = true, rule = RULE_2),
         ),
       children =
         listOf(
@@ -1442,11 +2167,11 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("centerX", FLOAT, required = true),
-          WffAttributeSpec("centerY", FLOAT, required = true),
-          WffAttributeSpec("colors", COLOR, required = true),
-          WffAttributeSpec("positions", STRING, required = true),
-          WffAttributeSpec("radius", FLOAT, required = true),
+          WffAttributeSpec("centerX", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("centerY", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("colors", COLOR, required = true, rule = RULE_50),
+          WffAttributeSpec("positions", STRING, required = true, rule = RULE_23),
+          WffAttributeSpec("radius", FLOAT, required = true, rule = RULE_2),
         ),
       children =
         listOf(
@@ -1460,17 +2185,18 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("centerX", FLOAT, required = true),
-          WffAttributeSpec("centerY", FLOAT, required = true),
-          WffAttributeSpec("colors", COLOR, required = true),
+          WffAttributeSpec("centerX", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("centerY", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("colors", COLOR, required = true, rule = RULE_50),
           WffAttributeSpec(
             "direction",
             ENUM,
             enumValues = listOf("CLOCKWISE", "COUNTER_CLOCKWISE"),
+            rule = RULE_32,
           ),
-          WffAttributeSpec("endAngle", STRING, required = true),
-          WffAttributeSpec("positions", STRING, required = true),
-          WffAttributeSpec("startAngle", STRING, required = true),
+          WffAttributeSpec("endAngle", STRING, required = true, rule = RULE_15),
+          WffAttributeSpec("positions", STRING, required = true, rule = RULE_23),
+          WffAttributeSpec("startAngle", STRING, required = true, rule = RULE_15),
         ),
       children =
         listOf(
@@ -1484,18 +2210,29 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V2,
       attributes =
         listOf(
-          WffAttributeSpec("cap", ENUM, enumValues = listOf("BUTT", "ROUND", "SQUARE")),
-          WffAttributeSpec("colors", COLOR, required = true),
-          WffAttributeSpec("discreteGap", FLOAT),
-          WffAttributeSpec("interpolate", BOOLEAN, enumValues = listOf("TRUE", "FALSE")),
+          WffAttributeSpec(
+            "cap",
+            ENUM,
+            enumValues = listOf("BUTT", "ROUND", "SQUARE"),
+            rule = RULE_48,
+          ),
+          WffAttributeSpec("colors", COLOR, required = true, rule = RULE_50),
+          WffAttributeSpec("discreteGap", FLOAT, rule = RULE_24),
+          WffAttributeSpec(
+            "interpolate",
+            BOOLEAN,
+            enumValues = listOf("TRUE", "FALSE"),
+            rule = RULE_51,
+          ),
           WffAttributeSpec(
             "join",
             ENUM,
             sinceVersion = WffVersion.V5,
             enumValues = listOf("MITER", "ROUND", "BEVEL"),
+            rule = RULE_49,
           ),
-          WffAttributeSpec("thickness", FLOAT, required = true),
-          WffAttributeSpec("weights", COLOR),
+          WffAttributeSpec("thickness", FLOAT, required = true, rule = RULE_24),
+          WffAttributeSpec("weights", COLOR, rule = RULE_52),
         ),
       children =
         listOf(
@@ -1509,15 +2246,15 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("height", FLOAT, required = true),
-          WffAttributeSpec("width", FLOAT, required = true),
-          WffAttributeSpec("x", FLOAT, required = true),
-          WffAttributeSpec("y", FLOAT, required = true),
+          WffAttributeSpec("height", FLOAT, required = true, rule = RULE_34),
+          WffAttributeSpec("width", FLOAT, required = true, rule = RULE_34),
+          WffAttributeSpec("x", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("y", FLOAT, required = true, rule = RULE_2),
         ),
       children =
         listOf(
-          WffChildSpec("Stroke", WffVersion.V1),
-          WffChildSpec("Fill", WffVersion.V1),
+          WffChildSpec("Stroke", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Fill", WffVersion.V1, maxOccurs = 1),
           WffChildSpec("Transform", WffVersion.V1),
           WffChildSpec("Reference", WffVersion.V4),
         ),
@@ -1528,7 +2265,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("color", COLOR, required = true),
+          WffAttributeSpec("color", COLOR, required = true, rule = RULE_13),
         ),
       children =
         listOf(
@@ -1545,15 +2282,15 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("endX", FLOAT, required = true),
-          WffAttributeSpec("endY", FLOAT, required = true),
-          WffAttributeSpec("startX", FLOAT, required = true),
-          WffAttributeSpec("startY", FLOAT, required = true),
+          WffAttributeSpec("endX", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("endY", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("startX", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("startY", FLOAT, required = true, rule = RULE_2),
         ),
       children =
         listOf(
-          WffChildSpec("Stroke", WffVersion.V1),
-          WffChildSpec("WeightedStroke", WffVersion.V3),
+          WffChildSpec("Stroke", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("WeightedStroke", WffVersion.V3, maxOccurs = 1),
           WffChildSpec("Transform", WffVersion.V1),
           WffChildSpec("Reference", WffVersion.V4),
         ),
@@ -1564,15 +2301,15 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("height", FLOAT, required = true),
-          WffAttributeSpec("width", FLOAT, required = true),
-          WffAttributeSpec("x", FLOAT, required = true),
-          WffAttributeSpec("y", FLOAT, required = true),
+          WffAttributeSpec("height", FLOAT, required = true, rule = RULE_34),
+          WffAttributeSpec("width", FLOAT, required = true, rule = RULE_34),
+          WffAttributeSpec("x", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("y", FLOAT, required = true, rule = RULE_2),
         ),
       children =
         listOf(
-          WffChildSpec("Stroke", WffVersion.V1),
-          WffChildSpec("Fill", WffVersion.V1),
+          WffChildSpec("Stroke", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Fill", WffVersion.V1, maxOccurs = 1),
           WffChildSpec("Transform", WffVersion.V1),
           WffChildSpec("Reference", WffVersion.V4),
         ),
@@ -1583,17 +2320,17 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("cornerRadiusX", FLOAT, required = true),
-          WffAttributeSpec("cornerRadiusY", FLOAT, required = true),
-          WffAttributeSpec("height", FLOAT, required = true),
-          WffAttributeSpec("width", FLOAT, required = true),
-          WffAttributeSpec("x", FLOAT, required = true),
-          WffAttributeSpec("y", FLOAT, required = true),
+          WffAttributeSpec("cornerRadiusX", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("cornerRadiusY", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("height", FLOAT, required = true, rule = RULE_34),
+          WffAttributeSpec("width", FLOAT, required = true, rule = RULE_34),
+          WffAttributeSpec("x", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("y", FLOAT, required = true, rule = RULE_2),
         ),
       children =
         listOf(
-          WffChildSpec("Stroke", WffVersion.V1),
-          WffChildSpec("Fill", WffVersion.V1),
+          WffChildSpec("Stroke", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Fill", WffVersion.V1, maxOccurs = 1),
           WffChildSpec("Transform", WffVersion.V1),
           WffChildSpec("Reference", WffVersion.V4),
         ),
@@ -1605,10 +2342,11 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       attributes = listOf(),
       children =
         listOf(
-          WffChildSpec("Expressions", WffVersion.V1),
-          WffChildSpec("Compare", WffVersion.V1),
-          WffChildSpec("Default", WffVersion.V1),
+          WffChildSpec("Expressions", WffVersion.V1, minOccurs = 1, maxOccurs = 1),
+          WffChildSpec("Compare", WffVersion.V1, minOccurs = 1),
+          WffChildSpec("Default", WffVersion.V1, maxOccurs = 1),
         ),
+      minChildren = 2,
     ),
     WffElementSpec(
       id = "Expressions",
@@ -1617,8 +2355,9 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       attributes = listOf(),
       children =
         listOf(
-          WffChildSpec("Expression", WffVersion.V1),
+          WffChildSpec("Expression", WffVersion.V1, minOccurs = 1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "Expression",
@@ -1630,6 +2369,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
         ),
       children = listOf(),
       allowsText = true,
+      textRule = RULE_20,
     ),
     WffElementSpec(
       id = "Compare",
@@ -1637,7 +2377,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("expression", EXPRESSION, required = true),
+          WffAttributeSpec("expression", EXPRESSION, required = true, rule = RULE_20),
         ),
       children =
         listOf(
@@ -1650,6 +2390,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
           WffChildSpec("AnalogClock", WffVersion.V1),
           WffChildSpec("DigitalClock", WffVersion.V1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "AnalogClock",
@@ -1657,25 +2398,30 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("alpha", COLOR),
-          WffAttributeSpec("angle", STRING),
-          WffAttributeSpec("height", INT, required = true),
-          WffAttributeSpec("pivotX", FLOAT),
-          WffAttributeSpec("pivotY", FLOAT),
-          WffAttributeSpec("renderMode", ENUM, enumValues = listOf("SOURCE", "MASK", "ALL")),
-          WffAttributeSpec("scaleX", FLOAT),
-          WffAttributeSpec("scaleY", FLOAT),
-          WffAttributeSpec("tintColor", COLOR),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("alpha", COLOR, rule = RULE_14),
+          WffAttributeSpec("angle", STRING, rule = RULE_15),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("pivotX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("pivotY", FLOAT, rule = RULE_2),
+          WffAttributeSpec(
+            "renderMode",
+            ENUM,
+            enumValues = listOf("SOURCE", "MASK", "ALL"),
+            rule = RULE_17,
+          ),
+          WffAttributeSpec("scaleX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("scaleY", FLOAT, rule = RULE_2),
+          WffAttributeSpec("tintColor", COLOR, rule = RULE_13),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children =
         listOf(
-          WffChildSpec("HourHand", WffVersion.V1),
-          WffChildSpec("MinuteHand", WffVersion.V1),
-          WffChildSpec("SecondHand", WffVersion.V1),
-          WffChildSpec("Localization", WffVersion.V1),
+          WffChildSpec("HourHand", WffVersion.V1, maxOccurs = 2),
+          WffChildSpec("MinuteHand", WffVersion.V1, maxOccurs = 2),
+          WffChildSpec("SecondHand", WffVersion.V1, maxOccurs = 2),
+          WffChildSpec("Localization", WffVersion.V1, maxOccurs = 1),
           WffChildSpec("Variant", WffVersion.V1),
         ),
     ),
@@ -1685,15 +2431,15 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("alpha", COLOR),
-          WffAttributeSpec("height", INT, required = true),
-          WffAttributeSpec("pivotX", FLOAT),
-          WffAttributeSpec("pivotY", FLOAT),
-          WffAttributeSpec("resource", RESOURCE, required = true),
-          WffAttributeSpec("tintColor", COLOR),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("alpha", COLOR, rule = RULE_14),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("pivotX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("pivotY", FLOAT, rule = RULE_2),
+          WffAttributeSpec("resource", RESOURCE, required = true, rule = RULE_11),
+          WffAttributeSpec("tintColor", COLOR, rule = RULE_13),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children =
         listOf(
@@ -1706,15 +2452,15 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("alpha", COLOR),
-          WffAttributeSpec("height", INT, required = true),
-          WffAttributeSpec("pivotX", FLOAT),
-          WffAttributeSpec("pivotY", FLOAT),
-          WffAttributeSpec("resource", RESOURCE, required = true),
-          WffAttributeSpec("tintColor", COLOR),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("alpha", COLOR, rule = RULE_14),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("pivotX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("pivotY", FLOAT, rule = RULE_2),
+          WffAttributeSpec("resource", RESOURCE, required = true, rule = RULE_11),
+          WffAttributeSpec("tintColor", COLOR, rule = RULE_13),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children =
         listOf(
@@ -1727,21 +2473,21 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("alpha", COLOR),
-          WffAttributeSpec("height", INT, required = true),
-          WffAttributeSpec("pivotX", FLOAT),
-          WffAttributeSpec("pivotY", FLOAT),
-          WffAttributeSpec("resource", RESOURCE, required = true),
-          WffAttributeSpec("tintColor", COLOR),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("alpha", COLOR, rule = RULE_14),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("pivotX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("pivotY", FLOAT, rule = RULE_2),
+          WffAttributeSpec("resource", RESOURCE, required = true, rule = RULE_11),
+          WffAttributeSpec("tintColor", COLOR, rule = RULE_13),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children =
         listOf(
           WffChildSpec("Variant", WffVersion.V1),
-          WffChildSpec("Sweep", WffVersion.V1),
-          WffChildSpec("Tick", WffVersion.V1),
+          WffChildSpec("Sweep", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Tick", WffVersion.V1, maxOccurs = 1),
         ),
     ),
     WffElementSpec(
@@ -1755,6 +2501,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
             ENUM,
             required = true,
             enumValues = listOf("2", "5", "10", "15", "SYNC_TO_DEVICE"),
+            rule = RULE_53,
           ),
         ),
       children = listOf(),
@@ -1765,8 +2512,8 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("duration", FLOAT, required = true),
-          WffAttributeSpec("strength", FLOAT, required = true),
+          WffAttributeSpec("duration", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("strength", FLOAT, required = true, rule = RULE_2),
         ),
       children = listOf(),
     ),
@@ -1776,25 +2523,31 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("alpha", COLOR),
-          WffAttributeSpec("angle", STRING),
-          WffAttributeSpec("height", INT, required = true),
-          WffAttributeSpec("pivotX", FLOAT),
-          WffAttributeSpec("pivotY", FLOAT),
-          WffAttributeSpec("renderMode", ENUM, enumValues = listOf("SOURCE", "MASK", "ALL")),
-          WffAttributeSpec("scaleX", FLOAT),
-          WffAttributeSpec("scaleY", FLOAT),
-          WffAttributeSpec("tintColor", COLOR),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("alpha", COLOR, rule = RULE_14),
+          WffAttributeSpec("angle", STRING, rule = RULE_15),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("pivotX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("pivotY", FLOAT, rule = RULE_2),
+          WffAttributeSpec(
+            "renderMode",
+            ENUM,
+            enumValues = listOf("SOURCE", "MASK", "ALL"),
+            rule = RULE_17,
+          ),
+          WffAttributeSpec("scaleX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("scaleY", FLOAT, rule = RULE_2),
+          WffAttributeSpec("tintColor", COLOR, rule = RULE_13),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children =
         listOf(
-          WffChildSpec("Localization", WffVersion.V1),
+          WffChildSpec("Localization", WffVersion.V1, maxOccurs = 1),
           WffChildSpec("Variant", WffVersion.V1),
-          WffChildSpec("TimeText", WffVersion.V1),
+          WffChildSpec("TimeText", WffVersion.V1, minOccurs = 1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "TimeText",
@@ -1802,30 +2555,41 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("align", ENUM, enumValues = listOf("START", "CENTER", "END")),
-          WffAttributeSpec("alpha", COLOR),
-          WffAttributeSpec("angle", STRING),
-          WffAttributeSpec("format", STRING, required = true),
-          WffAttributeSpec("height", INT, required = true),
-          WffAttributeSpec("hourFormat", ENUM, enumValues = listOf("12", "24", "SYNC_TO_DEVICE")),
-          WffAttributeSpec("pivotX", FLOAT),
-          WffAttributeSpec("pivotY", FLOAT),
-          WffAttributeSpec("tintColor", COLOR),
+          WffAttributeSpec(
+            "align",
+            ENUM,
+            enumValues = listOf("START", "CENTER", "END"),
+            rule = RULE_31,
+          ),
+          WffAttributeSpec("alpha", COLOR, rule = RULE_14),
+          WffAttributeSpec("angle", STRING, rule = RULE_15),
+          WffAttributeSpec("format", STRING, required = true, rule = RULE_54),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
+          WffAttributeSpec(
+            "hourFormat",
+            ENUM,
+            enumValues = listOf("12", "24", "SYNC_TO_DEVICE"),
+            rule = RULE_55,
+          ),
+          WffAttributeSpec("pivotX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("pivotY", FLOAT, rule = RULE_2),
+          WffAttributeSpec("tintColor", COLOR, rule = RULE_13),
           WffAttributeSpec(
             "verticalAlign",
             ENUM,
             sinceVersion = WffVersion.V5,
             enumValues = listOf("TOP", "CENTER", "CENTER_ON_BASELINE", "BOTTOM"),
+            rule = RULE_35,
           ),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children =
         listOf(
           WffChildSpec("Variant", WffVersion.V1),
-          WffChildSpec("TimeText.BitmapFont", WffVersion.V1),
-          WffChildSpec("TimeText.Font", WffVersion.V1),
+          WffChildSpec("TimeText.BitmapFont", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("TimeText.Font", WffVersion.V1, maxOccurs = 1),
         ),
     ),
     WffElementSpec(
@@ -1834,9 +2598,9 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("color", COLOR),
+          WffAttributeSpec("color", COLOR, rule = RULE_13),
           WffAttributeSpec("family", STRING, required = true),
-          WffAttributeSpec("size", FLOAT, required = true),
+          WffAttributeSpec("size", FLOAT, required = true, rule = RULE_34),
         ),
       children = listOf(),
       allowsText = true,
@@ -1847,10 +2611,10 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("color", COLOR),
+          WffAttributeSpec("color", COLOR, rule = RULE_13),
           WffAttributeSpec("family", STRING, required = true),
-          WffAttributeSpec("size", FLOAT, required = true),
-          WffAttributeSpec("slant", ENUM, enumValues = listOf("NORMAL", "ITALIC")),
+          WffAttributeSpec("size", FLOAT, required = true, rule = RULE_34),
+          WffAttributeSpec("slant", ENUM, enumValues = listOf("NORMAL", "ITALIC"), rule = RULE_36),
           WffAttributeSpec(
             "weight",
             ENUM,
@@ -1869,6 +2633,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "BLACK",
                 "EXTRA_BLACK",
               ),
+            rule = RULE_37,
           ),
           WffAttributeSpec(
             "width",
@@ -1885,6 +2650,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "EXTRA_EXPANDED",
                 "ULTRA_EXPANDED",
               ),
+            rule = RULE_38,
           ),
         ),
       children = listOf(),
@@ -1906,6 +2672,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
           WffChildSpec("AnalogClock", WffVersion.V1),
           WffChildSpec("DigitalClock", WffVersion.V1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "ListConfiguration",
@@ -1917,8 +2684,9 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
         ),
       children =
         listOf(
-          WffChildSpec("ListConfiguration.ListOption", WffVersion.V1),
+          WffChildSpec("ListConfiguration.ListOption", WffVersion.V1, minOccurs = 1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "ListConfiguration.ListOption",
@@ -1930,15 +2698,17 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
         ),
       children =
         listOf(
-          WffChildSpec("PartText", WffVersion.V1),
-          WffChildSpec("PartImage", WffVersion.V1),
-          WffChildSpec("PartAnimatedImage", WffVersion.V1),
-          WffChildSpec("PartDraw", WffVersion.V1),
-          WffChildSpec("Group", WffVersion.V1),
-          WffChildSpec("Condition", WffVersion.V1),
-          WffChildSpec("AnalogClock", WffVersion.V1),
-          WffChildSpec("DigitalClock", WffVersion.V1),
+          WffChildSpec("PartText", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("PartImage", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("PartAnimatedImage", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("PartDraw", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Group", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Condition", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("AnalogClock", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("DigitalClock", WffVersion.V1, maxOccurs = 1),
         ),
+      minChildren = 1,
+      maxChildren = 1,
     ),
     WffElementSpec(
       id = "BooleanConfiguration",
@@ -1950,8 +2720,9 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
         ),
       children =
         listOf(
-          WffChildSpec("BooleanOption", WffVersion.V1),
+          WffChildSpec("BooleanOption", WffVersion.V1, minOccurs = 1),
         ),
+      minChildren = 1,
     ),
     WffElementSpec(
       id = "BooleanOption",
@@ -1959,19 +2730,27 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("id", BOOLEAN, required = true, enumValues = listOf("TRUE", "FALSE")),
+          WffAttributeSpec(
+            "id",
+            BOOLEAN,
+            required = true,
+            enumValues = listOf("TRUE", "FALSE"),
+            rule = RULE_33,
+          ),
         ),
       children =
         listOf(
-          WffChildSpec("PartText", WffVersion.V1),
-          WffChildSpec("PartImage", WffVersion.V1),
-          WffChildSpec("PartAnimatedImage", WffVersion.V1),
-          WffChildSpec("PartDraw", WffVersion.V1),
-          WffChildSpec("Group", WffVersion.V1),
-          WffChildSpec("Condition", WffVersion.V1),
-          WffChildSpec("AnalogClock", WffVersion.V1),
-          WffChildSpec("DigitalClock", WffVersion.V1),
+          WffChildSpec("PartText", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("PartImage", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("PartAnimatedImage", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("PartDraw", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Group", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Condition", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("AnalogClock", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("DigitalClock", WffVersion.V1, maxOccurs = 1),
         ),
+      minChildren = 1,
+      maxChildren = 1,
     ),
     WffElementSpec(
       id = "ComplicationSlot",
@@ -1979,8 +2758,8 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("alpha", COLOR),
-          WffAttributeSpec("angle", STRING),
+          WffAttributeSpec("alpha", COLOR, rule = RULE_14),
+          WffAttributeSpec("angle", STRING, rule = RULE_15),
           WffAttributeSpec(
             "blendMode",
             ENUM,
@@ -2017,33 +2796,40 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "SRC_OVER",
                 "XOR",
               ),
+            rule = RULE_16,
           ),
           WffAttributeSpec("displayName", STRING),
-          WffAttributeSpec("height", INT, required = true),
-          WffAttributeSpec("isCustomizable", BOOLEAN, enumValues = listOf("TRUE", "FALSE")),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
+          WffAttributeSpec(
+            "isCustomizable",
+            BOOLEAN,
+            enumValues = listOf("TRUE", "FALSE"),
+            rule = RULE_33,
+          ),
           WffAttributeSpec("name", STRING),
-          WffAttributeSpec("pivotX", FLOAT),
-          WffAttributeSpec("pivotY", FLOAT),
-          WffAttributeSpec("scaleX", FLOAT),
-          WffAttributeSpec("scaleY", FLOAT),
+          WffAttributeSpec("pivotX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("pivotY", FLOAT, rule = RULE_2),
+          WffAttributeSpec("scaleX", FLOAT, rule = RULE_2),
+          WffAttributeSpec("scaleY", FLOAT, rule = RULE_2),
           WffAttributeSpec("slotId", STRING, required = true),
-          WffAttributeSpec("supportedTypes", STRING, required = true),
-          WffAttributeSpec("tintColor", COLOR),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("supportedTypes", STRING, required = true, rule = RULE_56),
+          WffAttributeSpec("tintColor", COLOR, rule = RULE_13),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children =
         listOf(
-          WffChildSpec("DefaultProviderPolicy", WffVersion.V1),
-          WffChildSpec("BoundingBox", WffVersion.V1),
-          WffChildSpec("BoundingRoundBox", WffVersion.V1),
-          WffChildSpec("BoundingOval", WffVersion.V1),
-          WffChildSpec("BoundingArc", WffVersion.V1),
-          WffChildSpec("Complication", WffVersion.V1),
+          WffChildSpec("DefaultProviderPolicy", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("BoundingBox", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("BoundingRoundBox", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("BoundingOval", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("BoundingArc", WffVersion.V1, maxOccurs = 1),
+          WffChildSpec("Complication", WffVersion.V1, minOccurs = 1),
           WffChildSpec("Variant", WffVersion.V1),
-          WffChildSpec("ScreenReader", WffVersion.V1),
+          WffChildSpec("ScreenReader", WffVersion.V1, maxOccurs = 1),
         ),
+      minChildren = 2,
     ),
     WffElementSpec(
       id = "BoundingBox",
@@ -2051,11 +2837,11 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("height", INT, required = true),
-          WffAttributeSpec("outlinePadding", FLOAT),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("outlinePadding", FLOAT, rule = RULE_24),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children = listOf(),
     ),
@@ -2065,12 +2851,12 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("cornerRadius", FLOAT),
-          WffAttributeSpec("height", INT, required = true),
-          WffAttributeSpec("outlinePadding", FLOAT),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("cornerRadius", FLOAT, rule = RULE_2),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("outlinePadding", FLOAT, rule = RULE_24),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children = listOf(),
     ),
@@ -2080,11 +2866,11 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("height", INT, required = true),
-          WffAttributeSpec("outlinePadding", FLOAT),
-          WffAttributeSpec("width", INT, required = true),
-          WffAttributeSpec("x", INT, required = true),
-          WffAttributeSpec("y", INT, required = true),
+          WffAttributeSpec("height", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("outlinePadding", FLOAT, rule = RULE_24),
+          WffAttributeSpec("width", INT, required = true, rule = RULE_9),
+          WffAttributeSpec("x", INT, required = true, rule = RULE_18),
+          WffAttributeSpec("y", INT, required = true, rule = RULE_18),
         ),
       children = listOf(),
     ),
@@ -2094,20 +2880,26 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
       sinceVersion = WffVersion.V1,
       attributes =
         listOf(
-          WffAttributeSpec("centerX", FLOAT, required = true),
-          WffAttributeSpec("centerY", FLOAT, required = true),
+          WffAttributeSpec("centerX", FLOAT, required = true, rule = RULE_2),
+          WffAttributeSpec("centerY", FLOAT, required = true, rule = RULE_2),
           WffAttributeSpec(
             "direction",
             ENUM,
             enumValues = listOf("CLOCKWISE", "COUNTER_CLOCKWISE"),
+            rule = RULE_32,
           ),
-          WffAttributeSpec("endAngle", STRING, required = true),
-          WffAttributeSpec("height", FLOAT, required = true),
-          WffAttributeSpec("isRoundEdge", BOOLEAN, enumValues = listOf("TRUE", "FALSE")),
-          WffAttributeSpec("outlinePadding", FLOAT),
-          WffAttributeSpec("startAngle", STRING, required = true),
-          WffAttributeSpec("thickness", FLOAT, required = true),
-          WffAttributeSpec("width", FLOAT, required = true),
+          WffAttributeSpec("endAngle", STRING, required = true, rule = RULE_15),
+          WffAttributeSpec("height", FLOAT, required = true, rule = RULE_34),
+          WffAttributeSpec(
+            "isRoundEdge",
+            BOOLEAN,
+            enumValues = listOf("TRUE", "FALSE"),
+            rule = RULE_33,
+          ),
+          WffAttributeSpec("outlinePadding", FLOAT, rule = RULE_24),
+          WffAttributeSpec("startAngle", STRING, required = true, rule = RULE_15),
+          WffAttributeSpec("thickness", FLOAT, required = true, rule = RULE_24),
+          WffAttributeSpec("width", FLOAT, required = true, rule = RULE_34),
         ),
       children = listOf(),
     ),
@@ -2133,6 +2925,7 @@ internal val GENERATED_SCHEMA: List<WffElementSpec> =
                 "WEIGHTED_ELEMENTS",
                 "EMPTY",
               ),
+            rule = RULE_7,
           ),
         ),
       children =

@@ -17,7 +17,7 @@ class WearOsSamplesTest {
       "SimpleDigital" to WffVersion.V1,
       "Complications" to WffVersion.V2,
       "Flavors" to WffVersion.V2,
-      "Weather" to WffVersion.V1,
+      "Weather" to WffVersion.V2, // [WEATHER.*] data sources arrived in format version 2
       "PhotosMulti" to WffVersion.V4,
       "PhotosMask" to WffVersion.V4,
     )

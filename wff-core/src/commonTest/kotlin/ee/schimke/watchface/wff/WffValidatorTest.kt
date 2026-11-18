@@ -22,7 +22,7 @@ class WffValidatorTest {
     val doc =
       parse(
         """<WatchFace width="450" height="450">
-             <UserConfigurations><Flavors defaultValue="a"><Flavor id="a" displayName="A"/></Flavors></UserConfigurations>
+             <UserConfigurations><Flavors defaultValue="a"><Flavor id="a" displayName="A"><Configuration id="c" optionId="o"/></Flavor></Flavors></UserConfigurations>
              <Scene/>
            </WatchFace>""",
       )
@@ -31,6 +31,7 @@ class WffValidatorTest {
       listOf(
         "/WatchFace/UserConfigurations/Flavors",
         "/WatchFace/UserConfigurations/Flavors/Flavor",
+        "/WatchFace/UserConfigurations/Flavors/Flavor/Configuration",
       ),
       v1.filter { it.code == WffDiagnosticCode.ELEMENT_TOO_NEW }.map { it.path },
     )

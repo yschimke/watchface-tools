@@ -210,6 +210,69 @@ class PackagerTest {
     assertTrue(result.failures.isNotEmpty(), "plain package must fail the push validator")
   }
 
+  /** wff-core only warns about an unknown element; Google's XSD rejects it. */
+  private fun xsdInvalid(): Map<String, ByteArray> {
+    val b = TestSupport.sampleBundle("SimpleAnalog").toMutableMap()
+    b[WffBundleLayout.WATCH_FACE_PATH] =
+      b.getValue(WffBundleLayout.WATCH_FACE_PATH)
+        .decodeToString()
+        .replaceFirst(Regex("(<Scene[^>]*>)"), "$1<Bogus/>")
+        .encodeToByteArray()
+    return b
+  }
+
+  @Test
+  fun sideloadFailsOnAnXsdInvalidFaceWithGooglesMessage() {
+    // a/dogfood: the APK was written and the exit code was 0.
+    val sdk = TestSupport.requireSdk()
+    val e =
+      assertFailsWith<PackagingException> {
+        WatchFacePackager(sdk, Validators.google())
+          .pack(
+            xsdInvalid(),
+            PackagerOptions(PackageTarget.Sideload(), 1, SigningConfig.GeneratedDebugKey(tmp)),
+          )
+      }
+    val msg = e.message!!
+    assertTrue("wff-validator" in msg && "cvc-" in msg && "Bogus" in msg, msg)
+    assertTrue("Line" in msg && "Column" in msg, msg)
+  }
+
+  @Test
+  fun pushFailsOnAnXsdInvalidFaceAndSurfacesTheCvcMessage() {
+    val sdk = TestSupport.requireSdk()
+    val e =
+      assertFailsWith<PackagingException> {
+        WatchFacePackager(sdk, Validators.google()).pack(xsdInvalid(), pushOptions(keyDir = tmp))
+      }
+    val msg = e.message!!
+    assertTrue("wff-validator" in msg && "cvc-" in msg && "Bogus" in msg, msg)
+  }
+
+  @Test
+  fun aFormatValidatorFindingFailsBothTargets() {
+    val sdk = TestSupport.requireSdk()
+    val format = WffFormatValidator { _, _ -> listOf("[Line 1:Column 2]: cvc-fake: nope") }
+    val validators =
+      Validators(
+        push = { _, _ -> PushValidation("TOKEN", emptyList()) },
+        memory = { _, _ -> MemoryFootprintResult(MemoryFootprintReport(1, 2, 3), null) },
+        format = format,
+      )
+    val bundle = TestSupport.sampleBundle("SimpleAnalog")
+    for (options in
+      listOf(
+        pushOptions(keyDir = tmp),
+        PackagerOptions(PackageTarget.Sideload(), 1, SigningConfig.GeneratedDebugKey(tmp)),
+      )) {
+      val e =
+        assertFailsWith<PackagingException> {
+          WatchFacePackager(sdk, validators).pack(bundle, options)
+        }
+      assertTrue("cvc-fake: nope" in e.message!!, e.message)
+    }
+  }
+
   private fun fingerprint(b: ByteArray) =
     MessageDigest.getInstance("SHA-256").digest(b).joinToString("") { "%02x".format(it) }
 }

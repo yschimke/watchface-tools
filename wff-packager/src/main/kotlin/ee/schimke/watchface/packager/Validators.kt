@@ -9,11 +9,15 @@ import com.google.wear.watchface.dfx.memory.MemoryFootprint
 import com.google.wear.watchface.dfx.memory.TestFailedException
 import com.google.wear.watchface.dfx.memory.WatchFaceLayoutEvaluator
 import com.samsung.watchface.WatchFaceXmlValidator
-import com.samsung.watchface.`WatchFaceXmlValidator$WatchFaceFormatValidationException` as WatchFaceFormatValidationException
 import ee.schimke.watchface.wff.WffVersion
 import java.io.File
 import java.io.InputStream
 import java.io.StringReader
+import java.nio.file.Files
+import java.util.logging.Handler
+import java.util.logging.Level
+import java.util.logging.LogRecord
+import java.util.logging.Logger
 import javax.imageio.ImageIO
 import javax.xml.parsers.DocumentBuilderFactory
 import org.xml.sax.InputSource
@@ -66,32 +70,87 @@ public class Validators(
 }
 
 public object GoogleWffValidator : WffFormatValidator {
-  override fun validate(watchFaceXml: String, version: WffVersion): List<String> =
+  /**
+   * Google's validator reports through `java.util.logging` (`Log.e` -> SEVERE on the root logger)
+   * and swallows its own exceptions: `validateOrThrow` returns normally for an invalid document. So
+   * the findings are read from the log records, with a handler attached for the duration of the
+   * call and filtered to this thread. The file overload is used because it reports `[Line n:Column
+   * m]: cvc-...`, which the DOM overload cannot.
+   */
+  override fun validate(watchFaceXml: String, version: WffVersion): List<String> {
     try {
-      val dom =
-        DocumentBuilderFactory.newInstance()
-          .apply {
-            isNamespaceAware = true
-            // The XML may come from untrusted authors: no DOCTYPE, no external entities or DTDs.
-            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
-            setFeature("http://xml.org/sax/features/external-general-entities", false)
-            setFeature("http://xml.org/sax/features/external-parameter-entities", false)
-            setFeature(
-              "http://apache.org/xml/features/nonvalidating/load-external-dtd",
-              false,
-            )
-            isXIncludeAware = false
-            isExpandEntityReferences = false
-          }
-          .newDocumentBuilder()
-          .parse(InputSource(StringReader(watchFaceXml)))
-      WatchFaceXmlValidator().validateOrThrow(dom, version.number.toString())
-      emptyList()
-    } catch (e: WatchFaceFormatValidationException) {
-      listOf(e.message ?: "invalid Watch Face Format")
+      // The XML may come from untrusted authors: no DOCTYPE, no external entities or DTDs. This
+      // also guarantees well-formedness before the validator reads the file itself.
+      DocumentBuilderFactory.newInstance()
+        .apply {
+          isNamespaceAware = true
+          setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+          setFeature("http://xml.org/sax/features/external-general-entities", false)
+          setFeature("http://xml.org/sax/features/external-parameter-entities", false)
+          setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+          isXIncludeAware = false
+          isExpandEntityReferences = false
+        }
+        .newDocumentBuilder()
+        .parse(InputSource(StringReader(watchFaceXml)))
     } catch (e: Exception) {
-      listOf("WFF validator failed: $e")
+      return listOf("watchface.xml is not well-formed XML: ${e.message ?: e}")
     }
+    val file = Files.createTempFile("watchface-validate", ".xml").toFile()
+    try {
+      file.writeText(watchFaceXml)
+      val severe = mutableListOf<String>()
+      var passed: Boolean? = null
+      var failure: Exception? = null
+      withSevereCapture(severe) {
+        try {
+          passed = WatchFaceXmlValidator().validate(file.path, version.number.toString())
+        } catch (e: Exception) {
+          failure = e
+        }
+      }
+      return when {
+        severe.isNotEmpty() -> severe.map(::cleanMessage)
+        failure != null -> listOf("WFF validator failed: $failure")
+        passed == false -> listOf("invalid Watch Face Format (no detail reported)")
+        else -> emptyList()
+      }
+    } finally {
+      file.delete()
+    }
+  }
+
+  private fun cleanMessage(raw: String): String =
+    raw.removePrefix("Could not validate xml: ").trim()
+
+  private val captureLock = Any()
+
+  private fun withSevereCapture(into: MutableList<String>, block: () -> Unit) {
+    // Google's `Log` replaces the root logger's handlers in its static initializer; make sure that
+    // has happened before attaching ours, or it would remove it.
+    Class.forName("com.samsung.watchface.utils.Log")
+    val thread = Thread.currentThread().id
+    val handler =
+      object : Handler() {
+        override fun publish(record: LogRecord) {
+          if (record.level.intValue() >= Level.SEVERE.intValue() && record.longThreadID == thread)
+            synchronized(into) { into += record.message ?: "" }
+        }
+
+        override fun flush() {}
+
+        override fun close() {}
+      }
+    synchronized(captureLock) {
+      val root = Logger.getLogger("")
+      root.addHandler(handler)
+      try {
+        block()
+      } finally {
+        root.removeHandler(handler)
+      }
+    }
+  }
 }
 
 public object GooglePushValidator : PushValidator {

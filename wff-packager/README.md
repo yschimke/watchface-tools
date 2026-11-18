@@ -43,7 +43,13 @@ wff-packager pack --bundle dir --out face.apk --version-code 12 \
 - package `<marketplacePackage>.watchfacepush.<faceName>` (a plain package for `Sideload`).
 
 These are enforced for sideload builds too, so one bundle can yield both flavours. Google's
-validator remains the authority; our checks exist for earlier, clearer errors.
+validator remains the authority; our checks exist for earlier, clearer errors. `minSdkVersion` must
+be at least the API level the declared format version needs (`WffBundleLayout.minSdkFor`: 34 for
+version 2), and never below 33.
+
+Google's WFF XSD validator runs for both targets. It only logs its findings, so `GoogleWffValidator`
+reads them from `java.util.logging` while it runs and reports each as an `error[wff-validator]`
+with the `[Line n:Column m]: cvc-...` text, which fails packaging.
 
 ## Google's tooling: how it is distributed
 
