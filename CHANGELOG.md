@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/yschimke/watchface-tools/compare/v0.5.0...v0.6.0) (2026-11-18)
+
+
+### Features
+
+* **push-app:** browse and install faces from public catalogs ([#49](https://github.com/yschimke/watchface-tools/issues/49)) ([0778ffa](https://github.com/yschimke/watchface-tools/commit/0778ffa4472dcf9c7b353ff97fc1f46605f5f39b))
+
 ## [0.5.0](https://github.com/yschimke/watchface-tools/compare/v0.4.0...v0.5.0) (2026-11-18)
 
 
