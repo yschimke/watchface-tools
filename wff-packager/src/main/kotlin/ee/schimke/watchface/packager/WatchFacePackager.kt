@@ -69,6 +69,7 @@ public class WatchFacePackager(
     // 3. Build.
     val tools = sdk ?: AndroidSdk.require()
     val signingKey = loadSigningKey(options.signing)
+    checkPinnedCertificate(signingKey, options.expectedCertificateSha256)
     if (signingKey.debug) {
       diagnostics +=
         warning(
@@ -121,6 +122,7 @@ public class WatchFacePackager(
         memoryFootprint = memory.footprint,
         validationToken = token?.takeIf(String::isNotEmpty),
         diagnostics = diagnostics.toList(),
+        signerCertificateSha256 = certificateSha256(signingKey.chain.first()),
       )
     } finally {
       work.deleteRecursively()

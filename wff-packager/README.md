@@ -71,6 +71,49 @@ Pass a keystore for anything you publish. Without one, a per-installation debug 
 first use under `$WFF_PACKAGER_HOME` (default `~/.config/wff-packager/debug.p12`, `0600`) and a
 warning is emitted. Never commit keys (`*.p12`, `*.jks`, `*.keystore` are git-ignored).
 
+### One shared marketplace key, from a secret
+
+Android only installs an update signed with the same certificate as the installed APK. A site that
+publishes faces for Watch Face Push therefore signs **every** face with one long-lived marketplace
+key, and never with a key that a container rebuild can regenerate. Keep it in a secret, not on disk:
+
+| Variable | |
+| --- | --- |
+| `WFF_SIGNING_KEYSTORE_B64` | the PKCS12 keystore, base64 (`base64 -w0 market.p12`) |
+| `WFF_SIGNING_KEYSTORE_PASSWORD` | its store password |
+| `WFF_SIGNING_KEY_ALIAS` | optional; defaults to the only key entry |
+| `WFF_SIGNING_KEY_PASSWORD` | optional; defaults to the store password |
+| `WFF_SIGNING_CERT_SHA256` | the certificate pin (below) |
+
+```kotlin
+val signing = SigningConfig.fromEnvironment() ?: error("no signing key configured")
+PackagerOptions(
+  target, versionCode, signing,
+  expectedCertificateSha256 = SigningConfig.expectedCertificateFromEnvironment(),
+)
+```
+
+or `wff-packager pack ... --keystore-from-env true`. `SigningConfig.InMemoryKeystore` takes the bytes
+directly when the secret comes from somewhere other than the environment.
+
+**Pin the certificate.** With `expectedCertificateSha256` (`--expect-cert-sha256`, or
+`WFF_SIGNING_CERT_SHA256` with `--keystore-from-env`) packaging fails before signing if the key's
+certificate is not the pinned one, so a wrong or rotated secret can't ship APKs that installed faces
+refuse as updates. Colons and case are ignored. Every result carries `signerCertificateSha256`, and
+the CLI prints it, so the first build tells you the value to pin:
+
+```
+keytool -list -v -keystore market.p12 | grep SHA256   # the same value
+```
+
+Generate the key once, with a long validity, and back it up: a lost marketplace key means no
+published face can ever be updated.
+
+```
+keytool -genkeypair -keystore market.p12 -storetype PKCS12 -alias market \
+  -keyalg RSA -keysize 4096 -validity 10950 -dname "CN=<marketplace>"
+```
+
 ## Android SDK
 
 Needs `aapt2` and `zipalign` (build-tools) and `android.jar` (a platform), found via `ANDROID_HOME`,

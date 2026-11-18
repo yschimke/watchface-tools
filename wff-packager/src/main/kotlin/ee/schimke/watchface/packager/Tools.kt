@@ -88,8 +88,53 @@ internal class SigningKey(val key: PrivateKey, val chain: List<X509Certificate>,
 internal fun loadSigningKey(config: SigningConfig): SigningKey =
   when (config) {
     is SigningConfig.Keystore -> loadKeystore(config, debug = false)
+    is SigningConfig.InMemoryKeystore -> {
+      val ks =
+        try {
+          KeyStore.getInstance(config.storeType).apply {
+            load(config.bytes.inputStream(), config.storePassword.toCharArray())
+          }
+        } catch (e: Exception) {
+          throw PackagingException("signing", "Cannot open the in-memory keystore: ${e.message}")
+        }
+      readKey(ks, "the in-memory keystore", config.keyAlias, config.keyPassword, debug = false)
+    }
     is SigningConfig.GeneratedDebugKey -> loadKeystore(ensureDebugKey(config.directory), true)
   }
+
+/** Lower-case hex SHA-256 of a certificate's DER encoding, as `apksigner` and Play print it. */
+internal fun certificateSha256(cert: X509Certificate): String =
+  java.security.MessageDigest.getInstance("SHA-256").digest(cert.encoded).joinToString("") {
+    "%02x".format(it)
+  }
+
+/**
+ * Accepts `AB:CD:…`, `abcd…` or with spaces; returns lower-case hex, or null if it isn't SHA-256.
+ */
+internal fun normalizeSha256(value: String): String? =
+  value
+    .filterNot { it == ':' || it.isWhitespace() }
+    .lowercase()
+    .takeIf { it.length == 64 && it.all { c -> c in '0'..'9' || c in 'a'..'f' } }
+
+/** Fails unless [key]'s signing certificate is the pinned one. */
+internal fun checkPinnedCertificate(key: SigningKey, expected: String?) {
+  if (expected == null) return
+  val pin =
+    normalizeSha256(expected)
+      ?: throw PackagingException(
+        "signing",
+        "Expected certificate SHA-256 must be 64 hex digits (colons allowed), got ${expected.length} characters",
+      )
+  val actual = certificateSha256(key.chain.first())
+  if (actual != pin) {
+    throw PackagingException(
+      "signing",
+      "Signing certificate SHA-256 $actual does not match the pinned $pin; refusing to sign. " +
+        "APKs signed with a different key cannot update installed watch faces.",
+    )
+  }
+}
 
 private const val DEBUG_ALIAS = "wff-packager-debug"
 private const val DEBUG_PASSWORD = "android"
@@ -159,20 +204,32 @@ private fun loadKeystore(config: SigningConfig.Keystore, debug: Boolean): Signin
     } catch (e: Exception) {
       throw PackagingException("signing", "Cannot open keystore ${config.file}: ${e.message}")
     }
+  return readKey(ks, "keystore ${config.file}", config.keyAlias, config.keyPassword, debug)
+}
+
+private fun readKey(
+  ks: KeyStore,
+  name: String,
+  keyAlias: String?,
+  keyPassword: String,
+  debug: Boolean,
+): SigningKey {
   val alias =
-    config.keyAlias
+    keyAlias
       ?: ks.aliases().toList().singleOrNull { ks.isKeyEntry(it) }
       ?: throw PackagingException(
         "signing",
-        "Keystore ${config.file} needs exactly one key entry or an explicit key alias",
+        "${name.replaceFirstChar(Char::uppercase)} needs exactly one key entry or an explicit key alias",
       )
   val key =
     try {
-      ks.getKey(alias, config.keyPassword.toCharArray()) as? PrivateKey
+      ks.getKey(alias, keyPassword.toCharArray()) as? PrivateKey
     } catch (e: Exception) {
       throw PackagingException("signing", "Cannot read key '$alias': ${e.message}")
-    } ?: throw PackagingException("signing", "No private key '$alias' in ${config.file}")
-  val chain = ks.getCertificateChain(alias).map { it as X509Certificate }
+    } ?: throw PackagingException("signing", "No private key '$alias' in $name")
+  val chain =
+    ks.getCertificateChain(alias)?.map { it as X509Certificate }?.takeIf { it.isNotEmpty() }
+      ?: throw PackagingException("signing", "Key '$alias' in $name has no certificate")
   return SigningKey(key, chain, debug)
 }
 
