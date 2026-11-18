@@ -11,9 +11,22 @@ description =
 
 ktfmt { googleStyle() }
 
-// No jvmToolchain pin: the packager compiles for the JDK running Gradle. wff-core's JVM jar is
-// pinned to Java 17 bytecode for its consumers; Google's validator itself only needs 17.
-kotlin { explicitApi() }
+// Java 17 bytecode, whatever JDK runs Gradle, like wff-core: consumers hold a 17 floor
+// (compose-preview-server's `:server` is compiled for and checked against 17, because
+// compose-ai-tools' `:cli` compiles against the released server). Google's validator itself is
+// class
+// file 61, so nothing here needs a newer version. Both settings, because the JVM target is what the
+// bytecode says and `java.targetCompatibility` is the `org.gradle.jvm.version` attribute Gradle
+// publishes, which is what a 17 consumer's resolution refuses on.
+kotlin {
+  explicitApi()
+  compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
+}
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
+}
 
 dependencies {
   api(project(":wff-core"))
