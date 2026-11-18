@@ -2,11 +2,13 @@ package ee.schimke.watchface.push.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
@@ -14,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -190,7 +193,9 @@ fun DesignListScreen(
               title = { Text(design.title) },
               subtitle = { Text(statusLabel(design, state.push, deviceWff)) },
             ) {
-              PreviewImage(design, Modifier.fillMaxWidth().height(96.dp))
+              Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                PreviewImage(design, Modifier.size(96.dp))
+              }
             }
           }
         }
@@ -337,17 +342,22 @@ fun DesignDetailScreen(
  */
 val LocalPreviewPainter = compositionLocalOf<((Design) -> Painter)?> { null }
 
+/**
+ * A design's preview, cropped to a circle: the faces are round, and the square render's corners are
+ * not part of what the watch shows.
+ */
 @Composable
 fun PreviewImage(design: Design, modifier: Modifier = Modifier) {
+  val shaped = modifier.aspectRatio(1f).clip(CircleShape)
   val override = LocalPreviewPainter.current
   if (override != null) {
-    Image(override(design), "${design.title} preview", modifier, contentScale = ContentScale.Fit)
+    Image(override(design), "${design.title} preview", shaped, contentScale = ContentScale.Crop)
   } else {
     AsyncImage(
       model = design.previewUrl,
       contentDescription = "${design.title} preview",
-      contentScale = ContentScale.Fit,
-      modifier = modifier,
+      contentScale = ContentScale.Crop,
+      modifier = shaped,
     )
   }
 }
