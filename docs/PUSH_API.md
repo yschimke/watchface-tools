@@ -148,7 +148,8 @@ token is `401`, never a silent fallback to the anonymous list. Response `200`:
 ### `GET /designs/{id}/apk`
 
 Auth optional for a public design; a private one without a token is `401` (the watch says "This face
-is private. Link your account."). `200` with `application/vnd.android.package-archive`, body = the
+is private. Link your account."). A private design requested with another account's valid token is `404`, not `401`:
+a `401` tells a healthy watch to discard its token. `200` with `application/vnd.android.package-archive`, body = the
 signed APK whose SHA-256 equals `sha256` in the listing. Must be immutable per `version` (use `ETag`
 and `Cache-Control: private`). `404` if unpublished.
 
