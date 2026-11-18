@@ -16,6 +16,10 @@ private const val USAGE =
   --previous-version-code n  reject unless --version-code is greater
   --keystore <file> --keystore-pass <pw> [--key-alias a] [--key-pass pw]
                              sign with this keystore (default: generated per-installation debug key)
+  --keystore-from-env true   sign with the keystore in WFF_SIGNING_KEYSTORE_B64 (base64 PKCS12),
+                             WFF_SIGNING_KEYSTORE_PASSWORD, and optional WFF_SIGNING_KEY_ALIAS /
+                             WFF_SIGNING_KEY_PASSWORD; WFF_SIGNING_CERT_SHA256 pins the certificate
+  --expect-cert-sha256 <hex> refuse to sign unless the key's certificate has this SHA-256
   --token-out <file>         also write the validation token to this file
 
 Needs the Android SDK (aapt2, zipalign, android.jar) via ANDROID_HOME or ANDROID_SDK_ROOT."""
@@ -77,6 +81,8 @@ internal fun runPack(flags: Map<String, String>): Int {
       "keystore-pass",
       "key-alias",
       "key-pass",
+      "keystore-from-env",
+      "expect-cert-sha256",
       "token-out",
     )
   (flags.keys - known).firstOrNull()?.let {
@@ -104,21 +110,44 @@ internal fun runPack(flags: Map<String, String>): Int {
             ?: throw IllegalArgumentException("--face-name is required (bundle has no package)")
         PackageTarget.WatchFacePush(marketplace, face)
       } ?: PackageTarget.Sideload(flags["package"])
+    val fromEnv =
+      when (flags["keystore-from-env"]) {
+        null,
+        "false" -> false
+        "true" -> true
+        else -> throw IllegalArgumentException("--keystore-from-env takes true or false")
+      }
+    require(!(fromEnv && "keystore" in flags)) {
+      "--keystore and --keystore-from-env are mutually exclusive"
+    }
+    val envSigning =
+      if (fromEnv) {
+        SigningConfig.fromEnvironment()
+          ?: throw IllegalArgumentException(
+            "--keystore-from-env needs ${SigningConfig.ENV_KEYSTORE_B64} to be set",
+          )
+      } else null
+    val expectedCert =
+      flags["expect-cert-sha256"]
+        ?: if (fromEnv) SigningConfig.expectedCertificateFromEnvironment() else null
     val signing =
-      flags["keystore"]?.let {
-        SigningConfig.Keystore(
-          File(it),
-          flags["keystore-pass"] ?: throw IllegalArgumentException("--keystore-pass is required"),
-          flags["key-alias"],
-          flags["key-pass"] ?: flags.getValue("keystore-pass"),
-        )
-      } ?: SigningConfig.GeneratedDebugKey()
+      envSigning
+        ?: flags["keystore"]?.let {
+          SigningConfig.Keystore(
+            File(it),
+            flags["keystore-pass"] ?: throw IllegalArgumentException("--keystore-pass is required"),
+            flags["key-alias"],
+            flags["key-pass"] ?: flags.getValue("keystore-pass"),
+          )
+        }
+        ?: SigningConfig.GeneratedDebugKey()
     val options =
       PackagerOptions(
         target,
         versionCode,
         signing,
         flags["previous-version-code"]?.toIntOrNull(),
+        expectedCertificateSha256 = expectedCert,
       )
     val packaged = WatchFacePackager().pack(bundle, options)
     out.absoluteFile.parentFile?.mkdirs()
@@ -129,6 +158,7 @@ internal fun runPack(flags: Map<String, String>): Int {
       "package: ${packaged.packageName}  versionCode: ${packaged.versionCode}  wff: ${packaged.wffVersion.number}",
     )
     println("memory: ${packaged.memoryFootprint}")
+    println("signer certificate SHA-256: ${packaged.signerCertificateSha256}")
     packaged.validationToken?.let {
       println("validation token: $it")
       flags["token-out"]?.let { f -> File(f).writeText(it) }

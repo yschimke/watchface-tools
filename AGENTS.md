@@ -47,3 +47,8 @@ Set up like compose-preview-contracts; the rules and rationale are in
   merge it when the user asks.
 - Publishing needs five repository secrets: `SIGNING_KEY`, `SIGNING_KEY_ID`,
   `SIGNING_KEY_PASSWORD`, `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`.
+- APK signing keys are never committed or generated per machine for anything published. A
+  marketplace signs every face with one shared key from a secret
+  (`SigningConfig.fromEnvironment`, `WFF_SIGNING_*`) and pins its certificate
+  (`expectedCertificateSha256`); see `wff-packager/README.md` → Signing keys. These are distinct
+  from the Maven `SIGNING_KEY*` GPG secrets above.
