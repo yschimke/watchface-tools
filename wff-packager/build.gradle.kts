@@ -30,6 +30,9 @@ java {
 
 dependencies {
   api(project(":wff-core"))
+  // The push rules, diagnostics and package target live in the pure-Kotlin APK module, shared with
+  // the browser; they keep their package so existing callers of this module still compile.
+  api(project(":wff-apk"))
   api(libs.apksig)
   // Google's official validators: Watch Face Push checks + validation token, WFF XSD validation
   // and the memory-footprint evaluator all ship inside this one artifact.

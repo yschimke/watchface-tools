@@ -15,6 +15,10 @@ Rules for every coding agent working in this repository.
 - Run Gradle through `build-brief` when it is installed (`build-brief ./gradlew :wff-core:jvmTest`).
 - `wff-core` `commonMain` must stay free of JVM-only code and of dependencies: the browser editor
   runs it under Kotlin/Wasm. Check with `./gradlew :wff-core:compileKotlinWasmJs`.
+- Likewise `wff-apk` `commonMain` (the pure-Kotlin APK packager the browser runs): no JVM-only code
+  and nothing beyond `wff-core`; the signing seam is `ApkSigner`. Check with
+  `./gradlew :wff-apk:compileKotlinWasmJs`; `wasmJsBrowserTest` runs it in headless Chrome. The
+  Watch Face Push rules (`PushRules`) live there and `wff-packager` shares them: change them once.
 - `WffSchemaData.kt` is generated from Google's XSDs; never edit it by hand. Regenerate it with
   `tools/wff-xsd/generate_schema.py` (see `tools/wff-xsd/README.md`) when a new format version ships.
 - **Merge only when explicitly requested.** Opening and updating PRs is automatic; merging is not.

@@ -1,4 +1,4 @@
-# Publishes the watchface-tools coordinates (wff-core JVM + Kotlin/Wasm, wff-packager and the BOM)
+# Publishes the watchface-tools coordinates (wff-core and wff-apk JVM + Kotlin/Wasm, wff-packager and the BOM)
 # to Maven Central for a tag, as far as the publish plan says they changed (docs/VERSIONING.md).
 #
 # A published coordinate is PERMANENT: Central refuses a second upload of the same GAV, and
@@ -136,7 +136,7 @@ jobs:
           WFF_REQUIRE_SDK: "1"
         run: |
           ./gradlew -p build-logic test
-          ./gradlew -Prelease ktfmtCheck :wff-core:check :wff-packager:check
+          ./gradlew -Prelease ktfmtCheck :wff-core:check :wff-apk:check :wff-packager:check
           python3 -m unittest discover -s .github/scripts/tests
 
       # A dry run against the local repository, signed: the POMs either resolve every internal

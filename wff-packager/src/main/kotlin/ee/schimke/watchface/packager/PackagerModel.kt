@@ -3,25 +3,6 @@ package ee.schimke.watchface.packager
 import ee.schimke.watchface.wff.WffVersion
 import java.io.File
 
-/** What the APK is for. It decides the package name. */
-public sealed interface PackageTarget {
-  /** The package name written to the manifest, or null to keep the bundle manifest's. */
-  public val packageName: String?
-
-  /** Sideload / Play-style APK with a plain package name. */
-  public data class Sideload(override val packageName: String? = null) : PackageTarget
-
-  /**
-   * Watch Face Push: the package becomes `<marketplacePackage>.watchfacepush.<faceName>` and the
-   * official push validator is run to obtain the validation token.
-   */
-  public data class WatchFacePush(val marketplacePackage: String, val faceName: String) :
-    PackageTarget {
-    override val packageName: String
-      get() = PushRules.packageName(marketplacePackage, faceName)
-  }
-}
-
 /** Where the signing key comes from. */
 public sealed interface SigningConfig {
   /** A caller-supplied keystore (PKCS12 or JKS). */
