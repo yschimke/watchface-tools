@@ -70,6 +70,20 @@ internal track with the listing in `src/main/play/`. Setup, secrets and versioni
 
 Unlink from the bottom of the design list.
 
+## Compose previews
+
+`src/debug/.../ui/ScreenPreviews.kt` has a `@Preview` for every screen and its important states on
+small and large round watches, fed by the debug build's `FakePushServer` and `PreviewArt` (no
+network). Scrolling screens also have a `@ScrollingPreview(modes = [LONG])` preview: one tall
+capture of the whole list, next to the first frame.
+
+`.github/workflows/compose-preview.yml` renders them with
+[compose-ai-tools](https://github.com/yschimke/compose-ai-tools) (`ee.schimke.composeai.preview`)
+on every PR and posts a sticky before/after comment, diffed against the `compose-preview/main`
+branch that each push to main refreshes. Locally:
+`./gradlew :push-app:composePreviewRenderAll` (JDK 21) writes `build/compose-previews/renders/`.
+The module's Robolectric is held at the renderer's version (see `gradle/libs.versions.toml`).
+
 ## Emulator test in CI
 
 `.github/workflows/push-app-emulator.yml` runs the app on a Wear OS 6 (API 36) emulator on every
@@ -86,9 +100,12 @@ activate, `listWatchFaces` state).
   validation token, as a **catalog face** (`catalog:wear-os-samples-watchfaces/SimpleDigital`,
   under "Wear OS samples", with its licence checked on the detail screen), listed through the
   fake via `--es fake_extra_catalog` and served from the runner over `adb reverse`. It checks
-  `listWatchFaces` holds that face. Then it opens **Sign in for your designs**, checks Back
-  returns to the public list, links, checks the private design is listed, and screenshots the
+  `listWatchFaces` holds that face. Then it opens **Sign in for your designs** and the server
+  picker, checks Back returns to the public list, links, checks the private design is listed, and screenshots the
   watch face.
+- **First frames:** for the public and linked lists, the detail, sign-in and server screens it
+  screenshots the screen as it first renders (`first-*.png`) and fails unless the title is fully
+  on the round screen: below the time text, in the top half and inside the disc.
 - **Stage 2 (server):** `workflow_dispatch` with `stage: server` and `base_url` (default
   `https://ui.coo.ee`). Browses and installs a public face from the live server (a
   wear-os-samples catalog face when the server lists one); with the

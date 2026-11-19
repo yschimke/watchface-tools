@@ -131,6 +131,38 @@ def ensure_foreground() -> None:
         time.sleep(1.5)
 
 
+def first_frame(header: str, name: str, timeout: float = 20) -> None:
+    """A screen as it first renders, before any scrolling: its title must be fully on the round
+    screen, below the time text and in the top half (the list opened at its start). A screen that
+    opens scrolled, or draws its title over the time, fails here (the bug in the user's photo)."""
+    w, h = screen_size()
+    deadline = time.time() + timeout
+    bounds = None
+    while time.time() < deadline and bounds is None:
+        ensure_foreground()
+        bounds = next((b for label, b in nodes() if label.strip() == header), None)
+        if bounds is None:
+            time.sleep(1)
+    time.sleep(1)  # let the first frame settle before the screenshot
+    screenshot(f"first-{name}")
+    if bounds is None:
+        raise AssertionError(f"first frame of {name}: title '{header}' is not on screen")
+    x1, y1, x2, y2 = bounds
+    r = min(w, h) / 2
+    corners = [(x1, y1), (x2, y1), (x1, y2), (x2, y2)]
+    inside = all((x - w / 2) ** 2 + (y - h / 2) ** 2 <= r * r for x, y in corners)
+    problems = []
+    if y1 < 0.08 * h:
+        problems.append("under the time text")
+    if y2 > 0.5 * h:
+        problems.append("not at the top (the list opened scrolled)")
+    if not inside:
+        problems.append("clipped by the round screen")
+    if problems:
+        raise AssertionError(f"first frame of {name}: '{header}' {bounds} is " + ", ".join(problems))
+    note(f"- first frame of {name}: '{header}' fully visible at {bounds}")
+
+
 def wait_header(text: str, timeout: float = 20) -> None:
     """A list header, at the top of its list: swipe up until it shows. A fixed number of swipes
     fell short once the list held the catalog faces: coming back from the last one is ~3 screens
@@ -255,9 +287,7 @@ def run_fake(a: argparse.Namespace) -> None:
 
     note("### Anonymous: an unlinked watch opens on the public faces")
     listed = wait_log(r"list designs=(\S*) anonymous=true")
-    time.sleep(2)
-    ensure_foreground()
-    screenshot("first-screen")  # as opened, before any scrolling
+    first_frame("Public faces", "public-list")
     wait_header("Public faces")
     assert find("Link your account") is None, "an unlinked watch opened on the sign-in screen"
     ids = listed.group(1).split(",")
@@ -270,6 +300,7 @@ def run_fake(a: argparse.Namespace) -> None:
     screenshot("public-list")
 
     open_design("Aurora")
+    first_frame("Aurora", "detail")
     # Install is the EdgeButton, shown at the end of the scrolled detail list.
     wait_text("Install", timeout=30, scroll_to=True)
     screenshot("public-detail")
@@ -326,6 +357,10 @@ def run_fake(a: argparse.Namespace) -> None:
     note("### Sign in: optional, from the public list; swiping back returns to it")
     wait_header("Public faces")
     tap_text("Sign in for your designs")
+    first_frame("Link your account", "link")
+    tap_text("Server")
+    first_frame("Catalog server", "server")
+    back()
     wait_text("Link your account")
     back()
     wait_header("Public faces")
@@ -338,6 +373,7 @@ def run_fake(a: argparse.Namespace) -> None:
     shell(f"am broadcast -a {PKG}.FAKE_APPROVE -p {PKG}")
     wait_log(r"fake approve requested", timeout=10)
     linked = wait_log(r"list designs=(\S*) anonymous=false", timeout=30)
+    first_frame("Your designs", "linked-list")
     wait_header("Your designs")
     linked_ids = linked.group(1).split(",")
     assert "pulse" in linked_ids, f"linked list lacks the account's own design: {linked_ids}"
@@ -389,6 +425,7 @@ def run_server(a: argparse.Namespace) -> None:
     note("### Anonymous: an unlinked watch opens on the live server's public faces")
     listed = wait_log(r"list (designs=\S*|failed status=\d+) anonymous=true")
     assert listed.group(1).startswith("designs="), f"the app could not list: {listed.group(0)}"
+    first_frame("Public faces", "server-public-list")
     wait_header("Public faces")
     screenshot("server-public-list")
     installable = [d for d in designs if d.get("wffVersion", 99) <= 4]

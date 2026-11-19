@@ -6,9 +6,21 @@ plugins {
   alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.ktfmt)
   alias(libs.plugins.play.publisher)
+  alias(libs.plugins.compose.preview)
 }
 
 ktfmt { googleStyle() }
+
+// Renders the @Preview set in src/debug with Robolectric (CI:
+// .github/workflows/compose-preview.yml).
+// Debug only: AGP builds the unit tests the renderer packages resources through for debug alone.
+composePreview {
+  variant.set("debug")
+  // No whole-app capture: MainActivity binds the Wear system's Watch Face Push service, which is
+  // not
+  // on Robolectric's classpath. Every screen has its own @Preview instead.
+  excludeActivities.add(".MainActivity")
+}
 
 val marketplacePackage: String = providers.gradleProperty("watchface.marketplacePackage").get()
 
@@ -94,6 +106,9 @@ android {
   testOptions {
     unitTests.isIncludeAndroidResources = true
     unitTests.all {
+      // Robolectric 4.17 (held at compose-preview's version, see libs.versions.toml) sets up
+      // SDK 36's shared memory through jdk.internal.access, which JDK 17+ does not export.
+      it.jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
       it.systemProperty("screenshotDir", providers.gradleProperty("screenshotDir").getOrElse(""))
       it.systemProperty(
         "playGraphicsDir",
@@ -133,6 +148,9 @@ dependencies {
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.kotlinx.coroutines.android)
   debugImplementation(libs.compose.ui.tooling)
+  // The @Preview set in src/debug (rendered by compose-preview in CI); none of it ships in release.
+  debugImplementation(libs.wear.compose.ui.tooling)
+  debugImplementation(libs.compose.preview.annotations)
 
   testImplementation(libs.kotlin.test.junit)
   testImplementation(libs.kotlinx.coroutines.test)

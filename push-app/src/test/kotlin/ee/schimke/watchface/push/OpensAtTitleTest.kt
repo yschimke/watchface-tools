@@ -15,6 +15,7 @@ import ee.schimke.watchface.push.data.FakePushServer
 import ee.schimke.watchface.push.link.LinkState
 import ee.schimke.watchface.push.push.InstalledFace
 import ee.schimke.watchface.push.push.PushState
+import ee.schimke.watchface.push.ui.DesignDetailScreen
 import ee.schimke.watchface.push.ui.DesignListScreen
 import ee.schimke.watchface.push.ui.LinkScreen
 import ee.schimke.watchface.push.ui.LocalPreviewPainter
@@ -171,5 +172,22 @@ class OpensAtTitleTest {
       )
     }
     assertTitleOnScreen("Catalog server")
+  }
+
+  @Test
+  fun detailScreen() {
+    setScreen {
+      DesignDetailScreen(
+        design = server.designs[0],
+        push = singleSlot,
+        deviceWff = 4,
+        pushSupported = true,
+        install = InstallUi.Idle,
+        onInstall = {},
+        onRequestActivation = {},
+        onDismissResult = {},
+      )
+    }
+    assertTitleOnScreen(server.designs[0].title)
   }
 }
