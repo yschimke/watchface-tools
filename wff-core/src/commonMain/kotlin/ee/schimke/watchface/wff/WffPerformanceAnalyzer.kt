@@ -168,25 +168,32 @@ public object WffPerformanceAnalyzer {
         "SecondHand" -> {
           val sweep = element.firstChild("Sweep")
           if (sweep != null) {
-            val freq = sweep.attr("frequency")?.toIntOrNull() ?: 15
+            val rawFreq = sweep.attr("frequency")?.trim()
+            val isSyncToDevice = rawFreq.equals("SYNC_TO_DEVICE", ignoreCase = true)
+            val freq = if (isSyncToDevice) 60 else (rawFreq?.toIntOrNull() ?: 15)
+            val freqLabel = if (isSyncToDevice) "SYNC_TO_DEVICE" else "$freq"
             bumpInteractive(WffUpdateCadence.CONTINUOUS, freq)
             findings +=
               WffPerformanceFinding(
                 severity = WffSeverity.WARNING,
                 code = WffPerformanceCode.SWEEP_SECOND_HAND,
                 path = path,
-                message = "SecondHand uses <Sweep frequency=\"$freq\"/> which redraws continuously",
+                message =
+                  "SecondHand uses <Sweep frequency=\"$freqLabel\"/> which redraws continuously",
                 suggestion =
                   "Prefer <Tick/> for lower battery consumption, or keep frequency <= $RECOMMENDED_MAX_FPS",
               )
-            if (freq > RECOMMENDED_MAX_FPS) {
+            if (isSyncToDevice || freq > RECOMMENDED_MAX_FPS) {
+              val detail =
+                if (isSyncToDevice)
+                  "SYNC_TO_DEVICE (device refresh rate, > $RECOMMENDED_MAX_FPS fps)"
+                else "$freq fps (exceeds Wear OS guideline of $RECOMMENDED_MAX_FPS fps)"
               findings +=
                 WffPerformanceFinding(
                   severity = WffSeverity.WARNING,
                   code = WffPerformanceCode.HIGH_FPS_ANIMATION,
                   path = "$path/Sweep",
-                  message =
-                    "Sweep frequency is $freq fps (exceeds Wear OS guideline of $RECOMMENDED_MAX_FPS fps)",
+                  message = "Sweep frequency is $detail",
                   suggestion = "Reduce frequency to <= $RECOMMENDED_MAX_FPS fps",
                 )
             }

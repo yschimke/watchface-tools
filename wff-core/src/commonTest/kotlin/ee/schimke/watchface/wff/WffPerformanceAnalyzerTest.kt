@@ -177,4 +177,32 @@ class WffPerformanceAnalyzerTest {
     assertEquals(60, report.estimatedMaxFps)
     assertTrue(report.findings.any { it.code == WffPerformanceCode.HIGH_FPS_ANIMATION })
   }
+
+  @Test
+  fun detectsSyncToDeviceSweepFrequency() {
+    val doc =
+      WffXmlParser.parse(
+        """
+        <WatchFace width="450" height="450">
+          <Scene backgroundColor="#ff000000">
+            <AnalogClock x="0" y="0" width="450" height="450">
+              <SecondHand resource="second_hand" x="220" y="20" width="10" height="205" pivotX="0.5" pivotY="1.0">
+                <Variant mode="AMBIENT" target="alpha" value="0"/>
+                <Sweep frequency="SYNC_TO_DEVICE"/>
+              </SecondHand>
+            </AnalogClock>
+          </Scene>
+        </WatchFace>
+        """
+          .trimIndent(),
+      )
+
+    val report = WffPerformanceAnalyzer.analyze(doc)
+    assertEquals(WffUpdateCadence.CONTINUOUS, report.interactiveCadence)
+    assertEquals(WffUpdateCadence.MINUTE, report.ambientCadence)
+    assertEquals(60, report.estimatedMaxFps)
+    val codes = report.findings.map { it.code }.toSet()
+    assertTrue(WffPerformanceCode.SWEEP_SECOND_HAND in codes)
+    assertTrue(WffPerformanceCode.HIGH_FPS_ANIMATION in codes)
+  }
 }
