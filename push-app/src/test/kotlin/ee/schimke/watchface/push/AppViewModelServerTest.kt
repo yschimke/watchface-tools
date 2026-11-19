@@ -217,6 +217,21 @@ class AppViewModelServerTest {
     }
 
   @Test
+  fun leavingTheSignInScreenForgetsItsCode(): Unit =
+    kotlinx.coroutines.runBlocking {
+      tokens = InMemoryTokenStore()
+      val vm = vm()
+      vm.startLink()
+      kotlinx.coroutines.withTimeout(5_000) {
+        while (vm.link.value !is ee.schimke.watchface.push.link.LinkState.Waiting) {
+          kotlinx.coroutines.delay(10)
+        }
+      }
+      vm.cancelLink()
+      assertIs<ee.schimke.watchface.push.link.LinkState.Requesting>(vm.link.value)
+    }
+
+  @Test
   fun leavingTheSignInScreenCancelsItsLinkAttempt(): Unit =
     kotlinx.coroutines.runBlocking {
       tokens = InMemoryTokenStore()
