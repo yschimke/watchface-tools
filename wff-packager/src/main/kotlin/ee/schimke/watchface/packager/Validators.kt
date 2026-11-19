@@ -57,8 +57,8 @@ constructor(
 ) {
   public companion object {
     /** The limits [GoogleMemoryFootprint] evaluates with (Google's suggested Play settings). */
-    public const val DEFAULT_ACTIVE_LIMIT_BYTES: Long = 100L * 1024 * 1024
-    public const val DEFAULT_AMBIENT_LIMIT_BYTES: Long = 10L * 1024 * 1024
+    public const val DEFAULT_ACTIVE_LIMIT_BYTES: Long = WffMemoryEstimator.ACTIVE_LIMIT_BYTES
+    public const val DEFAULT_AMBIENT_LIMIT_BYTES: Long = WffMemoryEstimator.AMBIENT_LIMIT_BYTES
   }
 }
 

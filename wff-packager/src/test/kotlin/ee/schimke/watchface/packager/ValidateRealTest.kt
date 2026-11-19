@@ -57,6 +57,11 @@ class ValidateRealTest {
     assertTrue(report.checks.all { it.status == CheckStatus.PASSED }, report.toJson())
     val memory = assertNotNull(report.check(MEMORY_FOOTPRINT)!!.memory)
     assertTrue(memory.totalBytes > 0 && memory.activeLimitBytes == 100L * 1024 * 1024, "$memory")
+    val contributors = report.check(MEMORY_FOOTPRINT)!!.contributors!!
+    assertTrue(
+      contributors.any { it.resource == "drawable/hour" && it.activeBytes > 0 },
+      "$contributors",
+    )
     val push = report.check(PUSH_VALIDATOR)!!
     assertEquals(true, push.tokenIssued)
     assertTrue(push.passedChecks!!.isNotEmpty())
@@ -106,6 +111,11 @@ class ValidateRealTest {
       memory.findings.any { "Asset hour was not found" in it.message },
       "${memory.findings}",
     )
+    // The estimate's breakdown rides along, and puts a suggestion on Google's finding.
+    val google = memory.findings.first { "Asset hour was not found" in it.message }
+    assertTrue("res/drawable/hour.png" in google.suggestion!!, google.suggestion)
+    val hour = memory.contributors!!.first { it.resource == "drawable/hour" }
+    assertTrue(hour.missing)
     val push = report.check(PUSH_VALIDATOR)!!
     assertTrue(push.status != CheckStatus.SKIPPED, report.toJson())
     assertTrue(push.passedChecks != null, report.toJson())
@@ -141,5 +151,14 @@ class ValidateRealTest {
     WatchFacePackager(TestSupport.sdk, TestSupport.fakeValidators())
       .pack(bundle(), TestSupport.pushOptions(keyDir = dir, face = "analog"))
     return File(dir, "debug.p12")
+  }
+
+  @Test
+  fun estimateWritesTheCheapReportWithoutAnSdk() {
+    val dir = writeBundle(bundle { it.remove("res/drawable/hour.png") })
+    val out = File(tmp, "estimate.json")
+    assertEquals(1, runEstimate(mapOf("bundle" to dir.path, "report-out" to out.path)))
+    val json = out.readText()
+    assertTrue("\"mode\":\"estimate\"" in json && "\"missing\":true" in json, json)
   }
 }

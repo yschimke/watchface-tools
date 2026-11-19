@@ -21,6 +21,8 @@ public data class ReportFinding(
   val column: Int? = null,
   /** wff-core node path, such as `/WatchFace/Scene/Group[2]/PartText`. */
   val path: String? = null,
+  /** What to change, for an authoring tool: "downscale to the 450x450 it is drawn at". */
+  val suggestion: String? = null,
 )
 
 /** The memory footprint and the limits it was checked against. */
@@ -32,13 +34,54 @@ public data class ReportMemory(
   val ambientLimitBytes: Long,
 )
 
+/** Where a [MemoryContributor] comes from. */
+public enum class ContributorKind {
+  IMAGE,
+  FONT,
+  OTHER,
+}
+
+/**
+ * One resource's share of the memory footprint, measured by [WffMemoryEstimator] (Google's
+ * evaluator does not report per resource). Images cost their decoded ARGB size.
+ */
+public data class MemoryContributor(
+  /** `drawable/case_steel`, `font/roboto`. */
+  val resource: String,
+  val kind: ContributorKind,
+  /** `png`, `jpeg`, `webp`, `ttf`, `otf`, `unknown`; null when [missing]. */
+  val format: String?,
+  val width: Int? = null,
+  val height: Int? = null,
+  /** Size of the file in the bundle. */
+  val fileBytes: Long = 0,
+  /** In memory once decoded (`width * height * 4` for an image). */
+  val decodedBytes: Long = 0,
+  /** Of [decodedBytes], what the active (interactive) mode draws. */
+  val activeBytes: Long = 0,
+  /** Of [decodedBytes], what ambient (always-on) mode draws. */
+  val ambientBytes: Long = 0,
+  /** The largest size the face draws it at, when the face gives one. */
+  val renderedMaxWidth: Int? = null,
+  val renderedMaxHeight: Int? = null,
+  /** The face references it but the bundle does not ship it. */
+  val missing: Boolean = false,
+  val suggestion: String? = null,
+) {
+  /** What [PackagerReport] sorts contributors by. */
+  val cost: Long
+    get() = maxOf(activeBytes, ambientBytes)
+}
+
 public data class ReportCheck(
   val id: String,
   val title: String,
   val status: CheckStatus,
   val findings: List<ReportFinding> = emptyList(),
-  /** Only for [MEMORY_FOOTPRINT], when the evaluator ran. */
+  /** Only for [MEMORY_FOOTPRINT], when the evaluator (or the estimate) ran. */
   val memory: ReportMemory? = null,
+  /** Only for [MEMORY_FOOTPRINT]: every resource the face uses, most expensive first. */
+  val contributors: List<MemoryContributor>? = null,
   /** Only for [PUSH_VALIDATOR], when the validator ran. */
   val passedChecks: List<String>? = null,
   /** Only for [PUSH_VALIDATOR]: whether a validation token was issued. The token is never here. */
@@ -61,9 +104,17 @@ public data class ReportCheck(
   }
 }
 
+/** How a [PackagerReport] was made. */
+public enum class ReportMode {
+  /** `wff-packager` with Google's validators (JVM, Android SDK). */
+  FULL,
+  /** [WffEstimate]: wff-core and the memory estimate only, in pure Kotlin (JVM or the browser). */
+  ESTIMATE,
+}
+
 /**
- * Machine-readable outcome of every check `wff-packager` runs on a bundle ([toJson] is the
- * `--report-out` file). It never contains the validation token, only [ReportCheck.tokenIssued].
+ * Machine-readable outcome of every check on a bundle ([toJson] is the `--report-out` file). It
+ * never contains the validation token, only [ReportCheck.tokenIssued].
  */
 public data class PackagerReport(
   /** The version the manifest declares, or null when it declares none (or an invalid one). */
@@ -72,6 +123,7 @@ public data class PackagerReport(
   val minimumWffVersion: Int?,
   /** One entry per id in [ReportCheck.TITLES], in that order. */
   val checks: List<ReportCheck>,
+  val mode: ReportMode = ReportMode.FULL,
 ) {
   /**
    * No check failed and no finding is an error (a check skipped because the APK failed to build).
@@ -85,6 +137,7 @@ public data class PackagerReport(
 
   public fun toJson(): String = buildString {
     append("{\"schemaVersion\":").append(SCHEMA_VERSION)
+    append(",\"mode\":").appendJson(mode.name.lowercase())
     append(",\"wffVersion\":").append(wffVersion?.toString() ?: "null")
     append(",\"minimumWffVersion\":").append(minimumWffVersion?.toString() ?: "null")
     append(",\"passed\":").append(passed)
@@ -102,6 +155,7 @@ public data class PackagerReport(
         f.line?.let { append(",\"line\":").append(it) }
         f.column?.let { append(",\"column\":").append(it) }
         f.path?.let { append(",\"path\":").appendJson(it) }
+        f.suggestion?.let { append(",\"suggestion\":").appendJson(it) }
         append('}')
       }
       append(']')
@@ -112,6 +166,27 @@ public data class PackagerReport(
         append(",\"activeLimitBytes\":").append(m.activeLimitBytes)
         append(",\"ambientLimitBytes\":").append(m.ambientLimitBytes)
         append('}')
+      }
+      c.contributors?.let { list ->
+        append(",\"contributors\":[")
+        list.forEachIndexed { j, m ->
+          if (j > 0) append(',')
+          append("{\"resource\":").appendJson(m.resource)
+          append(",\"kind\":").appendJson(m.kind.name.lowercase())
+          m.format?.let { append(",\"format\":").appendJson(it) }
+          m.width?.let { append(",\"width\":").append(it) }
+          m.height?.let { append(",\"height\":").append(it) }
+          append(",\"fileBytes\":").append(m.fileBytes)
+          append(",\"decodedBytes\":").append(m.decodedBytes)
+          append(",\"activeBytes\":").append(m.activeBytes)
+          append(",\"ambientBytes\":").append(m.ambientBytes)
+          m.renderedMaxWidth?.let { append(",\"renderedMaxWidth\":").append(it) }
+          m.renderedMaxHeight?.let { append(",\"renderedMaxHeight\":").append(it) }
+          append(",\"missing\":").append(m.missing)
+          m.suggestion?.let { append(",\"suggestion\":").appendJson(it) }
+          append('}')
+        }
+        append(']')
       }
       c.passedChecks?.let { list ->
         append(",\"passedChecks\":[")
@@ -132,6 +207,8 @@ public data class PackagerReport(
   }
 }
 
+private const val HEX = "0123456789abcdef"
+
 private fun StringBuilder.appendJson(s: String): StringBuilder {
   append('"')
   for (ch in s) {
@@ -141,27 +218,11 @@ private fun StringBuilder.appendJson(s: String): StringBuilder {
       '\n' -> append("\\n")
       '\r' -> append("\\r")
       '\t' -> append("\\t")
-      else -> if (ch < ' ') append("\\u%04x".format(ch.code)) else append(ch)
+      else ->
+        if (ch < ' ') {
+          append("\\u00").append(HEX[ch.code shr 4]).append(HEX[ch.code and 0xf])
+        } else append(ch)
     }
   }
   return append('"')
 }
-
-private val LINE_COLUMN = Regex("""^\[Line (\d+):Column (\d+)]:\s*""")
-
-/** Google's XSD validator reports `[Line n:Column m]: cvc-...`; split that into fields. */
-internal fun xsdFinding(message: String): ReportFinding {
-  val m = LINE_COLUMN.find(message) ?: return ReportFinding(FindingSeverity.ERROR, message)
-  return ReportFinding(
-    FindingSeverity.ERROR,
-    message.substring(m.range.last + 1),
-    line = m.groupValues[1].toInt(),
-    column = m.groupValues[2].toInt(),
-  )
-}
-
-internal fun PackagingDiagnostic.toFinding(): ReportFinding =
-  ReportFinding(
-    if (severity == DiagnosticSeverity.ERROR) FindingSeverity.ERROR else FindingSeverity.WARNING,
-    message,
-  )

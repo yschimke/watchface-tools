@@ -33,6 +33,14 @@ coroutine dependency (there is none; `suspend` is the Kotlin standard library's)
 Everything above is plain Kotlin (SHA-256, CRC-32, DEFLATE and the DER it needs are in this
 module); the dependency floor a consumer inherits is `wff-core` and the Kotlin standard library.
 
+## Cheap report: `WffEstimate`
+
+`WffEstimate.report(bundle)` returns the same `PackagerReport` (JSON `toJson()`) as
+`wff-packager validate`, with `mode` `estimate`: the wff-core check and `WffMemoryEstimator`'s
+per-resource memory estimate, with suggestions. It is pure and cheap (image headers only), so an
+editor can run it on every change; the rules are in
+[`wff-packager/README.md`](../wff-packager/README.md#the-cheap-estimate-estimate-wffestimate).
+
 ## Signing
 
 `ApkSigner` is the one platform seam: a private key plus its certificate chain.
