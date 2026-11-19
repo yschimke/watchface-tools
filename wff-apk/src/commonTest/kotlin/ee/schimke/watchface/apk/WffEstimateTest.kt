@@ -291,6 +291,48 @@ class WffEstimateTest {
   }
 
   @Test
+  fun aDynamicSizeLeavesTheDrawnSizeUnknown() {
+    val inner = """<Image resource="art"/>"""
+    val box = """x="0" y="0" width="100" height="100""""
+    val scenes =
+      mapOf(
+        "Transform width" to
+          """<PartImage $box><Transform target="width" value="400"/>$inner</PartImage>""",
+        "Transform height" to
+          """<PartImage $box><Transform target="height" value="[SECOND] * 4"/>$inner</PartImage>""",
+        "Transform scaleY" to
+          """<PartImage $box><Transform target="scaleY" value="4"/>$inner</PartImage>""",
+        "Variant width" to
+          """<PartImage $box><Variant mode="AMBIENT" target="width" value="400"/>$inner</PartImage>""",
+        "Gyro scale" to
+          """<PartImage $box><Gyro scaleX="1 + [ACCELEROMETER_X]"/>$inner</PartImage>""",
+        "parent Transform height" to
+          """<Group name="g" $box><Transform target="height" value="400"/>""" +
+            """<PartImage $box>$inner</PartImage></Group>""",
+      )
+    for ((what, scene) in scenes) {
+      val c =
+        WffEstimate.report(bundle(scene, "art.png" to png(400, 400)))
+          .check(MEMORY_FOOTPRINT)!!
+          .contributors!!
+          .single()
+      assertNull(c.renderedMaxWidth, "$what leaves the drawn size unknown")
+      assertNull(c.renderedMaxHeight, what)
+      assertFalse("downscale" in c.suggestion.orEmpty(), "$what: ${c.suggestion}")
+    }
+
+    // A transform of something other than the size keeps it known.
+    val moved = """<PartImage $box><Transform target="x" value="[SECOND]"/>$inner</PartImage>"""
+    val m =
+      WffEstimate.report(bundle(moved, "art.png" to png(400, 400)))
+        .check(MEMORY_FOOTPRINT)!!
+        .contributors!!
+        .single()
+    assertEquals(100, m.renderedMaxWidth)
+    assertTrue("downscale" in m.suggestion.orEmpty(), "${m.suggestion}")
+  }
+
+  @Test
   fun oneUseOfUnknownSizeSuppressesTheDownscale() {
     val scene =
       """<PartImage x="0" y="0" width="100" height="100"><Image resource="art"/></PartImage>""" +

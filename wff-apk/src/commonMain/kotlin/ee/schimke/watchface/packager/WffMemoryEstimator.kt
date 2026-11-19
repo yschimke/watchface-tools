@@ -45,6 +45,8 @@ public object WffMemoryEstimator {
   private val IMAGE_ATTRIBUTES = setOf("resource", "defaultImageResource", "thumbnail")
   /** Editor-only images (configuration icons): checked to exist, not charged. */
   private val ICON_ATTRIBUTES = setOf("icon")
+  /** Attributes that set a drawn size, and so `Transform`/`Variant` targets that change it. */
+  private val SIZE_TARGETS = setOf("width", "height", "scaleX", "scaleY")
   private const val DOWNSCALE_SLACK = 1.1
   private const val MIN_SAVING = 16L * 1024
 
@@ -258,13 +260,12 @@ public object WffMemoryEstimator {
     val bitmapFontUses = mutableMapOf<String, MutableList<Use>>()
 
     fun walk(e: WffElement, path: String, parent: Walk, visit: (WffElement, String, Walk) -> Unit) {
-      // Scales multiply down the tree; an animated one (a `Transform` of `scaleX`/`scaleY`) makes
+      // Scales multiply down the tree. A size that is not static (a `Transform` or `Variant` of
+      // `width`/`height`/`scaleX`/`scaleY`, a `Gyro` scale, or a size that is not a number) makes
       // the drawn size unknown, so nothing below it gets a downscale suggestion.
-      val animatedScale =
-        e.childElements("Transform").any { it.attr("target")?.startsWith("scale") == true }
       val scaleX = parent.scaleX * (e.attr("scaleX")?.toFloatOrNull() ?: 1f)
       val scaleY = parent.scaleY * (e.attr("scaleY")?.toFloatOrNull() ?: 1f)
-      val sizeKnown = parent.sizeKnown && !animatedScale
+      val sizeKnown = parent.sizeKnown && !dynamicSize(e)
       val w = e.attr("width")?.toFloatOrNull()?.let { (it * scaleX).toInt() }
       val h = e.attr("height")?.toFloatOrNull()?.let { (it * scaleY).toInt() }
       val here =
@@ -346,6 +347,13 @@ public object WffMemoryEstimator {
     val scaleY: Float = 1f,
     val sizeKnown: Boolean = true,
   )
+
+  /** Whether [e]'s drawn size can change at runtime or is not a literal number. */
+  private fun dynamicSize(e: WffElement): Boolean =
+    e.childElements("Transform").any { it.attr("target")?.trim() in SIZE_TARGETS } ||
+      e.childElements("Variant").any { it.attr("target")?.trim() in SIZE_TARGETS } ||
+      e.childElements("Gyro").any { it.attr("scaleX") != null || it.attr("scaleY") != null } ||
+      SIZE_TARGETS.any { name -> e.attr(name)?.let { it.trim().toFloatOrNull() == null } == true }
 
   private fun hidesInAmbient(e: WffElement): Boolean =
     e.childElements("Variant").any {
