@@ -13,7 +13,7 @@ Play Publisher in the app's build, and a release workflow that signs with the up
    the tag, **beside** the Maven publish rather than after it, so neither can block the other.
 3. It builds `:push-app:bundleRelease` signed with the upload key, runs
    `:push-app:publishReleaseBundle` (`wear:internal`) and `:push-app:publishReleaseListing` (the
-   en-GB title and descriptions in `push-app/src/main/play/`), and keeps the bundle as a workflow
+   en-GB title and descriptions in `push-app/src/main/play/`, mirrored to en-US at publish time so the default listing language shows the title rather than the package name), and keeps the bundle as a workflow
    artifact.
 
 Publishing is **opt-in**: releases publish only while the repository variable `PLAY_PUBLISH` is
