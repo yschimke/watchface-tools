@@ -38,6 +38,8 @@ class AppViewModelServerTest {
    * test reads it while OkHttp threads append (unlinking starts an anonymous listing).
    */
   private val sent = java.util.concurrent.CopyOnWriteArrayList<Pair<String, String?>>()
+  /** While set, listings fail with 503, as a server or network outage does. */
+  @Volatile private var listingDown = false
   private val api =
     SwitchingPushApi(
       home,
@@ -45,7 +47,15 @@ class AppViewModelServerTest {
         .addInterceptor { chain ->
           val request = chain.request()
           sent += request.url.toString() to request.header("Authorization")
-          if (request.url.host == FAKE_HOST) chain.proceed(request)
+          if (listingDown && request.url.encodedPath.endsWith("/designs"))
+            okhttp3.Response.Builder()
+              .request(request)
+              .protocol(okhttp3.Protocol.HTTP_1_1)
+              .code(503)
+              .message("down")
+              .body("".toResponseBody())
+              .build()
+          else if (request.url.host == FAKE_HOST) chain.proceed(request)
           else
             okhttp3.Response.Builder()
               .request(request)
@@ -296,6 +306,47 @@ class AppViewModelServerTest {
       } finally {
         poller.cancel()
         // Nothing of this ViewModel may resume on Main after the test resets it.
+        vm.viewModelScope.cancel()
+      }
+    }
+
+  @Test
+  fun aFailedBuildPollKeepsTheListAndTheNextTickRecovers(): Unit =
+    kotlinx.coroutines.runBlocking {
+      tokens = InMemoryTokenStore()
+      server.startBuild("comet", "Comet")
+      val vm = vm()
+      awaitReady(vm)
+      val poller =
+        kotlinx.coroutines.CoroutineScope(UnconfinedTestDispatcher(scheduler)).launch {
+          vm.pollWhileBuilding()
+        }
+      try {
+        listingDown = true
+        val listings = sent.count { it.first.endsWith("/designs") }
+        scheduler.advanceTimeBy(AppViewModel.BUILD_POLL_MILLIS + 1)
+        kotlinx.coroutines.withTimeout(5_000) {
+          while (sent.count { it.first.endsWith("/designs") } == listings) {
+            kotlinx.coroutines.delay(10)
+          }
+        }
+        kotlinx.coroutines.delay(200)
+        val kept = assertIs<DesignsState.Ready>(vm.designs.value, "a failed poll keeps the list")
+        assertTrue(kept.designs.any { it.id == "comet" })
+
+        listingDown = false
+        server.finishBuild("comet")
+        scheduler.advanceTimeBy(AppViewModel.BUILD_POLL_MILLIS + 1)
+        kotlinx.coroutines.withTimeout(5_000) {
+          while (
+            (vm.designs.value as? DesignsState.Ready)
+              ?.designs
+              ?.single { it.id == "comet" }
+              ?.isInstallable != true
+          ) kotlinx.coroutines.delay(10)
+        }
+      } finally {
+        poller.cancel()
         vm.viewModelScope.cancel()
       }
     }

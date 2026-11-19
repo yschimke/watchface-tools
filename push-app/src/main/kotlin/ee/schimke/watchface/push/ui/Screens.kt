@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -230,6 +231,7 @@ fun DesignListScreen(
   val list =
     rememberTopAnchoredListState(contentKey = if (state is DesignsState.Loading) null else "loaded")
   val spec = rememberTransformationSpec()
+  val now = rememberNow()
   ScreenScaffold(
     list,
     edgeButton = {
@@ -297,7 +299,7 @@ fun DesignListScreen(
                 modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
                 transformation = SurfaceTransformation(spec),
                 title = { Text(design.title) },
-                subtitle = { Text(statusLabel(design, state.push, deviceWff, LocalNow.current())) },
+                subtitle = { Text(statusLabel(design, state.push, deviceWff, now)) },
               ) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                   PreviewImage(design, Modifier.size(96.dp))
@@ -359,6 +361,7 @@ fun DesignDetailScreen(
 ) {
   val list = rememberTopAnchoredListState()
   val spec = rememberTransformationSpec()
+  val now = rememberNow()
   val plan =
     push?.let { InstallPlanner.plan(design, it, pushSupported, deviceWff) }
       ?: if (!pushSupported) InstallPlan.Blocked(BlockReason.PUSH_UNSUPPORTED) else null
@@ -421,7 +424,7 @@ fun DesignDetailScreen(
       }
       item(key = "status") {
         BodyText(
-          statusLabel(design, push, deviceWff, LocalNow.current()),
+          statusLabel(design, push, deviceWff, now),
           spec,
           style = MaterialTheme.typography.labelMedium,
           color = MaterialTheme.colorScheme.primary,
@@ -509,8 +512,27 @@ fun DesignDetailScreen(
  */
 val LocalPreviewPainter = compositionLocalOf<((Design) -> Painter)?> { null }
 
-/** The clock "Builds in N min" counts from; previews pin it so their renders are stable. */
-val LocalNow = compositionLocalOf<() -> Long> { System::currentTimeMillis }
+/** A fixed clock for "Builds in N min"; previews pin it so their renders are stable. */
+val LocalNow = compositionLocalOf<(() -> Long)?> { null }
+
+/**
+ * The time "Builds in N min" counts from: [LocalNow] when pinned, else the wall clock, re-read
+ * every [tickMillis] while on screen so the countdown moves without a new listing.
+ */
+@Composable
+fun rememberNow(tickMillis: Long = 15_000): Long {
+  LocalNow.current?.let {
+    return it()
+  }
+  val now by
+    produceState(System.currentTimeMillis()) {
+      while (true) {
+        kotlinx.coroutines.delay(tickMillis)
+        value = System.currentTimeMillis()
+      }
+    }
+  return now
+}
 
 /**
  * A design's preview, cropped to a circle: the faces are round, and the square render's corners are

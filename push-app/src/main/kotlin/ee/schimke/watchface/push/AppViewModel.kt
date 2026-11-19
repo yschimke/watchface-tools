@@ -207,7 +207,7 @@ class AppViewModel(
       val ready = _designs.value as? DesignsState.Ready ?: continue
       if (ready.designs.any { it.isBuilding }) {
         log("poll builds=${ready.designs.filter { it.isBuilding }.joinToString(",") { it.id }}")
-        refresh()
+        load(keepContent = true, keepOnFailure = true)
       }
     }
   }
@@ -217,7 +217,12 @@ class AppViewModel(
   }
 
   /** [keepContent] false for a new session or server, whose list must not show the old one. */
-  private fun load(keepContent: Boolean) {
+  /**
+   * [keepOnFailure]: a background poll that fails (no network, a 5xx) keeps the list on screen, so
+   * the next tick can retry and an open detail screen does not go blank. A revoked token still
+   * unlinks.
+   */
+  private fun load(keepContent: Boolean, keepOnFailure: Boolean = false) {
     val token =
       currentToken().getOrElse {
         return
@@ -241,6 +246,7 @@ class AppViewModel(
             }
             e.isUnauthorized || e.status == 404 ->
               DesignsState.Error("This server has no public faces. Sign in for your designs.")
+            keepOnFailure && _designs.value is DesignsState.Ready -> _designs.value
             else -> DesignsState.Error(e.message ?: "Could not load designs")
           }
         }
