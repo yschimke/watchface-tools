@@ -86,6 +86,12 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # A release resolves its dependencies fresh. A cached Gradle home can carry a negative
+          # resolution entry from an earlier failed run (0.11.0 kept failing on a restored
+          # "kotlin-stdlib-2.4.21-all.jar not found" that Maven Central served fine), and re-runs
+          # and dispatches restore the same cache. Releases are rare; the cache buys nothing here.
+          cache-disabled: true
 
       - name: Check the tag matches the manifest and gradle.properties
         run: |
