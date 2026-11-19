@@ -254,4 +254,16 @@ class WffEstimateTest {
     assertTrue(hand.ambientBytes > 0)
     assertNull(hand.suggestion, "a tinted image is not full-colour in ambient")
   }
+
+  @Test
+  fun aDrawableTheManifestUsesIsNotALeftover() {
+    val b = bundle("", "icon.png" to png(48, 48)).toMutableMap()
+    b[WffBundleLayout.MANIFEST_PATH] =
+      b.getValue(WffBundleLayout.MANIFEST_PATH)
+        .decodeToString()
+        .replaceFirst("<application", "<application android:icon=\"@drawable/icon\"")
+        .encodeToByteArray()
+    val contributors = WffEstimate.report(b).check(MEMORY_FOOTPRINT)!!.contributors!!
+    assertTrue(contributors.none { it.resource == "drawable/icon" }, "$contributors")
+  }
 }

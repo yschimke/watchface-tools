@@ -132,9 +132,10 @@ public object WffMemoryEstimator {
         )
     }
     // Shipped but never referenced: costs download size, not memory.
-    val preview = previewName(bundle)
+    // Referenced elsewhere (the manifest's icon, the preview, another XML resource): keep it.
+    val elsewhere = drawableReferences(bundle) + "preview"
     for ((name, file) in drawables) {
-      if (name in imageUses || name == preview) continue
+      if (name in imageUses || name in elsewhere) continue
       val header = imageHeader(file.bytes)
       contributors +=
         MemoryContributor(
@@ -370,11 +371,17 @@ public object WffMemoryEstimator {
     return out
   }
 
-  private fun previewName(bundle: Map<String, ByteArray>): String? {
-    val info = bundle[WffBundleLayout.WATCH_FACE_INFO_PATH]?.decodeToString() ?: return "preview"
-    val doc = WffXmlParser.parseOrNull(info) ?: return "preview"
-    return doc.root.firstChild("Preview")?.attr("value")?.substringAfter("@drawable/") ?: "preview"
-  }
+  private val DRAWABLE_REFERENCE = Regex("""@drawable/([A-Za-z0-9_.]+)""")
+
+  /** `@drawable/<name>` references in any bundled XML file other than the watch face itself. */
+  private fun drawableReferences(bundle: Map<String, ByteArray>): Set<String> =
+    bundle
+      .filterKeys { it.endsWith(".xml") && it != WffBundleLayout.WATCH_FACE_PATH }
+      .values
+      .flatMap { bytes ->
+        DRAWABLE_REFERENCE.findAll(bytes.decodeToString()).map { it.groupValues[1] }
+      }
+      .toSet()
 
   /** The bundle name nearest to [name] by edit distance, when it is close enough to be a typo. */
   private fun closest(name: String, candidates: Collection<String>): String? =

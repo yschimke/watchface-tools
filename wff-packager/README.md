@@ -90,7 +90,8 @@ are read from their PNG/JPEG/WebP headers only, never decoded. The same JSON, wi
   fail it too); a missing configuration icon is only a warning (they accept it);
 - suggestions: downscale an image to the largest size it is drawn at (when it is over 10% larger in
   both dimensions and that saves at least 16 KB), hide a full-colour image in ambient or draw a
-  greyscale one (not for an image tinted by itself or its container), remove a drawable nothing references.
+  greyscale one (not for an image tinted by itself or its container), remove a drawable nothing references (neither the face nor any other bundled XML, such as the
+  manifest's `@drawable/` icon).
 
 It approximates Google's evaluator, which stays the authority before publishing. In Kotlin/Wasm it
 adds about 39 KB to an optimized binary that already has wff-core's parser and validator (13 KB
