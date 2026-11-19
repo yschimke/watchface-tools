@@ -30,8 +30,11 @@ class AppViewModelServerTest {
   private val home = "https://$FAKE_HOST"
   private val other = "https://other.example"
   private val server = FakePushServer(FAKE_HOST)
-  /** Every request's URL and Authorization header, whichever server it went to. */
-  private val sent = java.util.Collections.synchronizedList(mutableListOf<Pair<String, String?>>())
+  /**
+   * Every request's URL and Authorization header, whichever server it went to. Copy-on-write: the
+   * test reads it while OkHttp threads append (unlinking starts an anonymous listing).
+   */
+  private val sent = java.util.concurrent.CopyOnWriteArrayList<Pair<String, String?>>()
   private val api =
     SwitchingPushApi(
       home,
