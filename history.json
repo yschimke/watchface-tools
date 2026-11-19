@@ -1,0 +1,441 @@
+{
+    "formatVersion": "compose-preview-history/v1",
+    "generatedFrom": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+    "previews": {
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailCatalogFaceLongPreview_Devices - Large Round": {
+            "path": "renders/push-app/DetailCatalogFaceLongPreview_Devices_Large_Round-84ff0b36.png",
+            "versions": [
+                {
+                    "blob": "83e9a4320870b557104c2af9155344f039db1f7a",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailCatalogFacePreview_Devices - Large Round": {
+            "path": "renders/push-app/DetailCatalogFacePreview_Devices_Large_Round-c81605e5.png",
+            "versions": [
+                {
+                    "blob": "4328176b4cc396812f0bd7e700c452630fb2f680",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailCatalogFacePreview_Devices - Small Round": {
+            "path": "renders/push-app/DetailCatalogFacePreview_Devices_Small_Round-b4b35a40.png",
+            "versions": [
+                {
+                    "blob": "53f7d2fcfa9ef74e99414836cf799dec33dcf615",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailDesignLongPreview_Devices - Large Round": {
+            "path": "renders/push-app/DetailDesignLongPreview_Devices_Large_Round-b6851d13.png",
+            "versions": [
+                {
+                    "blob": "04da11d9ba77c2bdeabce6a5bba9175fad56b817",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailDesignPreview_Devices - Large Round": {
+            "path": "renders/push-app/DetailDesignPreview_Devices_Large_Round-b186f9ee.png",
+            "versions": [
+                {
+                    "blob": "e137f813208326b7ac8e417d0c406b359da669a4",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailDesignPreview_Devices - Small Round": {
+            "path": "renders/push-app/DetailDesignPreview_Devices_Small_Round-c079e7cb.png",
+            "versions": [
+                {
+                    "blob": "5a3164c2da5df5b0b0a6e912e225bf624f4d1c61",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.InstallBlockedPreview_Devices - Large Round": {
+            "path": "renders/push-app/InstallBlockedPreview_Devices_Large_Round-16c22612.png",
+            "versions": [
+                {
+                    "blob": "6611e2a21a95a392d8b5a25fd2430df660e3b044",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.InstallProgressPreview_Devices - Large Round": {
+            "path": "renders/push-app/InstallProgressPreview_Devices_Large_Round-aa799034.png",
+            "versions": [
+                {
+                    "blob": "73ffb15b3611748326fa308e6a91e8b7b9de3972",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.InstallRejectedPreview_Devices - Large Round": {
+            "path": "renders/push-app/InstallRejectedPreview_Devices_Large_Round-a89e5f5b.png",
+            "versions": [
+                {
+                    "blob": "b907ad1db62934f28df6e062e5f7f1c4aff00cb7",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.InstallSuccessPreview_Devices - Large Round": {
+            "path": "renders/push-app/InstallSuccessPreview_Devices_Large_Round-57d4379d.png",
+            "versions": [
+                {
+                    "blob": "783ae126ae8cc25446c7214378ebbae685d21b8d",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.LinkCodeLongPreview_Devices - Large Round": {
+            "path": "renders/push-app/LinkCodeLongPreview_Devices_Large_Round-9f0d2ac4.png",
+            "versions": [
+                {
+                    "blob": "c947c10b2ef73cb8d88a2e93cf50ae599d26ae5a",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.LinkCodePreview_Devices - Large Round": {
+            "path": "renders/push-app/LinkCodePreview_Devices_Large_Round-8fddd382.png",
+            "versions": [
+                {
+                    "blob": "6245e19ef96d88988b6106e205b1e5d616671878",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.LinkCodePreview_Devices - Small Round": {
+            "path": "renders/push-app/LinkCodePreview_Devices_Small_Round-13e903f8.png",
+            "versions": [
+                {
+                    "blob": "8a87850404533e1872d8d49eb797630538b24a59",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.LinkExpiredPreview_Devices - Large Round": {
+            "path": "renders/push-app/LinkExpiredPreview_Devices_Large_Round-34340c02.png",
+            "versions": [
+                {
+                    "blob": "4533addaee78ab90cbe4daa6311b301669589969",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.LinkedListEmptyPreview_Devices - Large Round": {
+            "path": "renders/push-app/LinkedListEmptyPreview_Devices_Large_Round-1205650f.png",
+            "versions": [
+                {
+                    "blob": "d3c74339907bcd4df95872d0dbffa86b36d3d560",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.LinkedListEmptyPreview_Devices - Small Round": {
+            "path": "renders/push-app/LinkedListEmptyPreview_Devices_Small_Round-ed451533.png",
+            "versions": [
+                {
+                    "blob": "0c7e5cb11952eb0f9e6a6e7bf6888a5975c1a73f",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.LinkedListLongPreview_Devices - Large Round": {
+            "path": "renders/push-app/LinkedListLongPreview_Devices_Large_Round-d4a2a420.png",
+            "versions": [
+                {
+                    "blob": "504f97c58b2d79af2505728b5788845308ce5b63",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.LinkedListPreview_Devices - Large Round": {
+            "path": "renders/push-app/LinkedListPreview_Devices_Large_Round-75c74953.png",
+            "versions": [
+                {
+                    "blob": "2c7469871a4a4aaa7f944ec1ae544a18c3b6daa7",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.LinkedListPreview_Devices - Small Round": {
+            "path": "renders/push-app/LinkedListPreview_Devices_Small_Round-e0847dd9.png",
+            "versions": [
+                {
+                    "blob": "ce89da1bf55a767f41abfaa7b2ce69d15a6ed182",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.ListErrorPreview_Devices - Large Round": {
+            "path": "renders/push-app/ListErrorPreview_Devices_Large_Round-6269acc7.png",
+            "versions": [
+                {
+                    "blob": "d6533bd8176de3113a1027232fae02999b433c26",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.ListErrorPreview_Devices - Small Round": {
+            "path": "renders/push-app/ListErrorPreview_Devices_Small_Round-7be4506c.png",
+            "versions": [
+                {
+                    "blob": "d7f888584f18ab29e43868e97529f88a39b3d142",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.ListLoadingPreview_Devices - Large Round": {
+            "path": "renders/push-app/ListLoadingPreview_Devices_Large_Round-cb65999b.png",
+            "versions": [
+                {
+                    "blob": "8d4737aadfef8f74bf557927fa780c36cd238422",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.ListLoadingPreview_Devices - Small Round": {
+            "path": "renders/push-app/ListLoadingPreview_Devices_Small_Round-bc2639c8.png",
+            "versions": [
+                {
+                    "blob": "3c0b2b88e5a98ca2edc68db7e814d1fa6a2d52a3",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.PublicListLongPreview_Devices - Large Round": {
+            "path": "renders/push-app/PublicListLongPreview_Devices_Large_Round-7f147362.png",
+            "versions": [
+                {
+                    "blob": "9fb89b7e4b6a22b5602415cbecadf5672fc381d5",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.PublicListPreview_Devices - Large Round": {
+            "path": "renders/push-app/PublicListPreview_Devices_Large_Round-1d3996cc.png",
+            "versions": [
+                {
+                    "blob": "325e558072c9432489c39dbe93bc7f8cf26c9757",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.PublicListPreview_Devices - Small Round": {
+            "path": "renders/push-app/PublicListPreview_Devices_Small_Round-9b088afd.png",
+            "versions": [
+                {
+                    "blob": "b7e2b2c4c6aed5f3cbf188acb1f8e73a1e94cd6b",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.ServerLongPreview_Devices - Large Round": {
+            "path": "renders/push-app/ServerLongPreview_Devices_Large_Round-2d6857fe.png",
+            "versions": [
+                {
+                    "blob": "670d800a237ffd204345dadce1f7f63a13ec1566",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.ServerPreview_Devices - Large Round": {
+            "path": "renders/push-app/ServerPreview_Devices_Large_Round-55e713c5.png",
+            "versions": [
+                {
+                    "blob": "fbe24632417e59d5546b06b8e60fdf47960c571f",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        },
+        "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.ServerPreview_Devices - Small Round": {
+            "path": "renders/push-app/ServerPreview_Devices_Small_Round-9366f6e1.png",
+            "versions": [
+                {
+                    "blob": "f98da8377ba62b82f82a98e11bb5c6fd87e4b93e",
+                    "commit": "1291fd97efae4849210f9e9a0f618dc280cc13f4",
+                    "date": "2026-11-19T08:08:22Z",
+                    "sourceSha": "c46af846",
+                    "commits": 1
+                }
+            ],
+            "observations": 1,
+            "unstable": false,
+            "flapCount": 0
+        }
+    }
+}
