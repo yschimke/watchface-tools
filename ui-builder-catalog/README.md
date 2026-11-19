@@ -5,7 +5,7 @@ The published catalog that puts the **Watch Face Format** target in the Compose 
 
 - `catalog.json`: delivery manifest (`system` `wff-watchface`, points at `ui-builder.json`).
 - `ui-builder.json`: the builtins-only catalog (copied from compose-ui-builder's
-  `docs/design/fixtures/ui-builder/wff-watchface-published-v1.json`, UI Builder 3.133.0). It has no
+  `docs/design/fixtures/ui-builder/wff-watchface-published-v1.json`, UI Builder 3.137.0). It has no
   component record: every component mirrors a WFF element.
 - `ui-builder/designs/`: the two starting points (analog and digital face).
 - `validate.py`: the pre-publish check.
