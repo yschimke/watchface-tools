@@ -44,11 +44,23 @@ public fun interface MemoryFootprintEvaluator {
   public fun evaluate(apk: File, wffVersion: WffVersion): MemoryFootprintResult
 }
 
-public class MemoryFootprintResult(
+public class MemoryFootprintResult
+@JvmOverloads
+constructor(
   public val footprint: MemoryFootprintReport,
   /** Non-null when the footprint exceeds Google's active/ambient limits. */
   public val limitFailure: String?,
-)
+  /** The active limit the footprint was checked against. */
+  public val activeLimitBytes: Long = DEFAULT_ACTIVE_LIMIT_BYTES,
+  /** The ambient limit the footprint was checked against. */
+  public val ambientLimitBytes: Long = DEFAULT_AMBIENT_LIMIT_BYTES,
+) {
+  public companion object {
+    /** The limits [GoogleMemoryFootprint] evaluates with (Google's suggested Play settings). */
+    public const val DEFAULT_ACTIVE_LIMIT_BYTES: Long = 100L * 1024 * 1024
+    public const val DEFAULT_AMBIENT_LIMIT_BYTES: Long = 10L * 1024 * 1024
+  }
+}
 
 /** Google's WFF XSD validator (`third_party/wff`, bundled in `validator-push`). */
 public fun interface WffFormatValidator {
@@ -211,6 +223,8 @@ public object GoogleMemoryFootprint : MemoryFootprintEvaluator {
     return MemoryFootprintResult(
       MemoryFootprintReport(max.totalBytes, max.maxActiveBytes, max.maxAmbientBytes),
       limitFailure,
+      settings.activeLimitBytes,
+      settings.ambientLimitBytes,
     )
   }
 

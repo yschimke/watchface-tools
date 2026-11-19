@@ -21,6 +21,17 @@ private const val USAGE =
                              WFF_SIGNING_KEY_PASSWORD; WFF_SIGNING_CERT_SHA256 pins the certificate
   --expect-cert-sha256 <hex> refuse to sign unless the key's certificate has this SHA-256
   --token-out <file>         also write the validation token to this file
+  --report-out <file.json>   write the JSON report of every check (written on failure too; it
+                             never contains the token)
+
+wff-packager validate --bundle <dir> --report-out <file.json> [options]
+
+  Runs every check without stopping at the first failure, signs with the debug key and writes
+  no APK. Exit code 0 when every check passed, 1 otherwise.
+  --push-marketplace <pkg>   run the Watch Face Push validator for this marketplace (default:
+                             inferred from a bundle package <pkg>.watchfacepush.<face>; without
+                             one the push validator is skipped)
+  --face-name, --package, --version-code   as for pack
 
 Needs the Android SDK (aapt2, zipalign, android.jar) via ANDROID_HOME or ANDROID_SDK_ROOT."""
 
@@ -29,7 +40,7 @@ public fun main(args: Array<String>) {
     println(USAGE)
     exitProcess(if (args.isEmpty()) 2 else 0)
   }
-  if (args[0] != "pack") {
+  if (args[0] != "pack" && args[0] != "validate") {
     System.err.println("Unknown command '${args[0]}'\n\n$USAGE")
     exitProcess(2)
   }
@@ -40,7 +51,7 @@ public fun main(args: Array<String>) {
       System.err.println("${e.message}\n\n$USAGE")
       exitProcess(2)
     }
-  exitProcess(runPack(flags))
+  exitProcess(if (args[0] == "pack") runPack(flags) else runValidate(flags))
 }
 
 internal fun parseFlags(args: List<String>): Map<String, String> {
@@ -84,6 +95,7 @@ internal fun runPack(flags: Map<String, String>): Int {
       "keystore-from-env",
       "expect-cert-sha256",
       "token-out",
+      "report-out",
     )
   (flags.keys - known).firstOrNull()?.let {
     System.err.println("Unknown option --$it\n\n$USAGE")
@@ -97,19 +109,8 @@ internal fun runPack(flags: Map<String, String>): Int {
   }
   return try {
     val bundle = readBundleDir(bundleDir)
-    val versionCode =
-      flags["version-code"]?.toIntOrNull()
-        ?: if ("version-code" in flags) {
-          throw IllegalArgumentException("--version-code must be an integer")
-        } else 1
-    val target =
-      flags["push-marketplace"]?.let { marketplace ->
-        val face =
-          flags["face-name"]
-            ?: defaultFaceName(bundle)
-            ?: throw IllegalArgumentException("--face-name is required (bundle has no package)")
-        PackageTarget.WatchFacePush(marketplace, face)
-      } ?: PackageTarget.Sideload(flags["package"])
+    val versionCode = versionCode(flags)
+    val target = target(flags, flags["push-marketplace"], bundle)
     val fromEnv =
       when (flags["keystore-from-env"]) {
         null,
@@ -149,7 +150,14 @@ internal fun runPack(flags: Map<String, String>): Int {
         flags["previous-version-code"]?.toIntOrNull(),
         expectedCertificateSha256 = expectedCert,
       )
-    val packaged = WatchFacePackager().pack(bundle, options)
+    val reportOut = flags["report-out"]?.let(::File)
+    val packaged =
+      if (reportOut == null) WatchFacePackager().pack(bundle, options)
+      else {
+        val outcome = WatchFacePackager().packWithReport(bundle, options)
+        writeReport(reportOut, outcome.report)
+        outcome.packaged ?: throw PackagingException(outcome.diagnostics)
+      }
     out.absoluteFile.parentFile?.mkdirs()
     out.writeBytes(packaged.apk)
     packaged.diagnostics.forEach { System.err.println(it) }
@@ -173,10 +181,89 @@ internal fun runPack(flags: Map<String, String>): Int {
   }
 }
 
-private fun defaultFaceName(bundle: Map<String, ByteArray>): String? =
+internal fun runValidate(
+  flags: Map<String, String>,
+  debugKeyDirectory: File = SigningConfig.defaultDebugKeyDirectory(),
+): Int {
+  val known =
+    setOf("bundle", "report-out", "version-code", "push-marketplace", "face-name", "package")
+  (flags.keys - known).firstOrNull()?.let {
+    System.err.println("Unknown option --$it for validate (it signs with the debug key)\n\n$USAGE")
+    return 2
+  }
+  val bundleDir = flags["bundle"]?.let(::File)
+  val reportOut = flags["report-out"]?.let(::File)
+  if (bundleDir == null || reportOut == null) {
+    System.err.println("--bundle and --report-out are required\n\n$USAGE")
+    return 2
+  }
+  return try {
+    val bundle = readBundleDir(bundleDir)
+    val marketplace = flags["push-marketplace"] ?: inferredMarketplace(bundle)
+    val options =
+      PackagerOptions(
+        target(flags, marketplace, bundle),
+        versionCode(flags),
+        SigningConfig.GeneratedDebugKey(debugKeyDirectory),
+      )
+    val report = WatchFacePackager().validate(bundle, options)
+    writeReport(reportOut, report)
+    for (c in report.checks) {
+      println("${c.status.name.lowercase()}  ${c.id}")
+      c.findings.forEach { f ->
+        val at =
+          listOfNotNull(
+              f.line?.let { l -> "line $l" + (f.column?.let { ", column $it" } ?: "") },
+              f.path,
+            )
+            .joinToString(" ")
+        println(
+          "  ${f.severity.name.lowercase()}: ${f.message}${if (at.isEmpty()) "" else " ($at)"}",
+        )
+      }
+    }
+    println(if (report.passed) "passed" else "failed")
+    println("wrote $reportOut")
+    if (report.passed) 0 else 1
+  } catch (e: IllegalArgumentException) {
+    System.err.println(e.message)
+    2
+  }
+}
+
+private fun versionCode(flags: Map<String, String>): Int =
+  flags["version-code"]?.toIntOrNull()
+    ?: if ("version-code" in flags) {
+      throw IllegalArgumentException("--version-code must be an integer")
+    } else 1
+
+private fun target(
+  flags: Map<String, String>,
+  marketplace: String?,
+  bundle: Map<String, ByteArray>,
+): PackageTarget =
+  marketplace?.let {
+    val face =
+      flags["face-name"]
+        ?: defaultFaceName(bundle)
+        ?: throw IllegalArgumentException("--face-name is required (bundle has no package)")
+    PackageTarget.WatchFacePush(it, face)
+  } ?: PackageTarget.Sideload(flags["package"])
+
+private fun writeReport(file: File, report: PackagerReport) {
+  file.absoluteFile.parentFile?.mkdirs()
+  file.writeText(report.toJson() + "\n")
+}
+
+/** `a.b` for a bundle whose package is `a.b.watchfacepush.<face>`. */
+internal fun inferredMarketplace(bundle: Map<String, ByteArray>): String? =
+  bundlePackage(bundle)?.substringBefore(".watchfacepush.", "")?.takeIf(String::isNotEmpty)
+
+private fun bundlePackage(bundle: Map<String, ByteArray>): String? =
   bundle["AndroidManifest.xml"]
     ?.let { ee.schimke.watchface.wff.WffXmlParser.parseOrNull(it.decodeToString()) }
     ?.root
     ?.attr("package")
-    ?.substringAfterLast('.')
-    ?.replace(Regex("[^A-Za-z0-9_]"), "_")
+
+private fun defaultFaceName(bundle: Map<String, ByteArray>): String? =
+  bundlePackage(bundle)?.substringAfterLast('.')?.replace(Regex("[^A-Za-z0-9_]"), "_")
