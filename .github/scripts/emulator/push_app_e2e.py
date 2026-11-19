@@ -11,10 +11,11 @@ Used by .github/workflows/push-app-emulator.yml. The app logs one line per step 
                                       --real-license SPDX]]
   push_app_e2e.py server --out <dir> --base-url https://ui.coo.ee [--device-token-env VAR]
 
-`fake`: the debug build's in-process FakePushServer. Browses public faces anonymously, installs
-the placeholder `aurora` (download + SHA-256 verify run; the system push service rejects the
-placeholder bytes), links (the fake approves the device code), checks the private design appears,
-then installs the real packaged face from --extra-catalog and checks listWatchFaces holds it.
+`fake`: the debug build's in-process FakePushServer. Opens on the public faces with no account,
+installs the placeholder `aurora` (download + SHA-256 verify run; the system push service rejects
+the placeholder bytes), then the real packaged catalog face from --extra-catalog, anonymously, and
+checks listWatchFaces holds it. Then signs in from the list (the fake approves the device code)
+and checks the private design appears.
 
 `server`: a live catalog. Exits 0 with a notice when the server has no push API yet (404).
 
@@ -251,13 +252,12 @@ def run_fake(a: argparse.Namespace) -> None:
         extras += ["--es", "fake_extra_catalog", a.extra_catalog]
     launch(*extras)
 
-    wait_text("Link your account")
-    screenshot("link")
-
-    note("### Anonymous: browse and install a public face without linking")
-    tap_text("Browse public faces")
+    note("### Anonymous: an unlinked watch opens on the public faces")
     listed = wait_log(r"list designs=(\S*) anonymous=true")
+    time.sleep(2)
+    screenshot("first-screen")  # as opened, before any scrolling
     wait_header("Public faces")
+    assert find("Link your account") is None, "an unlinked watch opened on the sign-in screen"
     ids = listed.group(1).split(",")
     assert "aurora" in ids, ids
     assert "pulse" not in ids, f"private design listed anonymously: {ids}"
@@ -281,11 +281,54 @@ def run_fake(a: argparse.Namespace) -> None:
     time.sleep(2)
     screenshot("public-placeholder-rejected")
     assert not any(p.endswith(".aurora") for p in pushed_packages())
+    back()
+
+    if a.real_face:
+        rid = re.escape(a.real_face)
+        face = re.escape(a.real_package_face)
+        note(f"### Catalog face: `{a.real_face}` packaged by :wff-packager, installed anonymously")
+        # Catalog faces follow the designs, under their catalog's header.
+        wait_header("Public faces")
+        if a.real_catalog_title:
+            wait_text(a.real_catalog_title, scroll_to=True)
+        open_design(a.real_title)
+        # Install is the EdgeButton, shown at the end of the scrolled detail list.
+        if a.real_license:
+            wait_text(f"License: {a.real_license}", timeout=30, scroll_to=True)
+        wait_text("Install", timeout=30, scroll_to=True)
+        screenshot("real-detail")
+        tap_text("Install")
+        wait_log(rf"plan design={rid} plan=\w+ anonymous=true")
+        wait_log(rf"download design={rid} bytes=\d+ sha256=[0-9a-f]{{64}}")
+        wait_log(rf"verify design={rid} sha256 ok")
+        failed = re.search(rf"push design={rid} rejected kind=\S+.*", logcat())
+        if failed:
+            screenshot("real-rejected")
+            raise AssertionError(f"push service rejected the packaged face: {failed.group(0)}")
+        wait_log(rf"push design={rid} installed slot=\S+ package=\S+", timeout=90)
+        wait_log(rf"install design={rid} result=Success")
+        wait_log(rf"state remaining=\d+ installed=\S*watchfacepush\.{face}:1:", timeout=30)
+        activation = wait_log(rf"activate design={rid} activation=(\S+)")
+        time.sleep(2)
+        screenshot("real-installed")
+        packages = pushed_packages()
+        note(f"- `pm list packages`: {packages}")
+        assert any(p.endswith(f".watchfacepush.{a.real_package_face}") for p in packages), packages
+        if activation.group(1) != "Active":
+            note(f"- activation was {activation.group(1)}; the home screen may show another face")
+        back()
+    else:
+        note("No real face packaged; skipping the install that should succeed.")
     assert "anonymous=false" not in logcat(), "the watch linked during the anonymous stage"
 
-    note("### Linking: the fake approves the device code")
+    note("### Sign in: optional, from the public list; swiping back returns to it")
+    wait_header("Public faces")
+    tap_text("Sign in for your designs")
+    wait_text("Link your account")
     back()
-    tap_text("Link account")
+    wait_header("Public faces")
+    note("- back from sign-in returned to the public list")
+    tap_text("Sign in for your designs")
     wait_text("Link your account")
     wait_text("AB7K-92QX", timeout=30, scroll_to=True)  # below the QR on a round screen
     screenshot("link-code")
@@ -297,43 +340,8 @@ def run_fake(a: argparse.Namespace) -> None:
     linked_ids = linked.group(1).split(",")
     assert "pulse" in linked_ids, f"linked list lacks the account's own design: {linked_ids}"
     screenshot("linked-list")
-
-    if not a.real_face:
-        note("No real face packaged; skipping the install that should succeed.")
-        return
-
-    rid = re.escape(a.real_face)
-    face = re.escape(a.real_package_face)
-    note(f"### Catalog face: `{a.real_face}` packaged by :wff-packager, validated token")
-    # Catalog faces follow the designs, under their catalog's header.
-    wait_header("Your designs")
-    if a.real_catalog_title:
-        wait_text(a.real_catalog_title, scroll_to=True)
-    open_design(a.real_title)
-    # Install is the EdgeButton, shown at the end of the scrolled detail list.
-    if a.real_license:
-        wait_text(f"License: {a.real_license}", timeout=30, scroll_to=True)
-    wait_text("Install", timeout=30, scroll_to=True)
-    screenshot("real-detail")
-    tap_text("Install")
-    wait_log(rf"download design={rid} bytes=\d+ sha256=[0-9a-f]{{64}}")
-    wait_log(rf"verify design={rid} sha256 ok")
-    failed = re.search(rf"push design={rid} rejected kind=\S+.*", logcat())
-    if failed:
-        screenshot("real-rejected")
-        raise AssertionError(f"push service rejected the packaged face: {failed.group(0)}")
-    wait_log(rf"push design={rid} installed slot=\S+ package=\S+", timeout=90)
-    wait_log(rf"install design={rid} result=Success")
-    wait_log(rf"state remaining=\d+ installed=\S*watchfacepush\.{face}:1:", timeout=30)
-    activation = wait_log(rf"activate design={rid} activation=(\S+)")
-    time.sleep(2)
-    screenshot("real-installed")
-    packages = pushed_packages()
-    note(f"- `pm list packages`: {packages}")
-    assert any(p.endswith(f".watchfacepush.{a.real_package_face}") for p in packages), packages
-    if activation.group(1) != "Active":
-        note(f"- activation was {activation.group(1)}; the home screen may show another face")
-    show_watch_face("watch-face")
+    if a.real_face:
+        show_watch_face("watch-face")
 
 
 class NotLive(Exception):
@@ -375,11 +383,8 @@ def run_server(a: argparse.Namespace) -> None:
 
     extras = ["--ez", "fake", "false", "--es", "base_url", base]
     launch(*extras)
-    wait_text("Link your account")
-    screenshot("server-link")
 
-    note("### Anonymous: public faces on the live server")
-    tap_text("Browse public faces")
+    note("### Anonymous: an unlinked watch opens on the live server's public faces")
     listed = wait_log(r"list (designs=\S*|failed status=\d+) anonymous=true")
     assert listed.group(1).startswith("designs="), f"the app could not list: {listed.group(0)}"
     wait_header("Public faces")

@@ -28,9 +28,10 @@ import kotlinx.coroutines.launch
 sealed interface Session {
   data object Loading : Session
 
-  data object Unlinked : Session
-
-  /** Not linked, browsing the server's public designs. */
+  /**
+   * Not linked: the watch lists the server's public designs anonymously. Signing in is optional and
+   * adds the account's own designs.
+   */
   data object Browsing : Session
 
   data class Linked(val account: LinkedAccount) : Session
@@ -68,8 +69,6 @@ class AppViewModel(
   /** Diagnostics, one line per event; the emulator test asserts on them in logcat. */
   private val log: (String) -> Unit = {},
 ) : ViewModel() {
-  private val browsing = MutableStateFlow(false)
-
   private val _server = MutableStateFlow<String?>(null)
 
   /** The catalog server in use; null until the stored choice has loaded. */
@@ -95,6 +94,9 @@ class AppViewModel(
 
   private var linkJob: Job? = null
 
+  /** Bumped by each [refresh]; a listing that finishes after a newer one started is dropped. */
+  private var refreshGeneration = 0
+
   /** Work that sends the device token: listing designs and installs (download + report). */
   private val tokenJobs = mutableSetOf<Job>()
 
@@ -119,8 +121,7 @@ class AppViewModel(
 
   init {
     viewModelScope.launch {
-      combine(servers.server, tokens.account, browsing, ::Triple).collect { (server, stored, browse)
-        ->
+      combine(servers.server, tokens.account, ::Pair).collect { (server, stored) ->
         if (server != _server.value) {
           cancelTokenWork()
           switchServer(server)
@@ -128,30 +129,11 @@ class AppViewModel(
         }
         // A token is only used with the server that issued it; another server's reads as unlinked.
         val account = stored?.takeIf { it.server == server }
-        _session.value =
-          when {
-            account != null -> Session.Linked(account)
-            browse -> Session.Browsing
-            else -> Session.Unlinked
-          }
-        if (account != null || browse) refresh() else _designs.value = DesignsState.Loading
+        // No token for this server: browse its public designs rather than asking to sign in.
+        _session.value = if (account != null) Session.Linked(account) else Session.Browsing
+        refresh()
       }
     }
-  }
-
-  /** Lists the server's public designs without linking; installs need no account. */
-  fun browsePublic() {
-    // The link screen started a device-code attempt; an approval landing now would link the
-    // watch behind the user's back. "Link account" starts a fresh one.
-    linkJob?.cancel()
-    linkJob = null
-    browsing.value = true
-  }
-
-  /** Leaves public browsing for the link screen (linking adds the account's own designs). */
-  fun stopBrowsing() {
-    cancelTokenWork()
-    browsing.value = false
   }
 
   /** The token to send: the linked account's, or none while browsing public designs. */
@@ -159,7 +141,7 @@ class AppViewModel(
     when (val s = session.value) {
       is Session.Linked -> Result.success(s.account.deviceToken)
       Session.Browsing -> Result.success(null)
-      else -> Result.failure(IllegalStateException("no session"))
+      Session.Loading -> Result.failure(IllegalStateException("no session"))
     }
 
   fun startLink() {
@@ -167,6 +149,15 @@ class AppViewModel(
     linkJob?.cancel()
     _link.value = LinkState.Requesting
     linkJob = viewModelScope.launch { linkController.link(server).collect { _link.value = it } }
+  }
+
+  /**
+   * Stops the device-code attempt when the person leaves the sign-in screen: an approval landing
+   * later would link the watch behind their back. Opening the screen again starts a fresh one.
+   */
+  fun cancelLink() {
+    linkJob?.cancel()
+    linkJob = null
   }
 
   /**
@@ -191,7 +182,6 @@ class AppViewModel(
 
   fun unlink() {
     cancelTokenWork()
-    browsing.value = false
     viewModelScope.launch { tokens.clear() }
     _install.value = InstallUi.Idle
   }
@@ -202,8 +192,9 @@ class AppViewModel(
         return
       }
     _designs.value = DesignsState.Loading
+    val generation = ++refreshGeneration
     launchWithToken {
-      _designs.value =
+      val next =
         try {
           val designs = api.listDesigns(token)
           val push = loadPushState()
@@ -218,10 +209,12 @@ class AppViewModel(
               DesignsState.Loading
             }
             e.isUnauthorized || e.status == 404 ->
-              DesignsState.Error("This server has no public faces. Link your account.")
+              DesignsState.Error("This server has no public faces. Sign in for your designs.")
             else -> DesignsState.Error(e.message ?: "Could not load designs")
           }
         }
+      // A revoked token clears itself above, which starts the anonymous listing: keep that one.
+      if (generation == refreshGeneration) _designs.value = next
     }
   }
 

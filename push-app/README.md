@@ -57,9 +57,10 @@ internal track with the listing in `src/main/play/`. Setup, secrets and versioni
 
 1. Create an AVD from the *Wear OS 6 (API 36) Small Round* system image.
 2. `./gradlew :push-app:installDebug`
-3. Launch **Faces**. **Browse public faces** lists the server's public designs with no account.
-   Or link: the debug build uses the fake server, so the watch shows a code and QR and the fake
-   approves after ~2 polls (no phone needed). Linking adds the account's private designs (`Pulse`
+3. Launch **Faces**. It opens on **Public faces**: the server's public designs and catalog faces,
+   with no account. **Sign in for your designs** at the bottom of the list is optional: the debug
+   build uses the fake server, so the watch shows a code and QR and the fake approves after ~2
+   polls (no phone needed). Linking adds the account's private designs (`Pulse`
    in the fake). Pointing at a real site instead:
    `adb shell am start -n ee.schimke.watchface.push/.MainActivity --es base_url https://<site> --ez fake false`
    then open the shown URL on a signed-in device and confirm.
@@ -78,14 +79,16 @@ screenshot per step plus logcat as the `push-app-emulator-*` artifact, and asser
 `FacesPush` logcat lines the app writes for each step (list, plan, download, verify, push,
 activate, `listWatchFaces` state).
 
-- **Stage 1 (fake):** browses public faces without an account (including the fake's catalog face), installs the placeholder `aurora`
-  (download and SHA-256 verify pass; the push service rejects the placeholder bytes, the
-  documented outcome), links, checks the private design is listed, then installs a real face:
-  `SimpleDigital` packaged by `:wff-packager` with a validation token, as a **catalog face**
-  (`catalog:wear-os-samples-watchfaces/SimpleDigital`, under "Wear OS samples", with its licence
-  checked on the detail screen), listed through the fake via
-  `--es fake_extra_catalog` and served from the runner over `adb reverse`. It checks
-  `listWatchFaces` holds that face and screenshots the watch face.
+- **Stage 1 (fake):** opens on the public faces with no account (including the fake's catalog
+  face) and checks it is not the sign-in screen, installs the placeholder `aurora` (download and
+  SHA-256 verify pass; the push service rejects the placeholder bytes, the documented outcome),
+  then installs a real face anonymously: `SimpleDigital` packaged by `:wff-packager` with a
+  validation token, as a **catalog face** (`catalog:wear-os-samples-watchfaces/SimpleDigital`,
+  under "Wear OS samples", with its licence checked on the detail screen), listed through the
+  fake via `--es fake_extra_catalog` and served from the runner over `adb reverse`. It checks
+  `listWatchFaces` holds that face. Then it opens **Sign in for your designs**, checks Back
+  returns to the public list, links, checks the private design is listed, and screenshots the
+  watch face.
 - **Stage 2 (server):** `workflow_dispatch` with `stage: server` and `base_url` (default
   `https://ui.coo.ee`). Browses and installs a public face from the live server (a
   wear-os-samples catalog face when the server lists one); with the
