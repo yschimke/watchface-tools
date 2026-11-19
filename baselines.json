@@ -1,4 +1,68 @@
 {
+  "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.BuildStatesListLongPreview_Devices - Large Round": {
+    "captureLabel": "scroll long",
+    "functionName": "BuildStatesListLongPreview",
+    "module": "push-app",
+    "renderBasename": "BuildStatesListLongPreview_Devices_Large_Round-57602d61.png",
+    "sha256": "9adaab729fb6577d1b26f8845b92f63408aadecf95dd631865f09414de08ab8f",
+    "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
+  },
+  "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.BuildStatesListPreview_Devices - Large Round": {
+    "captureLabel": "",
+    "functionName": "BuildStatesListPreview",
+    "module": "push-app",
+    "renderBasename": "BuildStatesListPreview_Devices_Large_Round-a92e08e1.png",
+    "sha256": "579d0810b114a36520716e7319c2a1aeb25ccb810d10945aa70381b9899a344f",
+    "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
+  },
+  "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.BuildStatesListPreview_Devices - Small Round": {
+    "captureLabel": "",
+    "functionName": "BuildStatesListPreview",
+    "module": "push-app",
+    "renderBasename": "BuildStatesListPreview_Devices_Small_Round-f19e29c9.png",
+    "sha256": "3947347458e2dfbfb29f168cec64cbc9f9ecdbe896fd07b5c9cff60b058ea6b8",
+    "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
+  },
+  "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailBuildFailedPreview_Devices - Large Round": {
+    "captureLabel": "scroll long",
+    "functionName": "DetailBuildFailedPreview",
+    "module": "push-app",
+    "renderBasename": "DetailBuildFailedPreview_Devices_Large_Round-0ceeb7cb.png",
+    "sha256": "ede24b9324cb9007a4dcbc90c5875ddd809c260681f2c60ed3ec8ee397121543",
+    "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
+  },
+  "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailBuildPendingPreview_Devices - Large Round": {
+    "captureLabel": "scroll long",
+    "functionName": "DetailBuildPendingPreview",
+    "module": "push-app",
+    "renderBasename": "DetailBuildPendingPreview_Devices_Large_Round-b9adae63.png",
+    "sha256": "cba0eddb35211995eb15904eca308aa14b1902b9872d7d6247d54dced8411c83",
+    "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
+  },
+  "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailBuildQueuedPreview_Devices - Large Round": {
+    "captureLabel": "scroll long",
+    "functionName": "DetailBuildQueuedPreview",
+    "module": "push-app",
+    "renderBasename": "DetailBuildQueuedPreview_Devices_Large_Round-c5073c93.png",
+    "sha256": "88462ac6b48c1162adf0e181c89279026a2b1be40cfcc2fa76493c4e78882faf",
+    "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
+  },
+  "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailBuildingPreview_Devices - Large Round": {
+    "captureLabel": "",
+    "functionName": "DetailBuildingPreview",
+    "module": "push-app",
+    "renderBasename": "DetailBuildingPreview_Devices_Large_Round-0ed67322.png",
+    "sha256": "9012df7d35dc782f9e0d4919fb113759b64179d992d6caceaae77b400be971b1",
+    "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
+  },
+  "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailBuildingPreview_Devices - Small Round": {
+    "captureLabel": "",
+    "functionName": "DetailBuildingPreview",
+    "module": "push-app",
+    "renderBasename": "DetailBuildingPreview_Devices_Small_Round-11e9b725.png",
+    "sha256": "d912c409c20fdf5ebc46c18cb0cfe615eb8b78c797b34a5725616dc85aae4dc9",
+    "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
+  },
   "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailCatalogFaceLongPreview_Devices - Large Round": {
     "captureLabel": "scroll long",
     "functionName": "DetailCatalogFaceLongPreview",
@@ -45,6 +109,30 @@
     "module": "push-app",
     "renderBasename": "DetailDesignPreview_Devices_Small_Round-c079e7cb.png",
     "sha256": "8fb3151b60a442e982e85b0f6ec1568aadfafe805dc34279a58173bb3209cebd",
+    "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
+  },
+  "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailInstalledNextBuildingPreview_Devices - Large Round": {
+    "captureLabel": "scroll long",
+    "functionName": "DetailInstalledNextBuildingPreview",
+    "module": "push-app",
+    "renderBasename": "DetailInstalledNextBuildingPreview_Devices_Large_Round-86c8a398.png",
+    "sha256": "bf0976ea4813cfb57000b18ba1dbd47e804a8e55fe8cc2698c78d6b7cb6de3f1",
+    "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
+  },
+  "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailUpdateAvailablePreview_Devices - Large Round": {
+    "captureLabel": "",
+    "functionName": "DetailUpdateAvailablePreview",
+    "module": "push-app",
+    "renderBasename": "DetailUpdateAvailablePreview_Devices_Large_Round-82b85089.png",
+    "sha256": "ff28e92aecd964afa299fd3d41986b4303762e8be7471325246907ab8be7fad4",
+    "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
+  },
+  "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.DetailUpdateAvailablePreview_Devices - Small Round": {
+    "captureLabel": "",
+    "functionName": "DetailUpdateAvailablePreview",
+    "module": "push-app",
+    "renderBasename": "DetailUpdateAvailablePreview_Devices_Small_Round-5be4c276.png",
+    "sha256": "b9e9982c409c38177900fe4437a8c98da829309badd5cb699d16dd074ff0ade1",
     "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
   },
   "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.InstallBlockedPreview_Devices - Large Round": {
@@ -156,7 +244,7 @@
     "functionName": "ListErrorPreview",
     "module": "push-app",
     "renderBasename": "ListErrorPreview_Devices_Large_Round-6269acc7.png",
-    "sha256": "3a4f1ab4519d56c784f27bc9e8d2bdb6f080412d525be3bec8892f311405021b",
+    "sha256": "d30d30016362352845e0205299e7aa9985f18b1ca8c50566b418f75e04b5f2bf",
     "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
   },
   "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.ListErrorPreview_Devices - Small Round": {
@@ -172,7 +260,7 @@
     "functionName": "ListLoadingPreview",
     "module": "push-app",
     "renderBasename": "ListLoadingPreview_Devices_Large_Round-cb65999b.png",
-    "sha256": "aab2fa88d5dea16fd0a73c350e46cb010bccbdee727e44568baeee9503cb436b",
+    "sha256": "9af643c22219ef0f6ac61ba8780db01d506baa6822872a2bb3337ed5b509fa17",
     "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
   },
   "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.ListLoadingPreview_Devices - Small Round": {
@@ -188,7 +276,7 @@
     "functionName": "PublicListLongPreview",
     "module": "push-app",
     "renderBasename": "PublicListLongPreview_Devices_Large_Round-7f147362.png",
-    "sha256": "3d00394c263a65b610256bec6f3998ffe00dbfe09b7ef98b3780dfea654ce78e",
+    "sha256": "2f882ad975e2ce43592ea2df7a2dee4b75f3c8db854afb3b99c9ed8f522bcbbb",
     "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
   },
   "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.PublicListPreview_Devices - Large Round": {
@@ -212,7 +300,7 @@
     "functionName": "ServerLongPreview",
     "module": "push-app",
     "renderBasename": "ServerLongPreview_Devices_Large_Round-2d6857fe.png",
-    "sha256": "83041fed1162c8c638c8a97c145c9c7cbfb12051caeca0694cb84a31d48944c2",
+    "sha256": "848df4aceb56650d140b3aa5fa1cc750747ac64fa4417fb333f67be789736fec",
     "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
   },
   "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.ServerPreview_Devices - Large Round": {
@@ -220,7 +308,7 @@
     "functionName": "ServerPreview",
     "module": "push-app",
     "renderBasename": "ServerPreview_Devices_Large_Round-55e713c5.png",
-    "sha256": "3dec8568c3875bc7608f536a0aee07e415cee85c8d77a7aa688116a8f2c774d0",
+    "sha256": "010a599d1b11d22ae58fa1d26738f6267458925a889cb5f82c64f37602bf2fe9",
     "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
   },
   "push-app/ee.schimke.watchface.push.ui.ScreenPreviewsKt.ServerPreview_Devices - Small Round": {
@@ -228,7 +316,7 @@
     "functionName": "ServerPreview",
     "module": "push-app",
     "renderBasename": "ServerPreview_Devices_Small_Round-9366f6e1.png",
-    "sha256": "cb382639c01bc758df1184cc3051f2f1f2908009085561ada652735d1517ad0b",
+    "sha256": "acb9272ca0f65ba1e3590e3137d08811419a74cee1dca3d844c6b73b83e76a2f",
     "sourceFile": "src/debug/kotlin/ee/schimke/watchface/push/ui/ScreenPreviews.kt"
   }
 }
