@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!--
+    The face widget needs Android 17 (API 37): a translated face draws through DRAW_TO_BITMAP,
+    which Android 16's launcher player (Remote Compose level 6) refuses. True in values-v37.
+  -->
+  <bool name="supports_face_widgets">false</bool>
+</resources>

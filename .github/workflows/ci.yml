@@ -37,3 +37,5 @@ jobs:
           .github/scripts/tests/release-pr-race-guard-test.sh
       - name: Push app (assemble, unit tests, unsigned release bundle)
         run: ./gradlew :push-app:assembleDebug :push-app:testDebugUnitTest :push-app:bundleRelease
+      - name: Phone app (assemble, unit tests, lint)
+        run: ./gradlew :mobile-app:assembleDebug :mobile-app:testDebugUnitTest :mobile-app:lintDebug
