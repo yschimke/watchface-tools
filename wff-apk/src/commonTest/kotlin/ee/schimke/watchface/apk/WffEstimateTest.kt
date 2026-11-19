@@ -289,4 +289,18 @@ class WffEstimateTest {
     assertNull(a.renderedMaxWidth, "an animated scale leaves the drawn size unknown")
     assertFalse("downscale" in a.suggestion.orEmpty(), "${a.suggestion}")
   }
+
+  @Test
+  fun oneUseOfUnknownSizeSuppressesTheDownscale() {
+    val scene =
+      """<PartImage x="0" y="0" width="100" height="100"><Image resource="art"/></PartImage>""" +
+        """<PartImage x="0" y="0" width="100" height="100"><Transform target="scaleX" value="4"/><Image resource="art"/></PartImage>"""
+    val c =
+      WffEstimate.report(bundle(scene, "art.png" to png(400, 400)))
+        .check(MEMORY_FOOTPRINT)!!
+        .contributors!!
+        .single()
+    assertNull(c.renderedMaxWidth)
+    assertFalse("downscale" in c.suggestion.orEmpty(), "${c.suggestion}")
+  }
 }

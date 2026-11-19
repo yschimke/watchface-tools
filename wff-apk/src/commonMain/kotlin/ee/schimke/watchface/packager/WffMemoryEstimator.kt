@@ -188,8 +188,12 @@ public object WffMemoryEstimator {
     val decoded = header?.let { it.width.toLong() * it.height * 4 } ?: file.bytes.size.toLong()
     val drawn = uses.any { it.drawn }
     val ambient = uses.any { it.ambient }
-    val rw = uses.mapNotNull { it.width }.maxOrNull()
-    val rh = uses.mapNotNull { it.height }.maxOrNull()
+    // The largest drawn size, or unknown when any drawn use's size is (an animated scale): a
+    // downscale to the largest known size would degrade that use.
+    val sized = uses.filter { it.drawn }.ifEmpty { uses }
+    val known = sized.all { it.width != null && it.height != null }
+    val rw = if (known) sized.mapNotNull { it.width }.maxOrNull() else null
+    val rh = if (known) sized.mapNotNull { it.height }.maxOrNull() else null
     val suggestions = mutableListOf<String>()
     if (header == null) {
       suggestions += "the image header could not be read: use PNG, JPEG or WebP"
