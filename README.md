@@ -11,6 +11,7 @@ parser, a version-aware schema, and the bundle layout of a watch face resource p
 | `:wff-core` | Kotlin Multiplatform: `jvm`, `wasmJs` | Document model (`WffDocument`, `WffElement`, ...), canonical `WffXmlWriter`, `WffXmlParser`, `WffSchema`, `WffValidator`, `WffBundleLayout`. `commonMain` has no dependencies. |
 | `:wff-apk` | Kotlin Multiplatform: `jvm`, `wasmJs` | Pure-Kotlin APK packaging: `WffApkBuilder` turns a source bundle into a signed, installable APK (binary XML, `resources.arsc`, aligned zip, APK Signature Scheme v2/v3) with no aapt2, zipalign or apksig, so it runs in the browser. Also the shared Watch Face Push rules (`PushRules`). See [`wff-apk/README.md`](wff-apk/README.md). |
 | `:push-app` | Android (Wear OS 6) | Marketplace app that links to a site account (device code + QR) and installs designs via Watch Face Push. See [`push-app/README.md`](push-app/README.md) and [`docs/PUSH_API.md`](docs/PUSH_API.md). |
+| `:mobile-app` | Android (phone, API 37) | Faces on the phone: a published face as a Remote Compose launcher widget, compiled by a design server and pushed again each minute. See [`mobile-app/README.md`](mobile-app/README.md). |
 
 `wff-packager` (JVM) turns a source bundle into a signed, validated, Watch Face Push-ready APK with the Android SDK tools and Google's validators; `wff-apk` does the packaging in pure Kotlin for the browser and for JVMs without an SDK. And
 `push-app` is the Wear OS marketplace app that installs published designs (an APK, not on Maven).

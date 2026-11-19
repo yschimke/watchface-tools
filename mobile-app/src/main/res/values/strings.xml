@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">Faces</string>
+  <string name="widget_label">Watch face</string>
+  <string name="widget_description">A watch face published on ui.coo.ee, on your home screen.</string>
+  <string name="widget_loading">Loading watch face…</string>
+  <string name="widget_choose">Tap to choose a watch face</string>
+</resources>

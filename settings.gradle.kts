@@ -21,6 +21,7 @@ rootProject.name = "watchface-tools"
 include(":wff-core")
 include(":wff-apk")
 include(":push-app")
+include(":mobile-app")
 include(":wff-packager")
 include(":bom")
 

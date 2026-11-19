@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A square face. updatePeriodMillis is 0: FaceWidgetTicker pushes it again each minute. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="80dp"
+    android:minResizeHeight="80dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/face_widget_message"
+    android:previewLayout="@layout/face_widget_message"
+    android:description="@string/widget_description"
+    android:configure="ee.schimke.watchface.mobile.MainActivity$Configure"
+    android:widgetFeatures="reconfigurable|configuration_optional"
+    android:widgetCategory="home_screen" />
