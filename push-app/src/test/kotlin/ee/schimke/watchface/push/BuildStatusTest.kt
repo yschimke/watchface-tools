@@ -132,5 +132,10 @@ class BuildStatusTest {
     // A newer version is built: that is an update, whatever is building after it.
     assertEquals("Update available", statusLabel(next, installedV2, 4, now))
     assertEquals("Update available", statusLabel(aurora, installedV2, 4, now))
+    // v4's build failed: v3 stays installed and installable, and the failure shows.
+    val failed =
+      aurora.copy(build = BuildStatus(BuildStatus.FAILED, version = 4, message = "no case"))
+    assertEquals("Installed · Build failed: no case", statusLabel(failed, installedV3, 4, now))
+    assertTrue(failed.isInstallable)
   }
 }

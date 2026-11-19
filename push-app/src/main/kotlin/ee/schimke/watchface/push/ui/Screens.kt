@@ -44,6 +44,7 @@ import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import ee.schimke.watchface.push.DesignsState
 import ee.schimke.watchface.push.InstallUi
+import ee.schimke.watchface.push.data.BuildStatus
 import ee.schimke.watchface.push.data.CatalogServers
 import ee.schimke.watchface.push.data.Design
 import ee.schimke.watchface.push.link.LinkState
@@ -170,7 +171,9 @@ fun statusLabel(
       push != null && InstallPlanner.isInstalled(design, push) -> "Installed"
       else -> "v${design.versionName ?: design.version}"
     }
-  return if (build != null && build.inProgress) "$base · ${Messages.build(build, nowMillis)}"
+  // A newer version building, or one that failed or was refused: the older one stays installable.
+  return if (build != null && build.state != BuildStatus.BUILT)
+    "$base · ${Messages.build(build, nowMillis)}"
   else base
 }
 
