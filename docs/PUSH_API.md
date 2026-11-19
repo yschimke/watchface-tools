@@ -147,14 +147,16 @@ token is `401`, never a silent fallback to the anonymous list. Response `200`:
 
 ### Builds in progress
 
-A site that builds APKs in the background may list a design (or a catalog face) before it is
-built, with an optional `build` object. The top-level fields always describe the newest **built**
-version; `build` describes the newest **requested** one:
+A site that builds APKs in the background lists designs (and catalog faces) that are not built
+yet **only when asked**: `GET /designs?includePending=1`. Apps from before this field had a
+stricter model and would reject such an entry, so a request without the parameter lists only built
+entries. Every entry may carry an optional `build` object. The top-level fields always describe the
+newest **built** version; `build` describes the newest **requested** one:
 
 ```json
 { "id": "comet", "title": "Comet", "previewUrl": "…", "wffVersion": 2,
-  "packageName": "ee.schimke.watchface.push.watchfacepush.comet",
-  "build": { "state": "pending", "scheduledAtEpochMillis": 1800000180000, "version": 1 } }
+  "packageName": "ee.schimke.watchface.push.watchfacepush.comet", "visibility": "private",
+  "build": { "state": "pending", "scheduledAtEpochMillis": 1800000180000, "automatic": true } }
 ```
 
 | Field | Notes |
@@ -162,19 +164,23 @@ version; `build` describes the newest **requested** one:
 | `build.state` | `pending`, `queued`, `building`, `built`, `refused` or `failed`. The watch reads an unknown state as building. |
 | `build.scheduledAtEpochMillis` | `pending`: when the build starts ("Builds in N min"). |
 | `build.queueAhead` | `queued`: builds ahead of this one ("Queued (N ahead)"). |
-| `build.stage` | `building`: shown as is ("Building… validating"). |
-| `build.version` | The version being built. |
-| `build.message` | `refused` / `failed`: shown as is after "Build failed:". |
+| `build.stage` | `building`: `packaging` today (`validating`, `signing`, `exporting` reserved); shown as is ("Building… packaging"). |
+| `build.version` | The built version; may be sent only once `state` is `built`. |
+| `build.reason` | `refused` / `failed`: a short sentence, shown after "Build failed:" / "Build refused:". |
+
+The server may also send `startedAtEpochMillis`, `elapsedMillis`, `diagnostics[]` (for `refused`),
+`nextRetryAtEpochMillis` and `automatic`; the watch ignores them for now.
 
 - No `build` means built (older servers).
-- An entry is installable only with `apkUrl`, `sha256` and `validationToken` all present; until then
-  they are absent and `version` may be absent (0). The watch lists it with its build state and does
-  not offer Install.
+- An entry is installable only with `apkUrl`, `sha256` and `validationToken` all present. An unbuilt
+  entry has none of them, nor `version` or `sizeBytes`; `previewUrl` may be absent too. The watch
+  lists it with its build state and does not offer Install.
 - While v3 is built and v4 builds, the entry carries v3's `version`, `apkUrl`, `sha256` and
   `validationToken` and `build: { state: "building", version: 4 }`: the watch installs v3 and shows
   "Update available" only once v4 is built (the top-level `version` moved).
 - While any listed entry is building, the watch lists again about every 30 s, only while the app is
-  visible.
+  visible (well within the server's per-address and per-token read limits), and keeps the list on a
+  failed poll.
 
 ### Catalog faces
 

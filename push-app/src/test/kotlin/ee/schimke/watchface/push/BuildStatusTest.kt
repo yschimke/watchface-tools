@@ -66,7 +66,7 @@ class BuildStatusTest {
     assertTrue(BuildStatus("linting").inProgress)
     assertEquals(
       "Build failed: no case",
-      label(BuildStatus(BuildStatus.FAILED, message = "no case")),
+      label(BuildStatus(BuildStatus.FAILED, reason = "no case")),
     )
     assertEquals("Build refused", label(BuildStatus(BuildStatus.REFUSED)))
     assertFalse(BuildStatus(BuildStatus.FAILED).inProgress)
@@ -134,8 +134,39 @@ class BuildStatusTest {
     assertEquals("Update available", statusLabel(aurora, installedV2, 4, now))
     // v4's build failed: v3 stays installed and installable, and the failure shows.
     val failed =
-      aurora.copy(build = BuildStatus(BuildStatus.FAILED, version = 4, message = "no case"))
+      aurora.copy(build = BuildStatus(BuildStatus.FAILED, version = 4, reason = "no case"))
     assertEquals("Installed · Build failed: no case", statusLabel(failed, installedV3, 4, now))
     assertTrue(failed.isInstallable)
+  }
+
+  @Test
+  fun theListingAsksForPendingFacesAndAnOlderRequestDoesNotSeeThem() = runTest {
+    val (fake, api) = fakeServerApi(server)
+    fake.startBuild("comet", "Comet")
+    assertTrue(api.listDesigns(null).any { it.id == "comet" }, "the app sends includePending=1")
+
+    // A request without it (an older app) never sees an unbuilt entry it cannot parse.
+    val raw =
+      okhttp3.OkHttpClient.Builder()
+        .addInterceptor(fake)
+        .build()
+        .newCall(
+          okhttp3.Request.Builder().url("https://$FAKE_HOST/api/watchface-push/v1/designs").build(),
+        )
+        .execute()
+        .use { it.body.string() }
+    assertFalse("comet" in raw, raw)
+  }
+
+  @Test
+  fun anUnbuiltEntryWithoutAPreviewDecodes() {
+    val json =
+      """{"designs":[{"id":"x","title":"X","wffVersion":1,"packageName":"p.watchfacepush.x",
+        "visibility":"private","source":"design",
+        "build":{"state":"failed","reason":"the packager refused it","automatic":true,
+          "diagnostics":[{"code":"wff"}]}}]}"""
+    val x = DefaultJson.decodeFromString<DesignList>(json).designs.single()
+    assertNull(x.previewUrl)
+    assertEquals("Build failed: the packager refused it", Messages.build(x.build!!, now))
   }
 }

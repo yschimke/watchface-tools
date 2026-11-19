@@ -172,8 +172,8 @@ class FakePushServer(
     fun ok(body: String) = respond(200, body.toByteArray(), "application/json")
 
     return when {
-      request.method == "GET" && all.any { path == it.previewUrl.toHttpUrl().encodedPath } -> {
-        val design = all.firstOrNull { path == it.previewUrl.toHttpUrl().encodedPath }
+      request.method == "GET" && all.any { path == it.previewUrl?.toHttpUrl()?.encodedPath } -> {
+        val design = all.firstOrNull { path == it.previewUrl?.toHttpUrl()?.encodedPath }
         if (design == null) respond(404) else respond(200, previewPng(design.title), "image/png")
       }
       request.method == "POST" && path == "$api/device-codes" -> {
@@ -203,7 +203,10 @@ class FakePushServer(
       request.method == "GET" && path == "$api/designs" -> {
         val anonymous = request.header("Authorization") == null
         val listed = if (anonymous) publicDesigns else designs
-        val building = builds.values.sortedBy { it.id }
+        // Like the real server: faces still building are listed only to apps that ask.
+        val building =
+          if (request.url.queryParameter("includePending") == "1") builds.values.sortedBy { it.id }
+          else builds.values.filter { it.isInstallable }.sortedBy { it.id }
         ok(json.encodeToString(DesignList(listed + building + extraDesigns(chain))))
       }
       request.method == "GET" && path.endsWith("/apk") -> {

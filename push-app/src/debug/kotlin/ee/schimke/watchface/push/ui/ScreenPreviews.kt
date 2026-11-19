@@ -73,7 +73,7 @@ private object Fixtures {
     unbuilt(
       "flare",
       "Flare",
-      BuildStatus(BuildStatus.FAILED, message = "Asset case_steel is missing"),
+      BuildStatus(BuildStatus.FAILED, reason = "Asset case_steel is missing"),
     )
 
   /** Installed at v3 while the server builds v4: still installable, the build is shown too. */

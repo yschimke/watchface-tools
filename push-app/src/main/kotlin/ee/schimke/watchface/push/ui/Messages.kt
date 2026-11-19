@@ -39,8 +39,8 @@ object Messages {
       }
       BuildStatus.QUEUED ->
         build.queueAhead?.takeIf { it > 0 }?.let { "Queued ($it ahead)" } ?: "Queued"
-      BuildStatus.REFUSED -> build.message?.let { "Build refused: $it" } ?: "Build refused"
-      BuildStatus.FAILED -> build.message?.let { "Build failed: $it" } ?: "Build failed"
+      BuildStatus.REFUSED -> build.reason?.let { "Build refused: $it" } ?: "Build refused"
+      BuildStatus.FAILED -> build.reason?.let { "Build failed: $it" } ?: "Build failed"
       BuildStatus.BUILT -> "Built"
       // `building` and any state this app does not know yet.
       else -> build.stage?.let { "Building… $it" } ?: "Building…"

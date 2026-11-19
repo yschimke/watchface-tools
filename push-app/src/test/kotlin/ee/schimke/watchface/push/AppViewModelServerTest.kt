@@ -287,7 +287,7 @@ class AppViewModelServerTest {
         }
       try {
         server.finishBuild("comet")
-        val listings = sent.count { it.first.endsWith("/designs") }
+        val listings = sent.count { isListing(it.first) }
         scheduler.advanceTimeBy(AppViewModel.BUILD_POLL_MILLIS + 1)
         kotlinx.coroutines.withTimeout(5_000) {
           while (
@@ -297,12 +297,12 @@ class AppViewModelServerTest {
               ?.isInstallable != true
           ) kotlinx.coroutines.delay(10)
         }
-        assertEquals(listings + 1, sent.count { it.first.endsWith("/designs") })
+        assertEquals(listings + 1, sent.count { isListing(it.first) })
 
         // Nothing is building now: further ticks do not re-list.
         scheduler.advanceTimeBy(3 * AppViewModel.BUILD_POLL_MILLIS)
         kotlinx.coroutines.delay(200)
-        assertEquals(listings + 1, sent.count { it.first.endsWith("/designs") })
+        assertEquals(listings + 1, sent.count { isListing(it.first) })
       } finally {
         poller.cancel()
         // Nothing of this ViewModel may resume on Main after the test resets it.
@@ -323,10 +323,10 @@ class AppViewModelServerTest {
         }
       try {
         listingDown = true
-        val listings = sent.count { it.first.endsWith("/designs") }
+        val listings = sent.count { isListing(it.first) }
         scheduler.advanceTimeBy(AppViewModel.BUILD_POLL_MILLIS + 1)
         kotlinx.coroutines.withTimeout(5_000) {
-          while (sent.count { it.first.endsWith("/designs") } == listings) {
+          while (sent.count { isListing(it.first) } == listings) {
             kotlinx.coroutines.delay(10)
           }
         }
@@ -350,4 +350,6 @@ class AppViewModelServerTest {
         vm.viewModelScope.cancel()
       }
     }
+
+  private fun isListing(url: String) = url.substringBefore('?').endsWith("/designs")
 }

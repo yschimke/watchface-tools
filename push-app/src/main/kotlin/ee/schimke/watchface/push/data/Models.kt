@@ -40,7 +40,8 @@ data class Design(
   val id: String,
   val title: String,
   val description: String? = null,
-  val previewUrl: String,
+  /** Optional: a design listed before its first build may have none yet. */
+  val previewUrl: String? = null,
   /**
    * Monotonic; equals the APK `versionCode` of the newest BUILT version. 0 when the server lists a
    * design that has never been built and sends none.
@@ -96,12 +97,12 @@ data class BuildStatus(
   val scheduledAtEpochMillis: Long? = null,
   /** For `queued`: builds ahead of this one. */
   val queueAhead: Int? = null,
-  /** For `building`: what it is doing, shown as is. */
+  /** For `building`: `packaging` (also `validating`, `signing`, `exporting`), shown as is. */
   val stage: String? = null,
-  /** The version being built. */
+  /** The version; servers may send it only once `built`. */
   val version: Long? = null,
-  /** For `refused` / `failed`: why, shown as is. */
-  val message: String? = null,
+  /** For `refused` / `failed`: a short sentence saying why, shown as is. */
+  val reason: String? = null,
 ) {
   val inProgress: Boolean
     get() = state !in setOf(BUILT, REFUSED, FAILED)

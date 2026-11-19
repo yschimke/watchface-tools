@@ -100,7 +100,13 @@ class HttpPushApi(
   override suspend fun listDesigns(deviceToken: String?): List<Design> =
     call<DesignList>(
         Request.Builder()
-          .url(url("${PushConstants.API_PREFIX}/designs"))
+          // Unbuilt entries are listed only on request: older apps' stricter model rejects them.
+          .url(
+            url("${PushConstants.API_PREFIX}/designs")
+              .newBuilder()
+              .addQueryParameter("includePending", "1")
+              .build(),
+          )
           .bearer(deviceToken)
           .get()
           .build(),
