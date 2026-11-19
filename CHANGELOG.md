@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.0](https://github.com/yschimke/watchface-tools/compare/v0.6.0...v0.7.0) (2026-11-19)
+
+
+### Features
+
+* **ui-builder-catalog:** take the UI Builder 3.137.0 watch-face catalog and templates ([#52](https://github.com/yschimke/watchface-tools/issues/52)) ([714c195](https://github.com/yschimke/watchface-tools/commit/714c1953e12d4f5e8489fca3b337b38b92e46b0b))
+
+
+### Bug Fixes
+
+* **push-app:** open an unlinked watch on the public faces ([#57](https://github.com/yschimke/watchface-tools/issues/57)) ([e2aa4aa](https://github.com/yschimke/watchface-tools/commit/e2aa4aa70cd389586032c39ad924072bf775e39d))
+* **push-app:** open every screen at its title and follow Wear M3 list layout ([#60](https://github.com/yschimke/watchface-tools/issues/60)) ([c46af84](https://github.com/yschimke/watchface-tools/commit/c46af8469182654929ecb461386916ef1ce01350))
+
 ## [0.6.0](https://github.com/yschimke/watchface-tools/compare/v0.5.0...v0.6.0) (2026-11-18)
 
 
