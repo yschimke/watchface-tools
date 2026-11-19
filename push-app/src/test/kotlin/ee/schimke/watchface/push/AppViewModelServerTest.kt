@@ -72,7 +72,12 @@ class AppViewModelServerTest {
       api,
       tokens,
       pusher,
-      InstallFlow(api, pusher, Files.createTempDirectory("cache").toFile(), 36),
+      InstallFlow(
+        api,
+        pusher,
+        Files.createTempDirectory("cache").toFile(),
+        ee.schimke.watchface.push.data.DeviceInfo(36),
+      ),
       LinkController(api, tokens, "Test", 36),
       servers = servers,
       switchServer = {

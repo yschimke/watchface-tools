@@ -1,5 +1,7 @@
 package ee.schimke.watchface.push
 
+import ee.schimke.watchface.push.data.DeviceInfo
+import ee.schimke.watchface.push.data.InstallEvent
 import ee.schimke.watchface.push.push.Activation
 import ee.schimke.watchface.push.push.BlockReason
 import ee.schimke.watchface.push.push.InstallFlow
@@ -12,6 +14,7 @@ import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
 
@@ -29,7 +32,15 @@ class InstallFlowTest {
   private val pulse = server.designs.first { it.id == "pulse" }
   private val future = server.designs.first { it.id == "future" }
 
-  private fun flow(pusher: FakePusher) = InstallFlow(api, pusher, cache, 36)
+  private val device =
+    DeviceInfo(
+      wearOsApi = 36,
+      deviceModel = "Pixel Watch 3",
+      watchFacePushApiVersion = "1.0.0",
+      appVersion = "0.7.0",
+    )
+
+  private fun flow(pusher: FakePusher) = InstallFlow(api, pusher, cache, device)
 
   @Test
   fun installsIntoFreeSlotAndReportsTelemetry() = runTest {
@@ -40,7 +51,21 @@ class InstallFlowTest {
     assertEquals(InstallPlan.AddToFreeSlot, success.plan)
     assertEquals(aurora.packageName, success.face.packageName)
     assertEquals(1, pusher.pushedBytes.size)
-    assertEquals(listOf("installed"), server.installs.map { it.result })
+    assertEquals(
+      InstallEvent(
+        aurora.id,
+        aurora.version,
+        "installed",
+        wearOsApi = 36,
+        packageName = aurora.packageName,
+        activation = "not_requested",
+        deviceModel = "Pixel Watch 3",
+        wearOsVersion = "6",
+        watchFacePushApiVersion = "1.0.0",
+        appVersion = "0.7.0",
+      ),
+      server.installs.single(),
+    )
     assertTrue(cache.listFiles().orEmpty().isEmpty(), "temp APK must be deleted")
   }
 
@@ -135,7 +160,12 @@ class InstallFlowTest {
       ),
       result,
     )
-    assertEquals(listOf("failed"), server.installs.map { it.result })
+    val event = server.installs.single()
+    assertEquals("failed", event.result)
+    assertEquals("INVALID_VALIDATION_TOKEN", event.errorKind)
+    assertEquals(aurora.packageName, event.packageName)
+    assertNull(event.activation, "no face was installed to activate")
+    assertEquals("Pixel Watch 3", event.deviceModel)
   }
 
   @Test
@@ -148,6 +178,59 @@ class InstallFlowTest {
     val denied = FakePusher(permissionGranted = false)
     val without = flow(denied).install(server.deviceToken, aurora, activate = true)
     assertEquals(Activation.NotRequested, assertIs<InstallResult.Success>(without).activation)
+
+    assertEquals(
+      listOf("activated" to null, "manual" to "PERMISSION_MISSING"),
+      server.installs.map { it.activation to it.activationError },
+    )
+  }
+
+  @Test
+  fun activatingAfterTheInstallSendsASecondEvent() = runTest {
+    val pusher = FakePusher(permissionGranted = false)
+    val installed = flow(pusher).install(server.deviceToken, aurora, activate = false)
+    val face = assertIs<InstallResult.Success>(installed).face
+    pusher.permissionGranted = true
+
+    val activation = flow(pusher).activate(server.deviceToken, aurora.id, face)
+    assertEquals(Activation.Active, activation)
+    assertEquals(face.slotId, pusher.activeSlot)
+    assertEquals(
+      listOf("installed" to "not_requested", "activation" to "activated"),
+      server.installs.map { it.result to it.activation },
+    )
+    val second = server.installs.last()
+    assertEquals(face.packageName, second.packageName)
+    assertEquals(face.versionCode, second.version)
+    assertEquals("0.7.0", second.appVersion)
+
+    pusher.activationFailure = PushFailure(PushFailureKind.INVALID_SLOT)
+    assertEquals(
+      Activation.Manual(PushFailureKind.INVALID_SLOT),
+      flow(pusher).activate(server.deviceToken, aurora.id, face),
+    )
+    assertEquals(
+      "failed" to "INVALID_SLOT",
+      server.installs.last().let { it.activation to it.activationError },
+    )
+  }
+
+  @Test
+  fun aReportThatThrowsNeverFailsTheInstall() = runTest {
+    val throwing =
+      object : ee.schimke.watchface.push.data.PushApi by api {
+        override suspend fun reportInstall(deviceToken: String?, event: InstallEvent) =
+          throw IllegalStateException("server down")
+      }
+    val result =
+      InstallFlow(throwing, FakePusher(), cache, device).install(server.deviceToken, aurora)
+    assertIs<InstallResult.Success>(result)
+  }
+
+  @Test
+  fun unknownApiLevelsHaveNoWearOsVersion() {
+    assertEquals("5.1", DeviceInfo(35).wearOsVersion)
+    assertNull(DeviceInfo(99).wearOsVersion)
   }
 
   @Test
@@ -161,6 +244,8 @@ class InstallFlowTest {
       Activation.Manual(PushFailureKind.MAX_ACTIVATION_ATTEMPTS),
       assertIs<InstallResult.Success>(result).activation,
     )
+    assertEquals("manual", server.installs.single().activation)
+    assertEquals("MAX_ACTIVATION_ATTEMPTS", server.installs.single().activationError)
   }
 
   @Test

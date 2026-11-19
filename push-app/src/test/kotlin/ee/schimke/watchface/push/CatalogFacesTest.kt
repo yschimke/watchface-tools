@@ -58,7 +58,9 @@ class CatalogFacesTest {
   fun aCatalogFaceDownloadsAndInstallsAnonymouslyFromItsOwnUrl() = runTest {
     val cache = createTempDir()
     val pusher = FakePusher()
-    val result = InstallFlow(api, pusher, cache, 36).install(null, catalogFace)
+    val result =
+      InstallFlow(api, pusher, cache, ee.schimke.watchface.push.data.DeviceInfo(36))
+        .install(null, catalogFace)
     assertIs<InstallResult.Success>(result)
     assertEquals(listOf(catalogFace.packageName), pusher.slots.map { it.packageName })
     assertTrue(server.installs.isEmpty())

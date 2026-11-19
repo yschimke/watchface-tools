@@ -34,6 +34,11 @@ After a successful install the app calls `setWatchFaceAsActive` if the runtime p
 which requests it. Google allows this API only once per marketplace; later refusals
 (`ERROR_MAXIMUM_ATTEMPTS_REACHED`) tell the user to long-press their current face.
 
+A linked watch reports each install to `POST /installs` with the activation outcome, the device
+model, Wear OS version, Watch Face Push library version and app version; activating later sends a
+second `activation` event ([`docs/PUSH_API.md`](../docs/PUSH_API.md#telemetry-optional)). It is
+best effort: a failed report never fails an install.
+
 ## Build
 
 ```sh

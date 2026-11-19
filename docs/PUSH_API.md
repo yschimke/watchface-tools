@@ -184,13 +184,31 @@ Auth required (an unlinked watch sends none). Fire-and-forget; failures are igno
 and never block an install.
 
 ```json
-{ "designId": "aurora", "version": 3, "result": "installed", "wearOsApi": 36 }
+{ "designId": "aurora", "version": 3, "result": "installed", "wearOsApi": 36,
+  "packageName": "ee.schimke.watchface.push.watchfacepush.aurora",
+  "activation": "manual", "activationError": "PERMISSION_MISSING",
+  "deviceModel": "Pixel Watch 3", "wearOsVersion": "6", "watchFacePushApiVersion": "1.0.0",
+  "appVersion": "0.7.0" }
 ```
 
 `result`: `installed` (new slot), `updated` (same package), `replaced` (single-slot watch swapped a
 different design), `failed` (with `errorKind`, one of `SLOT_LIMIT_REACHED`,
 `INVALID_VALIDATION_TOKEN`, `INVALID_PACKAGE_NAME`, `MALFORMED_APK`, `UNEXPECTED_CONTENT`,
-`INVALID_SLOT`, `UNKNOWN`). Response `204`.
+`INVALID_SLOT`, `UNKNOWN`), or `activation`: a second event for the same face, sent when the user
+grants the permission after the install and the app then activates it. Response `204`.
+
+Every field after `result` is optional; older apps send only the first five, and the server must
+accept events with any of them missing (or with fields it does not know).
+
+- `packageName`: the face's package (the installed one; the design's for `failed`).
+- `activation`, sent once activation has finished (absent for `failed`): `activated`;
+  `not_requested` (the user did not ask); `manual` (the user must pick the face themselves:
+  the permission is not held, or `setWatchFaceAsActive` was already used, with
+  `activationError` `PERMISSION_MISSING` or `MAX_ACTIVATION_ATTEMPTS`); `failed` (any other
+  refusal, `activationError` is its kind, such as `INVALID_SLOT`).
+- `deviceModel` (`Build.MODEL`), `wearOsVersion` (the Wear OS release for the API level, absent
+  for one the app does not know), `watchFacePushApiVersion` (the `androidx.wear.watchfacepush`
+  library version), `appVersion` (the push app's versionName).
 
 ## Errors
 

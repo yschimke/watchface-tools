@@ -80,12 +80,56 @@ data class Attribution(
   val license: String? = null,
 )
 
+/**
+ * Best-effort install telemetry (`POST /installs`). Everything after [result] is optional; the
+ * server must accept events without it.
+ */
 @Serializable
 data class InstallEvent(
   val designId: String,
   val version: Long,
-  /** `installed`, `updated`, `replaced` or `failed`. */
+  /**
+   * `installed`, `updated`, `replaced` or `failed`; `activation` for the follow-up event sent when
+   * the face is activated after the install (once the user grants the permission).
+   */
   val result: String,
   val errorKind: String? = null,
   val wearOsApi: Int? = null,
+  val packageName: String? = null,
+  /** `activated`, `not_requested`, `manual` (the user must pick it) or `failed`. */
+  val activation: String? = null,
+  /** The [ee.schimke.watchface.push.push.PushFailureKind] when [activation] is manual or failed. */
+  val activationError: String? = null,
+  val deviceModel: String? = null,
+  /** Marketing version (`6`, `5.1`) when the API level is known, else null. */
+  val wearOsVersion: String? = null,
+  /** Version of the `androidx.wear.watchfacepush` library the app uses. */
+  val watchFacePushApiVersion: String? = null,
+  /** The push app's versionName. */
+  val appVersion: String? = null,
 )
+
+/** What every [InstallEvent] says about the watch and the app. */
+data class DeviceInfo(
+  val wearOsApi: Int,
+  val deviceModel: String? = null,
+  val watchFacePushApiVersion: String? = null,
+  val appVersion: String? = null,
+) {
+  val wearOsVersion: String?
+    get() = WEAR_OS_VERSIONS[wearOsApi]
+
+  fun stamp(event: InstallEvent): InstallEvent =
+    event.copy(
+      wearOsApi = wearOsApi,
+      deviceModel = deviceModel,
+      wearOsVersion = wearOsVersion,
+      watchFacePushApiVersion = watchFacePushApiVersion,
+      appVersion = appVersion,
+    )
+
+  private companion object {
+    /** Wear OS release per Android API level (Wear OS 6 is Android 16, API 36). */
+    val WEAR_OS_VERSIONS = mapOf(30 to "3", 33 to "4", 34 to "5", 35 to "5.1", 36 to "6")
+  }
+}
