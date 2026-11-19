@@ -102,6 +102,17 @@ class AppViewModelServerTest {
   }
 
   @Test
+  fun reselectingTheCurrentServerKeepsItsListing(): Unit =
+    kotlinx.coroutines.runBlocking {
+      tokens = InMemoryTokenStore()
+      val vm = vm()
+      // Picked again while the first public listing may still be in flight.
+      assertTrue(vm.selectServer(home))
+      awaitReady(vm)
+      assertEquals(listOf(home), switched)
+    }
+
+  @Test
   fun refusesAnUnusableServerAndStaysPut() {
     val vm = vm()
     assertFalse(vm.selectServer("http://insecure.example"))

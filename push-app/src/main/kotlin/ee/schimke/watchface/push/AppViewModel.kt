@@ -166,6 +166,8 @@ class AppViewModel(
    */
   fun selectServer(input: String): Boolean {
     val server = CatalogServers.normalize(input, allowInsecureServers) ?: return false
+    // The same server emits no change to restart a listing, so cancelling would strand it loading.
+    if (server == _server.value) return true
     cancelTokenWork()
     viewModelScope.launch { servers.select(server) }
     return true

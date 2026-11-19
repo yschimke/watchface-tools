@@ -131,14 +131,15 @@ def ensure_foreground() -> None:
         time.sleep(1.5)
 
 
-def scroll_to_top(swipes: int = 5) -> None:
-    for _ in range(swipes):
-        scroll(down=False)
-
-
 def wait_header(text: str, timeout: float = 20) -> None:
-    """A list header: the list can open scrolled past it (seen in run 6), so go to the top."""
-    scroll_to_top()
+    """A list header, at the top of its list: swipe up until it shows. A fixed number of swipes
+    fell short once the list held the catalog faces: coming back from the last one is ~3 screens
+    down (#57, run 44477506344)."""
+    for _ in range(MAX_SWIPES):
+        ensure_foreground()
+        if find(text):
+            break
+        scroll(down=False)
     wait_text(text, timeout)
 
 
@@ -255,6 +256,7 @@ def run_fake(a: argparse.Namespace) -> None:
     note("### Anonymous: an unlinked watch opens on the public faces")
     listed = wait_log(r"list designs=(\S*) anonymous=true")
     time.sleep(2)
+    ensure_foreground()
     screenshot("first-screen")  # as opened, before any scrolling
     wait_header("Public faces")
     assert find("Link your account") is None, "an unlinked watch opened on the sign-in screen"
