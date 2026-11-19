@@ -46,7 +46,12 @@ class FaceWidgetProvider : AppWidgetProvider() {
         // requestPinAppWidget's callback: the launcher added the widget the app asked for.
         val id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
         val face = faceOf(intent)
-        if (id != -1 && face != null) show(context, id, face)
+        if (id != -1 && face != null) {
+          FaceWidgetStore(context).setFace(id, face)
+          FaceWidgetTicker.start(context)
+          // Under goAsync, so the process lives until the new widget is drawn.
+          refresh(context, intArrayOf(id), network = true)
+        }
       }
       else -> super.onReceive(context, intent)
     }
@@ -143,15 +148,23 @@ class FaceWidgetProvider : AppWidgetProvider() {
       return WidgetFace(server, face, intent.getStringExtra(EXTRA_TITLE) ?: face)
     }
 
+    /** How long after a failed render a tick tries the network again. */
+    const val RETRY_MS = 5 * 60_000L
+
     /** Large enough for a tablet's widget; past it the document's images outgrow a push. */
     const val MAX_WIDGET_PX = 640
 
-    /** Draws [face] in widget [widgetId] now (from the cache) and fetches it if it isn't there. */
+    /** Sets widget [widgetId]'s face and draws it, fetching its document if it isn't kept. */
     fun show(context: Context, widgetId: Int, face: WidgetFace) {
       FaceWidgetStore(context).setFace(widgetId, face)
       FaceWidgetTicker.start(context)
-      val pending = scope.launch { lock.withLock { update(context, widgetId, network = true) } }
-      pending.invokeOnCompletion { it?.let { e -> Log.w(TAG, "widget $widgetId", e) } }
+      // Through the provider's own update, under goAsync: the configuring activity finishes
+      // straight away, and the process must live until the widget is drawn.
+      context.sendBroadcast(
+        Intent(context, FaceWidgetProvider::class.java)
+          .setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
+          .putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(widgetId)),
+      )
     }
 
     fun allIds(context: Context): IntArray =
@@ -175,7 +188,11 @@ class FaceWidgetProvider : AppWidgetProvider() {
           context.resources.displayMetrics.density,
         )
       var document = store.document(face, size)
-      if (document == null && network) {
+      // A tick doesn't touch the network, except to retry a render that failed (a phone that
+      // was offline when the widget was added), at most every RETRY_MS.
+      val now = System.currentTimeMillis()
+      if (document == null && (network || store.retryDue(widgetId, now, RETRY_MS))) {
+        store.attempted(widgetId, now)
         document =
           runCatching {
             FaceRenderer(BuildConfig.RENDERER_URL, http).render(face.server, face.faceId, size)
@@ -183,7 +200,10 @@ class FaceWidgetProvider : AppWidgetProvider() {
             .onFailure { Log.w(TAG, "couldn't render ${face.faceId} at $size px", it) }
             .getOrNull()
             ?.bytes
-            ?.also { store.putDocument(face, size, it) }
+            ?.also {
+              store.putDocument(face, size, it)
+              store.attempted(widgetId, null)
+            }
       }
       if (document == null) {
         // Keep what the launcher shows on a tick; say so only when there's nothing yet.

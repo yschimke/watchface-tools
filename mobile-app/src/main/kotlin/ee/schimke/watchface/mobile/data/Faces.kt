@@ -94,11 +94,16 @@ class FaceRenderer(renderer: String, private val client: OkHttpClient) {
         ?: throw FacesException(200, "Unreadable answer from the renderer")
     val sha = (match["sha256"] as? JsonPrimitive)?.contentOrNull?.takeIf(SHA256::matches)
     val blob = match["blob"]?.jsonPrimitive?.contentOrNull
-    if (sha == null || blob == null || !blob.startsWith("/")) {
+    // The blob is on the renderer's own origin: never fetch it from anywhere else, however the
+    // path is written (`//other.host/x.rc` resolves to another host).
+    val blobUrl =
+      blob?.let(base::resolve)?.takeIf {
+        it.scheme == base.scheme && it.host == base.host && it.port == base.port
+      }
+    if (sha == null || blobUrl == null) {
       throw FacesException(200, "The renderer returned no document")
     }
-    // The blob is on the renderer's own host: never follow it anywhere else.
-    val bytes = client.fetch(Request.Builder().url(base.resolve(blob)!!).build())
+    val bytes = client.fetch(Request.Builder().url(blobUrl).build())
     if (sha256(bytes) != sha) throw FacesException(200, "The document doesn't match its hash")
     return RenderedFace(sha, bytes)
   }

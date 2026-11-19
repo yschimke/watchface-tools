@@ -57,7 +57,11 @@ android {
     targetCompatibility = JavaVersion.VERSION_17
   }
 
-  testOptions { unitTests.isIncludeAndroidResources = true }
+  testOptions {
+    unitTests.isIncludeAndroidResources = true
+    // As :push-app: Robolectric 4.17 sets up SDK 36's shared memory through jdk.internal.access.
+    unitTests.all { it.jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED") }
+  }
 }
 
 dependencies {

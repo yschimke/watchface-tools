@@ -30,6 +30,23 @@ class FaceWidgetStore(context: Context) {
       .apply()
   }
 
+  /** Whether a render for [widgetId] last failed at least [afterMs] before [nowMillis]. */
+  fun retryDue(widgetId: Int, nowMillis: Long, afterMs: Long): Boolean {
+    val last = prefs.getLong("$widgetId.attempt", -1)
+    return last >= 0 && nowMillis - last >= afterMs
+  }
+
+  /** Records a render attempt at [atMillis] (null once one succeeded). */
+  fun attempted(widgetId: Int, atMillis: Long?) {
+    prefs
+      .edit()
+      .apply {
+        if (atMillis == null) remove("$widgetId.attempt")
+        else putLong("$widgetId.attempt", atMillis)
+      }
+      .apply()
+  }
+
   /** The cached document for [face] at [sizePx], or null. */
   fun document(face: WidgetFace, sizePx: Int): ByteArray? =
     file(face, sizePx).takeIf { it.isFile }?.readBytes()
@@ -50,6 +67,7 @@ class FaceWidgetStore(context: Context) {
           remove("$id.server")
           remove("$id.face")
           remove("$id.title")
+          remove("$id.attempt")
         }
       }
       .apply()

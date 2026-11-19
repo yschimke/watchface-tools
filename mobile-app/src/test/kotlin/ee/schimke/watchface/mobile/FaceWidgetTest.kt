@@ -35,6 +35,20 @@ class FaceWidgetTest {
   }
 
   @Test
+  fun aFailedRenderIsRetriedByATickAfterTheBackoff() {
+    val store = FaceWidgetStore(context)
+    assertEquals(false, store.retryDue(9, 1_000_000, FaceWidgetProvider.RETRY_MS))
+    store.attempted(9, 1_000_000)
+    assertEquals(false, store.retryDue(9, 1_000_000 + 60_000, FaceWidgetProvider.RETRY_MS))
+    assertEquals(
+      true,
+      store.retryDue(9, 1_000_000 + FaceWidgetProvider.RETRY_MS, FaceWidgetProvider.RETRY_MS),
+    )
+    store.attempted(9, null)
+    assertEquals(false, store.retryDue(9, Long.MAX_VALUE, FaceWidgetProvider.RETRY_MS))
+  }
+
+  @Test
   fun aWidgetsFaceAndItsDocumentsAreKeptUntilItsRemoved() {
     val store = FaceWidgetStore(context)
     val aurora = WidgetFace("https://ui.coo.ee", "catalog:wear-os-samples/Aurora", "Aurora")

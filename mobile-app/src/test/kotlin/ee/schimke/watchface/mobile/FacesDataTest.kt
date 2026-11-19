@@ -92,6 +92,19 @@ class FacesDataTest {
   }
 
   @Test
+  fun aSchemeRelativeBlobCantLeaveTheRenderersOrigin() = runTest {
+    server.enqueue(
+      MockResponse.Builder()
+        .body("""{"sha256":"$sha","blob":"//elsewhere.example/x.rc"}""")
+        .build(),
+    )
+    assertFailsWith<FacesException> {
+      FaceRenderer(base, OkHttpClient()).render("https://ui.coo.ee", "aurora", 300)
+    }
+    assertEquals(1, server.requestCount)
+  }
+
+  @Test
   fun aRendererErrorIsReported() = runTest {
     server.enqueue(MockResponse.Builder().code(404).body("no such face").build())
     val error =
