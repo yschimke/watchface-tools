@@ -62,7 +62,41 @@ otherwise the push validator is skipped. In code: `WatchFacePackager.validate(bu
   push validator ran. **The token is never in the report**; `pack` prints it and `--token-out` saves it.
 - A face that names a drawable the bundle does not ship fails `memory-footprint` with `Asset <name>
   was not found in the watch face package` (and the push validator repeats it). `wff-core` and the XSD
-  do not check resource references.
+  do not check resource references; the estimate below does, and names the closest bundled file.
+- `mode` is `full` here and `estimate` for the cheap report.
+- `memory-footprint` also carries `contributors`, the per-resource breakdown (Google's evaluator
+  only gives totals), most expensive first:
+  `{"resource":"drawable/case_steel","kind":"image","format":"png","width":1024,"height":1024,
+  "fileBytes":81234,"decodedBytes":4194304,"activeBytes":4194304,"ambientBytes":0,
+  "renderedMaxWidth":450,"renderedMaxHeight":450,"missing":false,"suggestion":"downscale ..."}`.
+  `kind` is `image`, `font` or `other`; sizes are absent when unknown; `format` is absent when
+  `missing`. Findings may carry a `suggestion` too.
+
+### The cheap estimate (`estimate`, `WffEstimate`)
+
+`wff-packager estimate --bundle dir --report-out f.json`, or `WffEstimate.report(bundle)` from
+`:wff-apk` (pure Kotlin, JVM and Kotlin/Wasm, so an editor can run it in the browser on every edit).
+It runs the wff-core check and `WffMemoryEstimator`: no SDK, aapt2 or Google validator, and images
+are read from their PNG/JPEG/WebP headers only, never decoded. The same JSON, with `mode`
+`estimate`; `wff-xsd` and `push-validator` are `skipped` with a warning. Its rules:
+
+- an image costs `width * height * 4` bytes in active mode when the face draws it, and in ambient
+  mode unless it or an ancestor has `<Variant mode="AMBIENT" target="alpha" value="0"/>` (images are
+  `resource`, `defaultImageResource` and an `AnimatedImage` `thumbnail`); bitmap font glyphs count
+  only where text uses that font (an unused font costs nothing); bundled fonts cost their file size;
+- the limits are Google's suggested Play settings (100 MB active, 10 MB ambient); over one is an
+  error naming the largest contributors;
+- a drawn image missing from the bundle is an error with the element path (Google's validators
+  fail it too); a missing configuration icon is only a warning (they accept it);
+- suggestions: downscale an image to the largest size it is drawn at (its container's size times
+  every `scaleX`/`scaleY` above it; none under an animated scale, where that size is unknown) (when it is over 10% larger in
+  both dimensions and that saves at least 16 KB), hide a full-colour image in ambient or draw a
+  greyscale one (not for an image tinted by itself or its container), remove a drawable nothing references (neither the face nor any other bundled XML, such as the
+  manifest's `@drawable/` icon).
+
+It approximates Google's evaluator, which stays the authority before publishing. In Kotlin/Wasm it
+adds about 39 KB to an optimized binary that already has wff-core's parser and validator (13 KB
+gzipped: 284 KB to 323 KB, 99.6 KB to 112.6 KB).
 
 ## Relation to `wff-apk`
 

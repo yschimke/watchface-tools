@@ -67,7 +67,7 @@ class ReportTest {
 
     val json = report.toJson()
     assertFalse("SECRET-TOKEN" in json, json)
-    assertTrue(json.startsWith("{\"schemaVersion\":1,\"wffVersion\":"), json)
+    assertTrue(json.startsWith("{\"schemaVersion\":1,\"mode\":\"full\",\"wffVersion\":"), json)
     assertTrue("\"passed\":true" in json && "\"tokenIssued\":true" in json, json)
     assertTrue("\"activeLimitBytes\":104857600" in json, json)
   }
@@ -217,7 +217,7 @@ class ReportTest {
         ),
       )
     assertEquals(
-      "{\"schemaVersion\":1,\"wffVersion\":null,\"minimumWffVersion\":null,\"passed\":false," +
+      "{\"schemaVersion\":1,\"mode\":\"full\",\"wffVersion\":null,\"minimumWffVersion\":null,\"passed\":false," +
         "\"checks\":[{\"id\":\"wff-schema\",\"title\":\"t\",\"status\":\"failed\",\"findings\":" +
         "[{\"severity\":\"error\",\"message\":\"a \\\"q\\\" \\\\ \\n\\u0001\"}]}]}",
       report.toJson(),
@@ -233,5 +233,21 @@ class ReportTest {
       ),
     )
     assertNull(inferredMarketplace(TestSupport.sampleBundle("SimpleAnalog")))
+  }
+
+  @Test
+  fun everySamplePassesTheEstimate() {
+    for (name in TestSupport.sampleNames) {
+      val report = WffEstimate.report(TestSupport.sampleBundle(name))
+      val memory = report.check(MEMORY_FOOTPRINT)!!
+      // The fixtures stand in for drawn images only, so configuration icons may be missing.
+      val missing = memory.contributors!!.filter { it.missing && it.activeBytes == 0L }
+      assertTrue(
+        memory.findings.none { it.severity == FindingSeverity.ERROR },
+        "$name: ${memory.findings}",
+      )
+      assertTrue(missing.all { "icon" in it.resource }, "$name: $missing")
+      assertEquals(CheckStatus.PASSED, memory.status, "$name: ${memory.findings}")
+    }
   }
 }

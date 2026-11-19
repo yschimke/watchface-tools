@@ -6,12 +6,13 @@ import ee.schimke.watchface.packager.ReportCheck.Companion.MEMORY_FOOTPRINT
 import ee.schimke.watchface.packager.ReportCheck.Companion.PUSH_VALIDATOR
 import ee.schimke.watchface.packager.ReportCheck.Companion.WFF_SCHEMA
 import ee.schimke.watchface.packager.ReportCheck.Companion.WFF_XSD
+import ee.schimke.watchface.packager.ReportChecks.check
+import ee.schimke.watchface.packager.ReportChecks.inspect
+import ee.schimke.watchface.packager.ReportChecks.noVersionSkip
+import ee.schimke.watchface.packager.ReportChecks.skip
 import ee.schimke.watchface.wff.WffBundleLayout
-import ee.schimke.watchface.wff.WffDocument
-import ee.schimke.watchface.wff.WffSeverity
 import ee.schimke.watchface.wff.WffValidator
 import ee.schimke.watchface.wff.WffVersion
-import ee.schimke.watchface.wff.WffXmlParser
 import java.io.File
 import java.nio.file.Files
 import java.util.zip.ZipFile
@@ -65,6 +66,8 @@ public class WatchFacePackager(
     /** Errors that stopped the APK from being built; null while nothing has. */
     var buildFailure: List<PackagingDiagnostic>? = null
     val face = inspect(bundle)
+    val declared = face.declared
+    val estimate = if (face.document != null) WffMemoryEstimator.estimate(bundle) else null
 
     fun skipped(id: String): ReportCheck =
       when {
@@ -81,9 +84,11 @@ public class WatchFacePackager(
     fun outcome(packaged: PackagedWatchFace?): PackOutcome {
       val report =
         PackagerReport(
-          face.declared?.number,
+          declared?.number,
           face.document?.let { WffValidator.minimumVersion(it).number },
-          ReportCheck.TITLES.keys.map { checks[it] ?: skipped(it) },
+          ReportCheck.TITLES.keys
+            .map { checks[it] ?: skipped(it) }
+            .map { withContributors(it, estimate) },
         )
       return PackOutcome(packaged, report, diagnostics.toList())
     }
@@ -162,8 +167,8 @@ public class WatchFacePackager(
 
       // 4. Official validators.
       var footprint: MemoryFootprintReport? = null
-      if (signed != null && face.declared != null) {
-        val memory = runMemory(signed, face.declared)
+      if (signed != null && declared != null) {
+        val memory = runMemory(signed, declared)
         checks[MEMORY_FOOTPRINT] = memory.check
         footprint = memory.footprint
         diagnostics += memory.diagnostics
@@ -176,14 +181,14 @@ public class WatchFacePackager(
       // message (the push validator only says the face "does not match the specification").
       // It reads the source XML, so `validate` runs it even when the APK did not build.
       val xml = bundle[WffBundleLayout.WATCH_FACE_PATH]?.decodeToString()
-      if (xml != null && face.declared != null && (signed != null || keepGoing)) {
-        val found = validators.format.validate(xml, face.declared)
+      if (xml != null && declared != null && (signed != null || keepGoing)) {
+        val found = validators.format.validate(xml, declared)
         diagnostics += found.map { error("wff-validator", it) }
         checks[WFF_XSD] = check(WFF_XSD, found.map(::xsdFinding))
       } else if (xml == null) {
         checks[WFF_XSD] =
           skip(WFF_XSD, FindingSeverity.ERROR, "Not run: the bundle has no watchface.xml")
-      } else if (face.declared == null) {
+      } else if (declared == null) {
         checks[WFF_XSD] = noVersionSkip(WFF_XSD)
       }
       var token: String? = null
@@ -235,6 +240,22 @@ public class WatchFacePackager(
     }
   }
 
+  /**
+   * Google's evaluator gives totals only, so the per-resource breakdown comes from
+   * [WffMemoryEstimator], and its suggestion goes on a finding that names a resource it measured.
+   */
+  private fun withContributors(c: ReportCheck, estimate: MemoryEstimate?): ReportCheck {
+    if (c.id != MEMORY_FOOTPRINT || estimate == null) return c
+    val byName = estimate.contributors.associateBy { it.resource.substringAfter('/') }
+    val findings =
+      c.findings.map { f ->
+        val name = MISSING_ASSET.find(f.message)?.groupValues?.get(1)
+        val hint = name?.let { byName[it]?.suggestion }
+        if (hint != null && f.suggestion == null) f.copy(suggestion = hint) else f
+      }
+    return c.copy(findings = findings, contributors = estimate.contributors)
+  }
+
   private class MemoryRun(
     val check: ReportCheck,
     val footprint: MemoryFootprintReport?,
@@ -278,97 +299,4 @@ public class WatchFacePackager(
   }
 }
 
-/** The bundle's face and declared version, read without the manifest rewrite. */
-private class FaceInfo(
-  val xmlPresent: Boolean,
-  val document: WffDocument?,
-  val declared: WffVersion?,
-) {
-  private val issues =
-    if (document != null && declared != null) WffValidator.check(document, declared)
-    else emptyList()
-
-  /** The same diagnostics, in the same words, that [ApkPreflight] reports for the face. */
-  fun wffCoreDiagnostics(): List<PackagingDiagnostic> =
-    when {
-      !xmlPresent -> emptyList()
-      document == null ->
-        listOf(error("wff", "${WffBundleLayout.WATCH_FACE_PATH} is not well-formed XML"))
-      else ->
-        issues.map {
-          PackagingDiagnostic(
-            if (it.severity == WffSeverity.ERROR) DiagnosticSeverity.ERROR
-            else DiagnosticSeverity.WARNING,
-            "wff",
-            "${it.path}: ${it.message} (${it.code})",
-          )
-        }
-    }
-
-  fun schemaCheck(): ReportCheck =
-    when {
-      !xmlPresent ->
-        skip(WFF_SCHEMA, FindingSeverity.ERROR, "Not run: the bundle has no watchface.xml")
-      document == null ->
-        check(
-          WFF_SCHEMA,
-          listOf(
-            ReportFinding(
-              FindingSeverity.ERROR,
-              "${WffBundleLayout.WATCH_FACE_PATH} is not well-formed XML",
-            ),
-          ),
-        )
-      declared == null -> noVersionSkip(WFF_SCHEMA)
-      else ->
-        check(
-          WFF_SCHEMA,
-          issues.map {
-            ReportFinding(
-              if (it.severity == WffSeverity.ERROR) FindingSeverity.ERROR
-              else FindingSeverity.WARNING,
-              "${it.message} (${it.code})",
-              path = it.path,
-            )
-          },
-        )
-    }
-}
-
-private fun inspect(bundle: Map<String, ByteArray>): FaceInfo {
-  val xml = bundle[WffBundleLayout.WATCH_FACE_PATH]?.decodeToString()
-  val declared =
-    bundle[WffBundleLayout.MANIFEST_PATH]
-      ?.let { WffXmlParser.parseOrNull(it.decodeToString()) }
-      ?.root
-      ?.firstChild("application")
-      ?.childElements("property")
-      ?.firstOrNull { it.attr("android:name") == WffBundleLayout.WFF_VERSION_PROPERTY }
-      ?.attr("android:value")
-      ?.toIntOrNull()
-      ?.let(WffVersion::fromNumber)
-  return FaceInfo(xml != null, xml?.let(WffXmlParser::parseOrNull), declared)
-}
-
-private fun title(id: String) = ReportCheck.TITLES.getValue(id)
-
-/** Passed unless a finding is an error. */
-private fun check(id: String, findings: List<ReportFinding>) =
-  ReportCheck(
-    id,
-    title(id),
-    if (findings.any { it.severity == FindingSeverity.ERROR }) CheckStatus.FAILED
-    else CheckStatus.PASSED,
-    findings,
-  )
-
-private fun skip(id: String, severity: FindingSeverity, why: String) =
-  ReportCheck(id, title(id), CheckStatus.SKIPPED, listOf(ReportFinding(severity, why)))
-
-private fun noVersionSkip(id: String) =
-  skip(
-    id,
-    FindingSeverity.ERROR,
-    "Not run: the manifest declares no valid Watch Face Format version " +
-      "(${WffBundleLayout.WFF_VERSION_PROPERTY})",
-  )
+private val MISSING_ASSET = Regex("""Asset (\S+) was not found""")

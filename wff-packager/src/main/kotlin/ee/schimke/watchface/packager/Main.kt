@@ -33,6 +33,11 @@ wff-packager validate --bundle <dir> --report-out <file.json> [options]
                              one the push validator is skipped)
   --face-name, --package, --version-code   as for pack
 
+wff-packager estimate --bundle <dir> --report-out <file.json>
+
+  The cheap report: wff-core and a per-resource memory estimate, with no SDK or Google validator
+  (the same code runs in the browser: WffEstimate). Exit code 0 when it passed, 1 otherwise.
+
 Needs the Android SDK (aapt2, zipalign, android.jar) via ANDROID_HOME or ANDROID_SDK_ROOT."""
 
 public fun main(args: Array<String>) {
@@ -40,7 +45,7 @@ public fun main(args: Array<String>) {
     println(USAGE)
     exitProcess(if (args.isEmpty()) 2 else 0)
   }
-  if (args[0] != "pack" && args[0] != "validate") {
+  if (args[0] !in setOf("pack", "validate", "estimate")) {
     System.err.println("Unknown command '${args[0]}'\n\n$USAGE")
     exitProcess(2)
   }
@@ -51,7 +56,13 @@ public fun main(args: Array<String>) {
       System.err.println("${e.message}\n\n$USAGE")
       exitProcess(2)
     }
-  exitProcess(if (args[0] == "pack") runPack(flags) else runValidate(flags))
+  exitProcess(
+    when (args[0]) {
+      "pack" -> runPack(flags)
+      "validate" -> runValidate(flags)
+      else -> runEstimate(flags)
+    },
+  )
 }
 
 internal fun parseFlags(args: List<String>): Map<String, String> {
@@ -208,22 +219,29 @@ internal fun runValidate(
       )
     val report = WatchFacePackager().validate(bundle, options)
     writeReport(reportOut, report)
-    for (c in report.checks) {
-      println("${c.status.name.lowercase()}  ${c.id}")
-      c.findings.forEach { f ->
-        val at =
-          listOfNotNull(
-              f.line?.let { l -> "line $l" + (f.column?.let { ", column $it" } ?: "") },
-              f.path,
-            )
-            .joinToString(" ")
-        println(
-          "  ${f.severity.name.lowercase()}: ${f.message}${if (at.isEmpty()) "" else " ($at)"}",
-        )
-      }
-    }
-    println(if (report.passed) "passed" else "failed")
-    println("wrote $reportOut")
+    printReport(report, reportOut)
+    if (report.passed) 0 else 1
+  } catch (e: IllegalArgumentException) {
+    System.err.println(e.message)
+    2
+  }
+}
+
+internal fun runEstimate(flags: Map<String, String>): Int {
+  (flags.keys - setOf("bundle", "report-out")).firstOrNull()?.let {
+    System.err.println("Unknown option --$it for estimate\n\n$USAGE")
+    return 2
+  }
+  val bundleDir = flags["bundle"]?.let(::File)
+  val reportOut = flags["report-out"]?.let(::File)
+  if (bundleDir == null || reportOut == null) {
+    System.err.println("--bundle and --report-out are required\n\n$USAGE")
+    return 2
+  }
+  return try {
+    val report = WffEstimate.report(readBundleDir(bundleDir))
+    writeReport(reportOut, report)
+    printReport(report, reportOut)
     if (report.passed) 0 else 1
   } catch (e: IllegalArgumentException) {
     System.err.println(e.message)
@@ -267,3 +285,23 @@ private fun bundlePackage(bundle: Map<String, ByteArray>): String? =
 
 private fun defaultFaceName(bundle: Map<String, ByteArray>): String? =
   bundlePackage(bundle)?.substringAfterLast('.')?.replace(Regex("[^A-Za-z0-9_]"), "_")
+
+private fun printReport(report: PackagerReport, reportOut: File) {
+  for (c in report.checks) {
+    println("${c.status.name.lowercase()}  ${c.id}")
+    c.findings.forEach { f ->
+      val at =
+        listOfNotNull(
+            f.line?.let { l -> "line $l" + (f.column?.let { ", column $it" } ?: "") },
+            f.path,
+          )
+          .joinToString(" ")
+      println(
+        "  ${f.severity.name.lowercase()}: ${f.message}${if (at.isEmpty()) "" else " ($at)"}",
+      )
+      f.suggestion?.let { println("    suggestion: $it") }
+    }
+  }
+  println(if (report.passed) "passed" else "failed")
+  println("wrote $reportOut")
+}
