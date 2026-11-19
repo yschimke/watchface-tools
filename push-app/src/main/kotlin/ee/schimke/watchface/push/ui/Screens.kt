@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,6 +44,7 @@ import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import ee.schimke.watchface.push.DesignsState
 import ee.schimke.watchface.push.InstallUi
+import ee.schimke.watchface.push.data.BuildStatus
 import ee.schimke.watchface.push.data.CatalogServers
 import ee.schimke.watchface.push.data.Design
 import ee.schimke.watchface.push.link.LinkState
@@ -149,13 +151,40 @@ fun QrCode(content: String, modifier: Modifier = Modifier) {
   }
 }
 
-fun statusLabel(design: Design, push: PushState?, deviceWff: Int): String =
-  when {
-    design.wffVersion > deviceWff -> "Needs WFF v${design.wffVersion}"
-    push != null && InstallPlanner.hasUpdate(design, push) -> "Update available"
-    push != null && InstallPlanner.isInstalled(design, push) -> "Installed"
-    else -> "v${design.versionName ?: design.version}"
-  }
+/**
+ * One line for a design: its build while nothing is installable yet ("Building…", "Queued", "Builds
+ * in N min"), else whether it is installed or has an update, with a newer version's build appended
+ * ("Installed · Queued").
+ */
+fun statusLabel(
+  design: Design,
+  push: PushState?,
+  deviceWff: Int,
+  nowMillis: Long = System.currentTimeMillis(),
+): String {
+  val build = design.build
+  if (!design.isInstallable) return build?.let { Messages.build(it, nowMillis) } ?: "Not built yet"
+  val base =
+    when {
+      design.wffVersion > deviceWff -> return "Needs WFF v${design.wffVersion}"
+      push != null && InstallPlanner.hasUpdate(design, push) -> return "Update available"
+      push != null && InstallPlanner.isInstalled(design, push) -> "Installed"
+      else -> "v${design.versionName ?: design.version}"
+    }
+  // A newer version building, or one that failed or was refused: the older one stays installable.
+  return if (build != null && build.state != BuildStatus.BUILT)
+    "$base · ${Messages.build(build, nowMillis)}"
+  else base
+}
+
+/** The detail screen's version line; an unbuilt design names the version being built, if any. */
+fun versionLine(design: Design): String {
+  val version =
+    if (design.isInstallable) design.versionName ?: design.version.toString()
+    else design.build?.version?.toString()
+  return listOfNotNull(version?.let { "Version $it" }, "requires WFF v${design.wffVersion}")
+    .joinToString(" · ")
+}
 
 /** A run of the list: [title] null for the designs, else the catalog's name. */
 data class DesignSection(val title: String?, val designs: List<Design>)
@@ -205,6 +234,7 @@ fun DesignListScreen(
   val list =
     rememberTopAnchoredListState(contentKey = if (state is DesignsState.Loading) null else "loaded")
   val spec = rememberTransformationSpec()
+  val now = rememberNow()
   ScreenScaffold(
     list,
     edgeButton = {
@@ -272,7 +302,7 @@ fun DesignListScreen(
                 modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
                 transformation = SurfaceTransformation(spec),
                 title = { Text(design.title) },
-                subtitle = { Text(statusLabel(design, state.push, deviceWff)) },
+                subtitle = { Text(statusLabel(design, state.push, deviceWff, now)) },
               ) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                   PreviewImage(design, Modifier.size(96.dp))
@@ -312,8 +342,8 @@ fun DesignListScreen(
             modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
             colors = ButtonDefaults.filledTonalButtonColors(),
             transformation = SurfaceTransformation(spec),
-            label = { Text("Server") },
-            secondaryLabel = { server?.let { Text(CatalogServers.label(it)) } },
+            label = { Text("Switch server") },
+            secondaryLabel = { server?.let { Text(CatalogServers.displayName(it)) } },
           )
         }
       }
@@ -334,6 +364,7 @@ fun DesignDetailScreen(
 ) {
   val list = rememberTopAnchoredListState()
   val spec = rememberTransformationSpec()
+  val now = rememberNow()
   val plan =
     push?.let { InstallPlanner.plan(design, it, pushSupported, deviceWff) }
       ?: if (!pushSupported) InstallPlan.Blocked(BlockReason.PUSH_UNSUPPORTED) else null
@@ -389,14 +420,14 @@ fun DesignDetailScreen(
       }
       item(key = "version") {
         BodyText(
-          "Version ${design.versionName ?: design.version} · requires WFF v${design.wffVersion}",
+          versionLine(design),
           spec,
           style = MaterialTheme.typography.bodySmall,
         )
       }
       item(key = "status") {
         BodyText(
-          statusLabel(design, push, deviceWff),
+          statusLabel(design, push, deviceWff, now),
           spec,
           style = MaterialTheme.typography.labelMedium,
           color = MaterialTheme.colorScheme.primary,
@@ -418,7 +449,10 @@ fun DesignDetailScreen(
           BodyText(
             Messages.blocked(it.reason, design.wffVersion, deviceWff),
             spec,
-            color = MaterialTheme.colorScheme.error,
+            // Waiting for a build is not an error: it resolves on its own.
+            color =
+              if (it.reason == BlockReason.NOT_BUILT) MaterialTheme.colorScheme.onSurfaceVariant
+              else MaterialTheme.colorScheme.error,
           )
         }
       }
@@ -480,6 +514,28 @@ fun DesignDetailScreen(
  * previews. Null means "load [Design.previewUrl] with Coil".
  */
 val LocalPreviewPainter = compositionLocalOf<((Design) -> Painter)?> { null }
+
+/** A fixed clock for "Builds in N min"; previews pin it so their renders are stable. */
+val LocalNow = compositionLocalOf<(() -> Long)?> { null }
+
+/**
+ * The time "Builds in N min" counts from: [LocalNow] when pinned, else the wall clock, re-read
+ * every [tickMillis] while on screen so the countdown moves without a new listing.
+ */
+@Composable
+fun rememberNow(tickMillis: Long = 15_000): Long {
+  LocalNow.current?.let {
+    return it()
+  }
+  val now by
+    produceState(System.currentTimeMillis()) {
+      while (true) {
+        kotlinx.coroutines.delay(tickMillis)
+        value = System.currentTimeMillis()
+      }
+    }
+  return now
+}
 
 /**
  * A design's preview, cropped to a circle: the faces are round, and the square render's corners are

@@ -194,17 +194,46 @@ class AppViewModel(
    * Lists the designs again. The current list stays on screen until the new one arrives: swapping
    * in a spinner would lose the person's place in it.
    */
-  fun refresh() = load(keepContent = true)
+  fun refresh() {
+    load(keepContent = true)
+  }
+
+  /**
+   * Refreshes the list every [intervalMillis] while any listed design is being built, so it turns
+   * installable on its own. Run it only while the list is visible (the UI ties it to the
+   * lifecycle): nothing polls in the background.
+   */
+  suspend fun pollWhileBuilding(intervalMillis: Long = BUILD_POLL_MILLIS) {
+    while (true) {
+      kotlinx.coroutines.delay(intervalMillis)
+      val ready = _designs.value as? DesignsState.Ready ?: continue
+      if (ready.designs.any { it.isBuilding }) {
+        log("poll builds=${ready.designs.filter { it.isBuilding }.joinToString(",") { it.id }}")
+        // Wait for this listing before the next tick: one that started while it was in flight
+        // would supersede it, and a server slower than the interval would never update the list.
+        load(keepContent = true, keepOnFailure = true)?.join()
+      }
+    }
+  }
+
+  companion object {
+    const val BUILD_POLL_MILLIS: Long = 30_000
+  }
 
   /** [keepContent] false for a new session or server, whose list must not show the old one. */
-  private fun load(keepContent: Boolean) {
+  /**
+   * [keepOnFailure]: a background poll that fails (no network, a 5xx) keeps the list on screen, so
+   * the next tick can retry and an open detail screen does not go blank. A revoked token still
+   * unlinks.
+   */
+  private fun load(keepContent: Boolean, keepOnFailure: Boolean = false): Job? {
     val token =
       currentToken().getOrElse {
-        return
+        return null
       }
     if (!keepContent || _designs.value !is DesignsState.Ready) _designs.value = DesignsState.Loading
     val generation = ++refreshGeneration
-    launchWithToken {
+    return launchWithToken {
       val next =
         try {
           val designs = api.listDesigns(token)
@@ -221,6 +250,7 @@ class AppViewModel(
             }
             e.isUnauthorized || e.status == 404 ->
               DesignsState.Error("This server has no public faces. Sign in for your designs.")
+            keepOnFailure && _designs.value is DesignsState.Ready -> _designs.value
             else -> DesignsState.Error(e.message ?: "Could not load designs")
           }
         }

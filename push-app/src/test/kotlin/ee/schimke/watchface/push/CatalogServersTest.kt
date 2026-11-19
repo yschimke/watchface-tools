@@ -47,4 +47,11 @@ class CatalogServersTest {
       ),
     )
   }
+
+  @Test
+  fun knownSitesAreNamedForWhatTheyList() {
+    assertEquals("Your designs (ui.coo.ee)", CatalogServers.displayName("https://ui.coo.ee"))
+    assertEquals("Sample faces (preview.coo.ee)", CatalogServers.displayName("preview.coo.ee/"))
+    assertEquals("faces.example.org", CatalogServers.displayName("https://faces.example.org"))
+  }
 }

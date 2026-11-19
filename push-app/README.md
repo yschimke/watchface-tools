@@ -34,6 +34,13 @@ After a successful install the app calls `setWatchFaceAsActive` if the runtime p
 which requests it. Google allows this API only once per marketplace; later refusals
 (`ERROR_MAXIMUM_ATTEMPTS_REACHED`) tell the user to long-press their current face.
 
+A face the server is still building is listed with its build state ("Builds in 3 min", "Queued (2
+ahead)", "Building… validating", "Build failed: …") and cannot be installed; while any is building,
+the list refreshes every 30 s, only while the app is visible, so it becomes installable on its own.
+An installed face shows "Update available" once a newer version is built
+([`docs/PUSH_API.md`](../docs/PUSH_API.md#builds-in-progress)). The server picker names the two
+sites by what they list: "Your designs (ui.coo.ee)" and "Sample faces (preview.coo.ee)".
+
 A linked watch reports each install to `POST /installs` with the activation outcome, the device
 model, Wear OS version, Watch Face Push library version and app version; activating later sends a
 second `activation` event ([`docs/PUSH_API.md`](../docs/PUSH_API.md#telemetry-optional)). It is

@@ -40,18 +40,23 @@ data class Design(
   val id: String,
   val title: String,
   val description: String? = null,
-  val previewUrl: String,
-  /** Monotonic; equals the APK `versionCode`. */
-  val version: Long,
+  /** Optional: a design listed before its first build may have none yet. */
+  val previewUrl: String? = null,
+  /**
+   * Monotonic; equals the APK `versionCode` of the newest BUILT version. 0 when the server lists a
+   * design that has never been built and sends none.
+   */
+  val version: Long = 0,
   val versionName: String? = null,
   /** Watch Face Format version the design needs (1..5). */
   val wffVersion: Int,
   /** `<marketplacePackage>.watchfacepush.<faceName>` of the linked APK. */
   val packageName: String,
-  val apkUrl: String,
-  val sha256: String,
+  /** The built APK; null until a version has been built (see [build] and [isInstallable]). */
+  val apkUrl: String? = null,
+  val sha256: String? = null,
   val sizeBytes: Long? = null,
-  val validationToken: String,
+  val validationToken: String? = null,
   /** `design` (an account's design) or `catalog` (a face from a public catalog); null = design. */
   val source: String? = null,
   /** Which catalog a `catalog` face comes from. */
@@ -60,12 +65,55 @@ data class Design(
   val attribution: Attribution? = null,
   /** `public` or `private`; display only. */
   val visibility: String? = null,
+  /**
+   * The server's background build of the newest requested version; null (older servers) means
+   * built. The other fields describe the newest built version, so a face can be installable at v3
+   * while v4 is [BuildStatus.inProgress].
+   */
+  val build: BuildStatus? = null,
 ) {
   val isCatalog: Boolean
     get() = source == SOURCE_CATALOG
 
+  /** A built APK the watch can download, verify and push. */
+  val isInstallable: Boolean
+    get() = apkUrl != null && sha256 != null && validationToken != null
+
+  /** A newer version is pending, queued or building on the server. */
+  val isBuilding: Boolean
+    get() = build?.inProgress == true
+
   companion object {
     const val SOURCE_CATALOG = "catalog"
+  }
+}
+
+/** The server's build of a design's newest requested version. */
+@Serializable
+data class BuildStatus(
+  /** `pending`, `queued`, `building`, `built`, `refused` or `failed`; others read as building. */
+  val state: String = BUILT,
+  /** For `pending`: when the build is scheduled to start. */
+  val scheduledAtEpochMillis: Long? = null,
+  /** For `queued`: builds ahead of this one. */
+  val queueAhead: Int? = null,
+  /** For `building`: `packaging` (also `validating`, `signing`, `exporting`), shown as is. */
+  val stage: String? = null,
+  /** The version; servers may send it only once `built`. */
+  val version: Long? = null,
+  /** For `refused` / `failed`: a short sentence saying why, shown as is. */
+  val reason: String? = null,
+) {
+  val inProgress: Boolean
+    get() = state !in setOf(BUILT, REFUSED, FAILED)
+
+  companion object {
+    const val PENDING = "pending"
+    const val QUEUED = "queued"
+    const val BUILDING = "building"
+    const val BUILT = "built"
+    const val REFUSED = "refused"
+    const val FAILED = "failed"
   }
 }
 

@@ -100,7 +100,13 @@ class HttpPushApi(
   override suspend fun listDesigns(deviceToken: String?): List<Design> =
     call<DesignList>(
         Request.Builder()
-          .url(url("${PushConstants.API_PREFIX}/designs"))
+          // Unbuilt entries are listed only on request: older apps' stricter model rejects them.
+          .url(
+            url("${PushConstants.API_PREFIX}/designs")
+              .newBuilder()
+              .addQueryParameter("includePending", "1")
+              .build(),
+          )
           .bearer(deviceToken)
           .get()
           .build(),
@@ -108,7 +114,8 @@ class HttpPushApi(
       .designs
 
   override suspend fun downloadApk(deviceToken: String?, design: Design, target: File): String {
-    val apkUrl = design.apkUrl.toHttpUrl()
+    val apkUrl =
+      design.apkUrl?.toHttpUrl() ?: throw ApiException(0, "Design ${design.id} is not built yet")
     // Only send the device token to our own server, never to a CDN the apkUrl may point at.
     val token = if (apkUrl.host == base.host) deviceToken else null
     val request = Request.Builder().url(apkUrl).bearer(token).get().build()

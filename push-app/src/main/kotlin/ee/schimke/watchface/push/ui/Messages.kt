@@ -1,5 +1,6 @@
 package ee.schimke.watchface.push.ui
 
+import ee.schimke.watchface.push.data.BuildStatus
 import ee.schimke.watchface.push.push.Activation
 import ee.schimke.watchface.push.push.BlockReason
 import ee.schimke.watchface.push.push.InstallPlan
@@ -18,6 +19,31 @@ object Messages {
         "This face needs Watch Face Format v$designWff. Your watch supports up to v$deviceWff."
       BlockReason.BAD_PACKAGE_NAME -> "This design has an invalid package name. Republish it."
       BlockReason.NO_SLOTS -> "No watch face slot is available."
+      BlockReason.NOT_BUILT -> "This face is still being built. It can be installed once it is."
+    }
+
+  /**
+   * Short text for a [BuildStatus] (the list subtitle and the detail status line), with "Builds in
+   * N min" counted from [nowMillis].
+   */
+  fun build(build: BuildStatus, nowMillis: Long): String =
+    when (build.state) {
+      BuildStatus.PENDING -> {
+        val at = build.scheduledAtEpochMillis
+        val minutes = at?.let { ((it - nowMillis) + 59_999) / 60_000 }
+        when {
+          minutes == null -> "Build pending"
+          minutes <= 0 -> "Building soon"
+          else -> "Builds in $minutes min"
+        }
+      }
+      BuildStatus.QUEUED ->
+        build.queueAhead?.takeIf { it > 0 }?.let { "Queued ($it ahead)" } ?: "Queued"
+      BuildStatus.REFUSED -> build.reason?.let { "Build refused: $it" } ?: "Build refused"
+      BuildStatus.FAILED -> build.reason?.let { "Build failed: $it" } ?: "Build failed"
+      BuildStatus.BUILT -> "Built"
+      // `building` and any state this app does not know yet.
+      else -> build.stage?.let { "Building… $it" } ?: "Building…"
     }
 
   fun failure(kind: PushFailureKind): String =
