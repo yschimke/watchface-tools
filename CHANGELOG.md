@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.0](https://github.com/yschimke/watchface-tools/compare/v0.7.0...v0.8.0) (2026-11-19)
+
+
+### Features
+
+* **push-app:** report the activation outcome and device details with installs ([#63](https://github.com/yschimke/watchface-tools/issues/63)) ([c5f0895](https://github.com/yschimke/watchface-tools/commit/c5f0895bea1897a8e1f7d2964af894fc50f4237f))
+* **wff-packager:** add --report-out and a validate subcommand ([#62](https://github.com/yschimke/watchface-tools/issues/62)) ([0cadab2](https://github.com/yschimke/watchface-tools/commit/0cadab298501d26c29424f2c0d1edb727e896b89))
+
 ## [0.7.0](https://github.com/yschimke/watchface-tools/compare/v0.6.0...v0.7.0) (2026-11-19)
 
 
