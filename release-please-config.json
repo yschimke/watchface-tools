@@ -15,8 +15,7 @@
           "path": "gradle.properties"
         },
         "README.md"
-      ],
-      "release-as": "0.6.0"
+      ]
     }
   }
 }
