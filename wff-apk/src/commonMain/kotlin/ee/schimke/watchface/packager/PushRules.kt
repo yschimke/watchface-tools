@@ -127,14 +127,51 @@ public object PushRules {
     val minSdk = root.firstChild("uses-sdk")?.attr("android:minSdkVersion")
     // Each WFF version needs the Wear OS release that introduced it (v2 needs API 34, not 33), so
     // the floor comes from the declared format version; MIN_SDK is the floor for Push regardless.
+    val versionProperty =
+      root.firstChild("application")?.childElements("property")?.firstOrNull {
+        it.attr("android:name") == WffBundleLayout.WFF_VERSION_PROPERTY
+      }
+    val rawVersionValue = versionProperty?.attr("android:value")
+    val rawVersionResource = versionProperty?.attr("android:resource")
     val declaredVersion =
-      root
-        .firstChild("application")
-        ?.childElements("property")
-        ?.firstOrNull { it.attr("android:name") == WffBundleLayout.WFF_VERSION_PROPERTY }
-        ?.attr("android:value")
-        ?.toIntOrNull()
-        ?.let(WffVersion::fromNumber)
+      when {
+        versionProperty == null -> null
+        rawVersionValue == null && rawVersionResource != null -> {
+          out +=
+            error(
+              "manifest",
+              "${WffBundleLayout.WFF_VERSION_PROPERTY} must use a literal integer android:value, not android:resource='$rawVersionResource' (Watch Face Push validator rejects resource references)",
+            )
+          null
+        }
+        rawVersionValue == null -> {
+          out +=
+            error(
+              "manifest",
+              "${WffBundleLayout.WFF_VERSION_PROPERTY} is missing a literal integer android:value",
+            )
+          null
+        }
+        rawVersionValue.toIntOrNull() == null -> {
+          out +=
+            error(
+              "manifest",
+              "${WffBundleLayout.WFF_VERSION_PROPERTY} android:value='$rawVersionValue' must be a literal integer (resource references like @integer/... are rejected by Watch Face Push)",
+            )
+          null
+        }
+        else -> {
+          val parsed = WffVersion.fromNumber(rawVersionValue.toInt())
+          if (parsed == null) {
+            out +=
+              error(
+                "manifest",
+                "${WffBundleLayout.WFF_VERSION_PROPERTY} android:value='$rawVersionValue' is not a supported Watch Face Format version",
+              )
+          }
+          parsed
+        }
+      }
     val required = maxOf(MIN_SDK, declaredVersion?.let(WffBundleLayout::minSdkFor) ?: MIN_SDK)
     val why =
       if (declaredVersion != null && required > MIN_SDK)
