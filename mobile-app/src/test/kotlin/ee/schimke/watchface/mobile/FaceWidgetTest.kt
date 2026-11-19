@@ -69,6 +69,10 @@ class FaceWidgetTest {
     )
     store.attempted(9, null)
     assertEquals(false, store.retryDue(9, Long.MAX_VALUE, FaceWidgetProvider.RETRY_MS))
+    // Never tried sorts before tried, and earlier failures before later ones.
+    store.attempted(10, 5)
+    store.attempted(11, 3)
+    assertEquals(listOf(12, 11, 10), listOf(10, 11, 12).sortedBy(store::lastAttempt))
   }
 
   @Test

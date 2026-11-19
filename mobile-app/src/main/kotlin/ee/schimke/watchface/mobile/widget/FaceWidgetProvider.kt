@@ -16,6 +16,7 @@ import ee.schimke.watchface.mobile.MainActivity
 import ee.schimke.watchface.mobile.R
 import ee.schimke.watchface.mobile.data.FaceRenderer
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
@@ -165,7 +166,16 @@ class FaceWidgetProvider : AppWidgetProvider() {
       scope.launch {
         try {
           // A broadcast has ~10 s; leave the rest for the launcher.
-          withTimeoutOrNull(8_000) { lock.withLock { for (id in ids) update(app, id, network) } }
+          withTimeoutOrNull(8_000) {
+            lock.withLock {
+              // Kept documents first, with no network: a slow render never holds up a widget
+              // that only needs pushing again. Then the renders, the least recently tried first,
+              // so one face that keeps timing out can't starve the others on every retry.
+              val missing = ids.filterNot { update(app, it, network, cacheOnly = true) }
+              val store = FaceWidgetStore(app)
+              for (id in missing.sortedBy(store::lastAttempt)) update(app, id, network)
+            }
+          }
         } finally {
           pending.finish()
         }
@@ -176,13 +186,24 @@ class FaceWidgetProvider : AppWidgetProvider() {
       AppWidgetManager.getInstance(context)
         .getAppWidgetIds(ComponentName(context, FaceWidgetProvider::class.java))
 
-    private suspend fun update(context: Context, widgetId: Int, network: Boolean) {
+    /**
+     * Draws [widgetId] from its kept document, rendering it first when [network] allows (or a
+     * failed render is due a retry). True when the widget is drawn or has nothing to draw; false
+     * when its document is still missing. [cacheOnly] never fetches and leaves a widget with no
+     * document as it is, for a first pass that a fetch will follow.
+     */
+    private suspend fun update(
+      context: Context,
+      widgetId: Int,
+      network: Boolean,
+      cacheOnly: Boolean = false,
+    ): Boolean {
       val manager = AppWidgetManager.getInstance(context)
       val store = FaceWidgetStore(context)
       val face = store.face(widgetId)
       if (face == null) {
         manager.updateAppWidget(widgetId, message(context, widgetId, R.string.widget_choose))
-        return
+        return true
       }
       val options = manager.getAppWidgetOptions(widgetId)
       // Portrait: the narrowest width and the tallest height a launcher gives the widget.
@@ -196,25 +217,30 @@ class FaceWidgetProvider : AppWidgetProvider() {
       // A tick doesn't touch the network, except to retry a render that failed (a phone that
       // was offline when the widget was added), at most every RETRY_MS.
       val now = System.currentTimeMillis()
-      if (document == null && (network || store.retryDue(widgetId, now, RETRY_MS))) {
-        store.attempted(widgetId, now)
+      if (document == null && !cacheOnly && (network || store.retryDue(widgetId, now, RETRY_MS))) {
         document =
-          runCatching {
-            FaceRenderer(BuildConfig.RENDERER_URL, http).render(face.server, face.faceId, size)
+          try {
+            FaceRenderer(BuildConfig.RENDERER_URL, http)
+              .render(face.server, face.faceId, size)
+              .bytes
+              .also {
+                store.putDocument(face, size, it)
+                store.attempted(widgetId, null)
+              }
+          } catch (e: CancellationException) {
+            // Out of time before its turn finished: not a failed attempt, so it keeps its place.
+            throw e
+          } catch (e: Exception) {
+            Log.w(TAG, "couldn't render ${face.faceId} at $size px", e)
+            store.attempted(widgetId, now)
+            null
           }
-            .onFailure { Log.w(TAG, "couldn't render ${face.faceId} at $size px", it) }
-            .getOrNull()
-            ?.bytes
-            ?.also {
-              store.putDocument(face, size, it)
-              store.attempted(widgetId, null)
-            }
       }
       if (document == null) {
         // Keep what the launcher shows on a tick; say so only when there's nothing yet.
-        if (network)
+        if (network && !cacheOnly)
           manager.updateAppWidget(widgetId, message(context, widgetId, R.string.widget_loading))
-        return
+        return false
       }
       val views =
         if (RcPlatformWidgets.isSupported) {
@@ -227,6 +253,7 @@ class FaceWidgetProvider : AppWidgetProvider() {
         widgetId,
         views ?: message(context, widgetId, R.string.widget_loading),
       )
+      return true
     }
 
     private fun message(context: Context, widgetId: Int, text: Int) =

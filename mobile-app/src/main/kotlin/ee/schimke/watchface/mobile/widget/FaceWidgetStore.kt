@@ -48,9 +48,12 @@ class FaceWidgetStore(context: Context) {
 
   /** Whether a render for [widgetId] last failed at least [afterMs] before [nowMillis]. */
   fun retryDue(widgetId: Int, nowMillis: Long, afterMs: Long): Boolean {
-    val last = prefs.getLong("$widgetId.attempt", -1)
+    val last = lastAttempt(widgetId)
     return last >= 0 && nowMillis - last >= afterMs
   }
+
+  /** When a render for [widgetId] last failed, or -1 if none has: never tried goes first. */
+  fun lastAttempt(widgetId: Int): Long = prefs.getLong("$widgetId.attempt", -1)
 
   /** Records a render attempt at [atMillis] (null once one succeeded). */
   fun attempted(widgetId: Int, atMillis: Long?) {
