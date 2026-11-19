@@ -88,7 +88,8 @@ are read from their PNG/JPEG/WebP headers only, never decoded. The same JSON, wi
   error naming the largest contributors;
 - a drawn image missing from the bundle is an error with the element path (Google's validators
   fail it too); a missing configuration icon is only a warning (they accept it);
-- suggestions: downscale an image to the largest size it is drawn at (when it is over 10% larger in
+- suggestions: downscale an image to the largest size it is drawn at (its container's size times
+  every `scaleX`/`scaleY` above it; none under an animated scale, where that size is unknown) (when it is over 10% larger in
   both dimensions and that saves at least 16 KB), hide a full-colour image in ambient or draw a
   greyscale one (not for an image tinted by itself or its container), remove a drawable nothing references (neither the face nor any other bundled XML, such as the
   manifest's `@drawable/` icon).

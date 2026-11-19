@@ -266,4 +266,27 @@ class WffEstimateTest {
     val contributors = WffEstimate.report(b).check(MEMORY_FOOTPRINT)!!.contributors!!
     assertTrue(contributors.none { it.resource == "drawable/icon" }, "$contributors")
   }
+
+  @Test
+  fun aScaledContainerDrawsTheImageLarger() {
+    val scaled =
+      """<PartImage x="0" y="0" width="100" height="100" scaleX="4" scaleY="4"><Image resource="art"/></PartImage>"""
+    val c =
+      WffEstimate.report(bundle(scaled, "art.png" to png(400, 400)))
+        .check(MEMORY_FOOTPRINT)!!
+        .contributors!!
+        .single()
+    assertEquals(400, c.renderedMaxWidth)
+    assertFalse("downscale" in c.suggestion.orEmpty(), "${c.suggestion}")
+
+    val animated =
+      """<PartImage x="0" y="0" width="100" height="100"><Transform target="scaleX" value="2"/><Image resource="art"/></PartImage>"""
+    val a =
+      WffEstimate.report(bundle(animated, "art.png" to png(400, 400)))
+        .check(MEMORY_FOOTPRINT)!!
+        .contributors!!
+        .single()
+    assertNull(a.renderedMaxWidth, "an animated scale leaves the drawn size unknown")
+    assertFalse("downscale" in a.suggestion.orEmpty(), "${a.suggestion}")
+  }
 }

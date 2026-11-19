@@ -254,8 +254,15 @@ public object WffMemoryEstimator {
     val bitmapFontUses = mutableMapOf<String, MutableList<Use>>()
 
     fun walk(e: WffElement, path: String, parent: Walk, visit: (WffElement, String, Walk) -> Unit) {
-      val w = e.attr("width")?.toFloatOrNull()?.toInt()
-      val h = e.attr("height")?.toFloatOrNull()?.toInt()
+      // Scales multiply down the tree; an animated one (a `Transform` of `scaleX`/`scaleY`) makes
+      // the drawn size unknown, so nothing below it gets a downscale suggestion.
+      val animatedScale =
+        e.childElements("Transform").any { it.attr("target")?.startsWith("scale") == true }
+      val scaleX = parent.scaleX * (e.attr("scaleX")?.toFloatOrNull() ?: 1f)
+      val scaleY = parent.scaleY * (e.attr("scaleY")?.toFloatOrNull() ?: 1f)
+      val sizeKnown = parent.sizeKnown && !animatedScale
+      val w = e.attr("width")?.toFloatOrNull()?.let { (it * scaleX).toInt() }
+      val h = e.attr("height")?.toFloatOrNull()?.let { (it * scaleY).toInt() }
       val here =
         Walk(
           hidden = parent.hidden || hidesInAmbient(e),
@@ -263,8 +270,11 @@ public object WffMemoryEstimator {
           glyphs = parent.glyphs || e.name == "BitmapFonts",
           // A `tintColor` on a container (`PartImage`) tints the `Image` inside it.
           tinted = parent.tinted || e.attr("tintColor") != null,
-          width = if (w != null && h != null) w else parent.width,
-          height = if (w != null && h != null) h else parent.height,
+          width = if (!sizeKnown) null else if (w != null && h != null) w else parent.width,
+          height = if (!sizeKnown) null else if (w != null && h != null) h else parent.height,
+          scaleX = scaleX,
+          scaleY = scaleY,
+          sizeKnown = sizeKnown,
         )
       visit(e, path, here)
       val counts = e.childElements.groupingBy { it.name }.eachCount()
@@ -325,8 +335,12 @@ public object WffMemoryEstimator {
     val config: Boolean = false,
     val glyphs: Boolean = false,
     val tinted: Boolean = false,
+    /** The drawn size (scaled), null when unknown. */
     val width: Int? = null,
     val height: Int? = null,
+    val scaleX: Float = 1f,
+    val scaleY: Float = 1f,
+    val sizeKnown: Boolean = true,
   )
 
   private fun hidesInAmbient(e: WffElement): Boolean =
