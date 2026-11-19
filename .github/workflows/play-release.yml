@@ -106,6 +106,18 @@ jobs:
           PUSH_APP_KEY_PASSWORD: ${{ secrets.PUSH_APP_KEY_PASSWORD }}
         run: ./gradlew :push-app:bundleRelease --stacktrace
 
+      # The listing and release notes are maintained once, in en-GB. Play shows the app's default
+      # listing language (en-US) to most users, and with no en-US title it falls back to the
+      # package name, so mirror en-GB to en-US before anything is published.
+      - name: Mirror the en-GB listing to en-US
+        if: env.PUBLISH_PLAY == 'true'
+        run: |
+          set -euo pipefail
+          play=push-app/src/main/play
+          rm -rf "$play/listings/en-US" "$play/release-notes/en-US"
+          cp -r "$play/listings/en-GB" "$play/listings/en-US"
+          cp -r "$play/release-notes/en-GB" "$play/release-notes/en-US"
+
       - name: Publish to Play (Wear OS internal track)
         if: env.PUBLISH_PLAY == 'true'
         env:
