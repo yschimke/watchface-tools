@@ -23,9 +23,19 @@ import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
  * scroll.
  */
 @Composable
-fun rememberTopAnchoredListState(contentKey: String? = ""): TransformingLazyColumnState {
+fun rememberTopAnchoredListState(
+  contentKey: String? = "",
+  /**
+   * True: a null [contentKey] (content gone, e.g. a new link code being fetched) forgets the last
+   * key, so the next content re-pins even if its key repeats.
+   */
+  repinAfterReload: Boolean = false,
+): TransformingLazyColumnState {
   val state = rememberTransformingLazyColumnState()
   var pinnedKey by rememberSaveable { mutableStateOf<String?>(null) }
+  if (contentKey == null && repinAfterReload && pinnedKey != null) {
+    SideEffect { pinnedKey = null }
+  }
   if (contentKey != null && contentKey != pinnedKey) {
     SideEffect {
       // Centring item 0 overscrolls the start, which the column corrects by pinning it to the top.

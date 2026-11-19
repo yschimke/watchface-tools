@@ -143,6 +143,23 @@ class OpensAtTitleTest {
     assertTitleOnScreen("Link your account")
   }
 
+  /**
+   * Reopening sign-in (emulator run 44479759876): the screen once composed with the previous,
+   * cancelled code, then fetched a new one, and the server issued the same code again. The pin had
+   * fired on the stale code, so the new one did not re-pin and the screen opened scrolled.
+   */
+  @Test
+  fun linkScreenWithARepeatedCode() {
+    val code = LinkState.Waiting("AB7K-92QX", "https://ui.coo.ee/link?code=AB7K-92QX")
+    var state by mutableStateOf<LinkState>(code)
+    setScreen { LinkScreen(state, server = "https://ui.coo.ee", onRetry = {}, onChangeServer = {}) }
+    rule.waitForIdle()
+    state = LinkState.Requesting
+    rule.waitForIdle()
+    state = code
+    assertTitleOnScreen("Link your account")
+  }
+
   @Test
   fun serverScreen() {
     setScreen {
