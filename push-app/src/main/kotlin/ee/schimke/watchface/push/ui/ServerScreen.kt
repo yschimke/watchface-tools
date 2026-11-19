@@ -12,15 +12,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
-import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.RadioButton
 import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
+import androidx.wear.compose.material3.lazy.rememberTransformationSpec
+import androidx.wear.compose.material3.lazy.transformedHeight
 import androidx.wear.input.RemoteInputIntentHelper
 import androidx.wear.input.wearableExtender
 import ee.schimke.watchface.push.data.CatalogServers
@@ -40,6 +41,7 @@ fun ServerScreen(
   onDone: () -> Unit,
 ) {
   val list = rememberTopAnchoredListState()
+  val spec = rememberTransformationSpec()
   var error by remember { mutableStateOf<String?>(null) }
   val input =
     rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -55,27 +57,28 @@ fun ServerScreen(
   val options = (presets + listOfNotNull(current)).distinct()
   ScreenScaffold(list) { padding ->
     TransformingLazyColumn(state = list, contentPadding = padding) {
-      item { ListHeader { Text("Catalog server") } }
-      item {
-        Text(
+      item(key = "header") { Header("Catalog server", spec) }
+      item(key = "about") {
+        BodyText(
           "Where Faces finds your designs. Each server has its own link.",
+          spec,
           style = MaterialTheme.typography.bodySmall,
-          textAlign = TextAlign.Center,
         )
       }
-      items(options.size) { index ->
+      items(options.size, key = { "server:${options[it]}" }) { index ->
         val server = options[index]
         RadioButton(
           selected = server == current,
           onSelect = { if (onSelect(server)) onDone() },
-          modifier = Modifier.fillMaxWidth(),
+          modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
+          transformation = SurfaceTransformation(spec),
           label = { Text(CatalogServers.label(server)) },
           secondaryLabel =
             if (server == presets.firstOrNull()) ({ Text("Default") })
             else if (server !in presets) ({ Text("Entered") }) else null,
         )
       }
-      item {
+      item(key = "other") {
         Button(
           onClick = {
             error = null
@@ -92,18 +95,19 @@ fun ServerScreen(
             input.launch(intent)
           },
           colors = ButtonDefaults.filledTonalButtonColors(),
-          modifier = Modifier.fillMaxWidth(),
+          modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
+          transformation = SurfaceTransformation(spec),
           label = { Text("Other server") },
           secondaryLabel = { Text("Type its address") },
         )
       }
       error?.let {
-        item {
-          Text(
+        item(key = "error") {
+          BodyText(
             it,
+            spec,
             color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Center,
           )
         }
       }

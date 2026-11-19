@@ -3,6 +3,7 @@ package ee.schimke.watchface.push.push
 import ee.schimke.watchface.push.PushConstants
 import ee.schimke.watchface.push.data.ApiException
 import ee.schimke.watchface.push.data.Design
+import ee.schimke.watchface.push.data.DeviceInfo
 import ee.schimke.watchface.push.data.InstallEvent
 import ee.schimke.watchface.push.data.PushApi
 import java.io.File
@@ -64,6 +65,22 @@ sealed interface Activation {
   data class Manual(val kind: PushFailureKind) : Activation
 }
 
+/** [InstallEvent.activation] and [InstallEvent.activationError] for an activation outcome. */
+internal fun Activation.wire(requested: Boolean): Pair<String, String?> =
+  when (this) {
+    Activation.Active -> "activated" to null
+    // Asked for, but the permission is not held: the user has to pick the face themselves.
+    Activation.NotRequested ->
+      if (requested) "manual" to PushFailureKind.PERMISSION_MISSING.name
+      else "not_requested" to null
+    is Activation.Manual ->
+      when (kind) {
+        PushFailureKind.PERMISSION_MISSING,
+        PushFailureKind.MAX_ACTIVATION_ATTEMPTS -> "manual" to kind.name
+        else -> "failed" to kind.name
+      }
+  }
+
 sealed interface InstallResult {
   data class Success(
     val plan: InstallPlan,
@@ -92,7 +109,8 @@ class InstallFlow(
   private val api: PushApi,
   private val pusher: WatchFacePusher,
   private val cacheDir: File,
-  private val wearOsApi: Int,
+  /** Stamped on every [InstallEvent]. */
+  private val device: DeviceInfo,
   /** One line per step (download, verify, push); the emulator test asserts on them in logcat. */
   private val log: (String) -> Unit = {},
 ) {
@@ -149,9 +167,15 @@ class InstallFlow(
           }
         } catch (e: PushFailure) {
           log("push design=${design.id} rejected kind=${e.kind} message=${e.message}")
-          api.reportInstall(
+          report(
             deviceToken,
-            InstallEvent(design.id, design.version, "failed", e.kind.name, wearOsApi),
+            InstallEvent(
+              design.id,
+              design.version,
+              "failed",
+              e.kind.name,
+              packageName = design.packageName,
+            ),
           )
           return InstallResult.PushRejected(e.kind, e.message)
         }
@@ -167,7 +191,9 @@ class InstallFlow(
           }
         } else Activation.NotRequested
       log("activate design=${design.id} activation=$activation")
-      api.reportInstall(
+      // Sent once activation has finished, so the one event carries its outcome.
+      val (outcome, activationError) = activation.wire(requested = activate)
+      report(
         deviceToken,
         InstallEvent(
           design.id,
@@ -177,12 +203,53 @@ class InstallFlow(
             is InstallPlan.UpdateInstalled -> "updated"
             else -> "replaced"
           },
-          wearOsApi = wearOsApi,
+          packageName = face.packageName,
+          activation = outcome,
+          activationError = activationError,
         ),
       )
       return InstallResult.Success(plan, face, activation)
     } finally {
       file.delete()
+    }
+  }
+
+  /**
+   * Makes an installed [face] of design [designId] active (after the user granted the permission)
+   * and reports the outcome as a second, `activation` event. Never throws for a refusal.
+   */
+  suspend fun activate(deviceToken: String?, designId: String, face: InstalledFace): Activation {
+    val activation =
+      try {
+        pusher.setActive(face.slotId)
+        Activation.Active
+      } catch (e: PushFailure) {
+        Activation.Manual(e.kind)
+      }
+    log("activate design=$designId activation=$activation")
+    val (outcome, activationError) = activation.wire(requested = true)
+    report(
+      deviceToken,
+      InstallEvent(
+        designId,
+        face.versionCode,
+        "activation",
+        packageName = face.packageName,
+        activation = outcome,
+        activationError = activationError,
+      ),
+    )
+    return activation
+  }
+
+  /** Best effort, like [PushApi.reportInstall]: telemetry never fails an install. */
+  private suspend fun report(deviceToken: String?, event: InstallEvent) {
+    try {
+      api.reportInstall(deviceToken, device.stamp(event))
+    } catch (e: kotlinx.coroutines.CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      log("report design=${event.designId} failed: $e")
     }
   }
 }

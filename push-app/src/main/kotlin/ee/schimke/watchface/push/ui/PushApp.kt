@@ -2,6 +2,9 @@ package ee.schimke.watchface.push.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -10,10 +13,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.CircularProgressIndicator
 import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
@@ -30,7 +36,7 @@ fun PushApp(vm: AppViewModel) {
       // Each session gets its own back stack: linking lands on the account's list, unlinking on
       // the public one.
       when (val s = session) {
-        Session.Loading -> CircularProgressIndicator()
+        Session.Loading -> LoadingScreen()
         Session.Browsing -> DesignsNav(vm, accountName = null, linked = false)
         is Session.Linked -> DesignsNav(vm, s.account.accountName, linked = true)
       }
@@ -120,6 +126,16 @@ private fun DesignsNav(vm: AppViewModel, accountName: String?, linked: Boolean) 
           onDismissResult = vm::dismissInstallResult,
         )
       }
+    }
+  }
+}
+
+/** Before the stored session loads: a non-scrolling screen, so the time text stays clear. */
+@Composable
+private fun LoadingScreen() {
+  ScreenScaffold { padding ->
+    Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+      CircularProgressIndicator()
     }
   }
 }

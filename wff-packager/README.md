@@ -21,8 +21,48 @@ out.apk; out.validationToken; out.memoryFootprint; out.diagnostics
 wff-packager pack --bundle dir --out face.apk --version-code 12 \
     [--push-marketplace com.example.market [--face-name my_face]] \
     [--keystore release.p12 --keystore-pass pw [--key-alias a] [--key-pass pw]] \
-    [--package com.example.sideload] [--previous-version-code 11] [--token-out token.txt]
+    [--package com.example.sideload] [--previous-version-code 11] [--token-out token.txt] \
+    [--report-out report.json]
+
+wff-packager validate --bundle dir --report-out report.json \
+    [--push-marketplace com.example.market [--face-name my_face]] [--package p] [--version-code n]
 ```
+
+## Report (`--report-out`) and `validate`
+
+`pack --report-out f.json` writes a JSON report of every check, on failure too (`pack` still stops at
+the first failing stage, and the checks after it are `skipped`). `validate` runs **every** check
+without stopping: the APK is still built and run through the memory evaluator and push validator
+when the face fails `wff-core`, and the push validator still runs when the memory evaluator fails.
+It signs with the debug key, writes no APK and exits 0 only when the report `passed`. Without
+`--push-marketplace` it takes the marketplace from a bundle package `<market>.watchfacepush.<face>`;
+otherwise the push validator is skipped. In code: `WatchFacePackager.validate(bundle, options)` and
+`packWithReport(bundle, options)` (`PackOutcome`: the APK or null, the report, the diagnostics).
+
+```json
+{"schemaVersion":1,"wffVersion":1,"minimumWffVersion":1,"passed":false,"checks":[
+ {"id":"wff-schema","title":"WFF schema (wff-core)","status":"passed","findings":[]},
+ {"id":"wff-xsd","title":"Google WFF XSD validator","status":"failed","findings":[
+   {"severity":"error","message":"cvc-complex-type.3.2.2: ...","line":37,"column":48}]},
+ {"id":"memory-footprint","title":"Memory footprint","status":"failed","findings":[
+   {"severity":"error","message":"Asset hour was not found in the watch face package"}]},
+ {"id":"push-validator","title":"Watch Face Push validator","status":"failed","findings":[...],
+  "passedChecks":["SECURITY/APK size validation","..."],"tokenIssued":false}]}
+```
+
+- The checks are always these four, in this order. `status` is `passed`, `failed` or `skipped`.
+- A `skipped` check carries one finding saying why: a `warning` when that is expected (a sideload
+  build has no push validator; `pack` stopped at an earlier failure), an `error` when the APK could
+  not be built (the finding quotes the aapt2 / manifest / push-rules errors).
+- `passed` is true when no check failed and no finding is an error.
+- Findings: `severity` (`error`/`warning`) and `message`; `line`/`column` (Google's XSD
+  validator) and `path` (`wff-core`, such as `/WatchFace/Scene/@backgroundColor`) when known.
+- `memory` (`totalBytes`, `maxActiveBytes`, `maxAmbientBytes`, `activeLimitBytes`,
+  `ambientLimitBytes`) is present when the evaluator ran; `passedChecks` and `tokenIssued` when the
+  push validator ran. **The token is never in the report**; `pack` prints it and `--token-out` saves it.
+- A face that names a drawable the bundle does not ship fails `memory-footprint` with `Asset <name>
+  was not found in the watch face package` (and the push validator repeats it). `wff-core` and the XSD
+  do not check resource references.
 
 ## Relation to `wff-apk`
 

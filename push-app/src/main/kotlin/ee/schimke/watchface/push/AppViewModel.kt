@@ -131,7 +131,7 @@ class AppViewModel(
         val account = stored?.takeIf { it.server == server }
         // No token for this server: browse its public designs rather than asking to sign in.
         _session.value = if (account != null) Session.Linked(account) else Session.Browsing
-        refresh()
+        load(keepContent = false)
       }
     }
   }
@@ -190,12 +190,19 @@ class AppViewModel(
     _install.value = InstallUi.Idle
   }
 
-  fun refresh() {
+  /**
+   * Lists the designs again. The current list stays on screen until the new one arrives: swapping
+   * in a spinner would lose the person's place in it.
+   */
+  fun refresh() = load(keepContent = true)
+
+  /** [keepContent] false for a new session or server, whose list must not show the old one. */
+  private fun load(keepContent: Boolean) {
     val token =
       currentToken().getOrElse {
         return
       }
-    _designs.value = DesignsState.Loading
+    if (!keepContent || _designs.value !is DesignsState.Ready) _designs.value = DesignsState.Loading
     val generation = ++refreshGeneration
     launchWithToken {
       val next =
@@ -254,18 +261,25 @@ class AppViewModel(
     }
   }
 
-  /** Makes an already installed design the active face (needs the runtime permission). */
+  /**
+   * Makes an already installed design the active face (needs the runtime permission) and reports
+   * the outcome to the server as a second install event.
+   */
   fun activate(designId: String, slotId: String) {
-    viewModelScope.launch {
+    val token = currentToken().getOrNull()
+    launchWithToken {
       val previous = _install.value as? InstallUi.Finished
       val success = previous?.result as? InstallResult.Success
+      val face = success?.face?.takeIf { it.slotId == slotId }
       val activation =
-        try {
-          pusher.setActive(slotId)
-          Activation.Active
-        } catch (e: PushFailure) {
-          Activation.Manual(e.kind)
-        }
+        if (face != null) installFlow.activate(token, designId, face)
+        else
+          try {
+            pusher.setActive(slotId)
+            Activation.Active
+          } catch (e: PushFailure) {
+            Activation.Manual(e.kind)
+          }
       if (success != null) {
         _install.value = InstallUi.Finished(designId, success.copy(activation = activation))
       }

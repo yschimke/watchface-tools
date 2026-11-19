@@ -16,13 +16,19 @@ coil = "3.6.3"
 zxing = "3.5.4"
 serializationJson = "1.13.0"
 coroutines = "1.11.0"
-robolectric = "4.18"
+# Held at compose-preview's Robolectric: its renderer runs on this classpath and calls
+# DefaultNativeRuntimeLoader.maybeCopyFonts, which 4.18 removed. Bump with composePreviewPlugin.
+robolectric = "4.17"
 androidxTest = "1.3.0"
 apksig = "8.11.0"
 validatorPush = "1.1.0-alpha01"
 # rc-players (yschimke/rc-players): publishes a Remote Compose document as a launcher widget, for
 # :mobile-app.
 rcPlayers = "3.8.0"
+# compose-ai-tools: the preview renderer behind .github/workflows/compose-preview.yml. The CI
+# action installs the CLI at this plugin version (cli-version: auto), so bump it here only.
+composePreviewPlugin = "2.101.0"
+composePreviewAnnotations = "3.28.0"
 
 
 [libraries]
@@ -43,6 +49,8 @@ compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 wear-compose-material3 = { module = "androidx.wear.compose:compose-material3", version.ref = "wearCompose" }
 wear-compose-foundation = { module = "androidx.wear.compose:compose-foundation", version.ref = "wearCompose" }
+wear-compose-ui-tooling = { module = "androidx.wear.compose:compose-ui-tooling", version.ref = "wearCompose" }
+compose-preview-annotations = { module = "ee.schimke.composeai:preview-annotations", version.ref = "composePreviewAnnotations" }
 wear-compose-navigation = { module = "androidx.wear.compose:compose-navigation", version.ref = "wearCompose" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
@@ -71,3 +79,4 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 play-publisher = { id = "com.github.triplet.play", version.ref = "playPublisher" }
+compose-preview = { id = "ee.schimke.composeai.preview", version.ref = "composePreviewPlugin" }

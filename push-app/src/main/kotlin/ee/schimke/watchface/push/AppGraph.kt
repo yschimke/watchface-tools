@@ -6,6 +6,7 @@ import android.util.Log
 import coil3.ImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import ee.schimke.watchface.push.data.CatalogServers
+import ee.schimke.watchface.push.data.DeviceInfo
 import ee.schimke.watchface.push.data.FakePushServer
 import ee.schimke.watchface.push.data.PreviewArt
 import ee.schimke.watchface.push.data.PushApi
@@ -77,7 +78,14 @@ class AppGraph(
     val client = builder.build()
     switching = SwitchingPushApi(serverPresets.first(), client)
     api = switching
-    installFlow = InstallFlow(api, pusher, context.cacheDir, Build.VERSION.SDK_INT, log)
+    val device =
+      DeviceInfo(
+        wearOsApi = Build.VERSION.SDK_INT,
+        deviceModel = Build.MODEL,
+        watchFacePushApiVersion = BuildConfig.WATCH_FACE_PUSH_VERSION,
+        appVersion = BuildConfig.VERSION_NAME,
+      )
+    installFlow = InstallFlow(api, pusher, context.cacheDir, device, log)
     linkController =
       LinkController(api, tokens, deviceName = Build.MODEL, wearOsApi = Build.VERSION.SDK_INT)
     imageLoader =

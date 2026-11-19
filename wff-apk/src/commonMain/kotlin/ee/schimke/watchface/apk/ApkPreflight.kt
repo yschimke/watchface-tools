@@ -39,6 +39,21 @@ public object ApkPreflight {
     versionCode: Int,
     versionName: String? = null,
     previousVersionCode: Int? = null,
+  ): ApkPreflightResult =
+    check(bundle, target, versionCode, versionName, previousVersionCode, checkWatchFace = true)
+
+  /**
+   * [check], optionally without the `wff-core` check of `res/raw/watchface.xml` ([checkWatchFace]
+   * false), for a caller that runs and reports that check itself and still wants an APK built from
+   * a face that fails it (the packager's `validate`, which runs every check).
+   */
+  public fun check(
+    bundle: Map<String, ByteArray>,
+    target: PackageTarget,
+    versionCode: Int,
+    versionName: String?,
+    previousVersionCode: Int?,
+    checkWatchFace: Boolean,
   ): ApkPreflightResult {
     val diagnostics = mutableListOf<PackagingDiagnostic>()
 
@@ -81,7 +96,7 @@ public object ApkPreflight {
     } else if (!PushRules.isValidPackageName(packageName)) {
       diagnostics += error("manifest", "Package '$packageName' is not a valid package name")
     }
-    if (wffVersion != null) diagnostics += checkWatchFace(files, wffVersion)
+    if (wffVersion != null && checkWatchFace) diagnostics += checkWatchFace(files, wffVersion)
     if (hasErrors()) fail()
 
     val minSdk =
