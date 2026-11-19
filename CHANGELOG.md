@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.11.0](https://github.com/yschimke/watchface-tools/compare/v0.10.0...v0.11.0) (2026-11-19)
+
+
+### Features
+
+* Faces phone app with a watch face launcher widget ([#66](https://github.com/yschimke/watchface-tools/issues/66)) ([c09fe48](https://github.com/yschimke/watchface-tools/commit/c09fe482599e01ab6ff7e7c342d03b238e6904dc))
+
+
+### Bug Fixes
+
+* **wff-apk:** treat width/height transforms as an unknown drawn size ([#74](https://github.com/yschimke/watchface-tools/issues/74)) ([8edf07e](https://github.com/yschimke/watchface-tools/commit/8edf07e7f67a8a1f90f0d97547d7648537ef5ba3))
+
 ## [0.10.0](https://github.com/yschimke/watchface-tools/compare/v0.9.0...v0.10.0) (2026-11-19)
 
 
