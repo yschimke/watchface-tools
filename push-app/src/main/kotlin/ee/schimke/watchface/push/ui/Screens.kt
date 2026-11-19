@@ -59,7 +59,7 @@ import ee.schimke.watchface.push.push.PushState
  */
 @Composable
 fun LinkScreen(state: LinkState, server: String?, onRetry: () -> Unit, onChangeServer: () -> Unit) {
-  // Back to the header (and the QR below it) for each new code.
+  // Back to the header (and the QR below it) for each new code, even one that repeats the last.
   val list =
     rememberTopAnchoredListState(
       contentKey =
@@ -68,6 +68,7 @@ fun LinkScreen(state: LinkState, server: String?, onRetry: () -> Unit, onChangeS
           is LinkState.Waiting -> "code:${state.code}"
           else -> state.javaClass.simpleName
         },
+      repinAfterReload = true,
     )
   val spec = rememberTransformationSpec()
   // After an expired, declined or failed code, a new code is the screen's primary action.

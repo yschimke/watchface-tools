@@ -158,6 +158,8 @@ class AppViewModel(
   fun cancelLink() {
     linkJob?.cancel()
     linkJob = null
+    // The cancelled code is dead: reopening the screen must not show it while a new one is fetched.
+    _link.value = LinkState.Requesting
   }
 
   /**
