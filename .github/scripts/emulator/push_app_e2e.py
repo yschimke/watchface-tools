@@ -101,6 +101,9 @@ def find(text: str, prefix: bool = False) -> tuple[int, int] | None:
     w, h = screen_size()
     for label, (x1, y1, x2, y2) in nodes():
         if label.strip() == text or (prefix and label.strip().startswith(text)):
+            # The middle of the part that is on screen: a half-visible row's own centre can be
+            # off the disc, where a tap does nothing (run 14, "Link account").
+            y1, y2 = max(y1, 0), min(y2, h)
             cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
             # On screen, edges included: the EdgeButton (Install) hugs the bottom of the disc.
             if 0 < cy < h and 0 < cx < w and x2 > x1 and y2 > y1:
@@ -160,7 +163,14 @@ def wait_text(text: str, timeout: float = 30, scroll_to: bool = False) -> tuple[
 def settled(text: str, timeout: float = 30, scroll_to: bool = True) -> tuple[int, int]:
     """[text]'s position once two dumps agree: the list has stopped moving under it."""
     pos = wait_text(text, timeout, scroll_to)
+    w, h = screen_size()
     for _ in range(5):
+        if scroll_to and pos[1] > 0.8 * h:
+            # Low on the disc (half off it, or clipped by the curve): drag it up a little first.
+            shell(f"input swipe {w // 2} {int(h * 0.6)} {w // 2} {int(h * 0.4)} 900")
+            time.sleep(1.2)
+            pos = find(text) or wait_text(text, timeout, scroll_to)
+            continue
         time.sleep(0.6)
         again = find(text)
         if again and abs(again[0] - pos[0]) <= 4 and abs(again[1] - pos[1]) <= 4:
