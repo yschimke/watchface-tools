@@ -77,7 +77,7 @@ open class MainActivity : ComponentActivity() {
   }
 
   private fun choose(face: Face) {
-    val chosen = WidgetFace(BuildConfig.FACES_SERVER, face.id, face.title)
+    val chosen = WidgetFace(BuildConfig.FACES_SERVER, face.id, face.title, face.version)
     val id = widgetId
     if (id != AppWidgetManager.INVALID_APPWIDGET_ID) {
       FaceWidgetProvider.show(applicationContext, id, chosen)

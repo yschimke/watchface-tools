@@ -3,8 +3,16 @@ package ee.schimke.watchface.mobile.widget
 import android.content.Context
 import java.io.File
 
-/** The face a widget shows: which site's, which design, and its title for the app's list. */
-data class WidgetFace(val server: String, val faceId: String, val title: String)
+/**
+ * The face a widget shows: which site's, which design, the published [version] it was chosen at,
+ * and its title for the app's list. A new version is a new document.
+ */
+data class WidgetFace(
+  val server: String,
+  val faceId: String,
+  val title: String,
+  val version: Long = 0,
+)
 
 /**
  * What each widget shows, and the documents it was last drawn with. A widget's document is kept on
@@ -18,7 +26,12 @@ class FaceWidgetStore(context: Context) {
   fun face(widgetId: Int): WidgetFace? {
     val server = prefs.getString("$widgetId.server", null) ?: return null
     val faceId = prefs.getString("$widgetId.face", null) ?: return null
-    return WidgetFace(server, faceId, prefs.getString("$widgetId.title", null) ?: faceId)
+    return WidgetFace(
+      server,
+      faceId,
+      prefs.getString("$widgetId.title", null) ?: faceId,
+      prefs.getLong("$widgetId.version", 0),
+    )
   }
 
   fun setFace(widgetId: Int, face: WidgetFace) {
@@ -27,7 +40,10 @@ class FaceWidgetStore(context: Context) {
       .putString("$widgetId.server", face.server)
       .putString("$widgetId.face", face.faceId)
       .putString("$widgetId.title", face.title)
+      .putLong("$widgetId.version", face.version)
       .apply()
+    // The face it replaces, or an older version of it, may be no widget's document any more.
+    prune()
   }
 
   /** Whether a render for [widgetId] last failed at least [afterMs] before [nowMillis]. */
@@ -68,9 +84,15 @@ class FaceWidgetStore(context: Context) {
           remove("$id.face")
           remove("$id.title")
           remove("$id.attempt")
+          remove("$id.version")
         }
       }
       .apply()
+    prune()
+  }
+
+  /** Deletes every cached document no widget's current face uses. */
+  private fun prune() {
     val kept =
       prefs.all.keys
         .filter { it.endsWith(".face") }
@@ -85,5 +107,5 @@ class FaceWidgetStore(context: Context) {
 
   /** A file-name-safe key for a face: ids may hold `/` and `:` (catalog faces). */
   private fun prefix(face: WidgetFace) =
-    (face.server + "|" + face.faceId).hashCode().toUInt().toString(16) + "-"
+    (face.server + "|" + face.faceId + "|" + face.version).hashCode().toUInt().toString(16) + "-"
 }

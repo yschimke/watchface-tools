@@ -113,6 +113,7 @@ class FaceWidgetProvider : AppWidgetProvider() {
     private const val EXTRA_SERVER = "server"
     private const val EXTRA_FACE = "face"
     private const val EXTRA_TITLE = "title"
+    private const val EXTRA_VERSION = "version"
 
     /**
      * Asks the launcher to add a widget showing [face]; it shows it once the person accepts. False
@@ -127,6 +128,7 @@ class FaceWidgetProvider : AppWidgetProvider() {
           .putExtra(EXTRA_SERVER, face.server)
           .putExtra(EXTRA_FACE, face.faceId)
           .putExtra(EXTRA_TITLE, face.title)
+          .putExtra(EXTRA_VERSION, face.version)
       // Mutable: the launcher fills in the new widget's id.
       val pending =
         PendingIntent.getBroadcast(
@@ -145,7 +147,12 @@ class FaceWidgetProvider : AppWidgetProvider() {
     private fun faceOf(intent: Intent): WidgetFace? {
       val server = intent.getStringExtra(EXTRA_SERVER) ?: return null
       val face = intent.getStringExtra(EXTRA_FACE) ?: return null
-      return WidgetFace(server, face, intent.getStringExtra(EXTRA_TITLE) ?: face)
+      return WidgetFace(
+        server,
+        face,
+        intent.getStringExtra(EXTRA_TITLE) ?: face,
+        intent.getLongExtra(EXTRA_VERSION, 0),
+      )
     }
 
     /** How long after a failed render a tick tries the network again. */

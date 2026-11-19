@@ -67,4 +67,17 @@ class FaceWidgetTest {
     assertContentEquals(byteArrayOf(2), store.document(pulse, 416))
     assertEquals(1, File(context.filesDir, "faces").listFiles()!!.size)
   }
+
+  @Test
+  fun aNewPublishedVersionIsANewDocument() {
+    val store = FaceWidgetStore(context)
+    val v1 = WidgetFace("https://ui.coo.ee", "aurora", "Aurora", version = 1)
+    store.setFace(3, v1)
+    store.putDocument(v1, 416, byteArrayOf(1))
+    val v2 = v1.copy(version = 2)
+    store.setFace(3, v2)
+    assertEquals(v2, store.face(3))
+    assertNull(store.document(v2, 416))
+    assertNull(store.document(v1, 416))
+  }
 }
