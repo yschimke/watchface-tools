@@ -28,7 +28,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
-import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.CircularProgressIndicator
@@ -60,7 +59,16 @@ import ee.schimke.watchface.push.push.PushState
  */
 @Composable
 fun LinkScreen(state: LinkState, server: String?, onRetry: () -> Unit, onChangeServer: () -> Unit) {
-  val list = rememberTransformingLazyColumnState()
+  // Back to the header (and the QR below it) for each new code.
+  val list =
+    rememberTopAnchoredListState(
+      contentKey =
+        when (state) {
+          LinkState.Requesting -> null
+          is LinkState.Waiting -> "code:${state.code}"
+          else -> state.javaClass.simpleName
+        },
+    )
   ScreenScaffold(list) { padding ->
     TransformingLazyColumn(state = list, contentPadding = padding) {
       item { ListHeader { Text("Link your account") } }
@@ -179,7 +187,9 @@ fun DesignListScreen(
   onSignIn: () -> Unit = {},
   onChangeServer: () -> Unit = {},
 ) {
-  val list = rememberTransformingLazyColumnState()
+  // Opens at the header, and again once the designs first arrive (see the function).
+  val list =
+    rememberTopAnchoredListState(contentKey = if (state is DesignsState.Loading) null else "loaded")
   ScreenScaffold(list) { padding ->
     TransformingLazyColumn(state = list, contentPadding = padding) {
       item { ListHeader { Text(if (linked) "Your designs" else "Public faces") } }
@@ -292,7 +302,7 @@ fun DesignDetailScreen(
   onRequestActivation: (slotId: String) -> Unit,
   onDismissResult: () -> Unit,
 ) {
-  val list = rememberTransformingLazyColumnState()
+  val list = rememberTopAnchoredListState()
   val plan =
     push?.let { InstallPlanner.plan(design, it, pushSupported, deviceWff) }
       ?: if (!pushSupported) InstallPlan.Blocked(BlockReason.PUSH_UNSUPPORTED) else null
