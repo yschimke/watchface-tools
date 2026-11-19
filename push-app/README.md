@@ -86,9 +86,12 @@ activate, `listWatchFaces` state).
   validation token, as a **catalog face** (`catalog:wear-os-samples-watchfaces/SimpleDigital`,
   under "Wear OS samples", with its licence checked on the detail screen), listed through the
   fake via `--es fake_extra_catalog` and served from the runner over `adb reverse`. It checks
-  `listWatchFaces` holds that face. Then it opens **Sign in for your designs**, checks Back
-  returns to the public list, links, checks the private design is listed, and screenshots the
+  `listWatchFaces` holds that face. Then it opens **Sign in for your designs** and the server
+  picker, checks Back returns to the public list, links, checks the private design is listed, and screenshots the
   watch face.
+- **First frames:** for the public and linked lists, the detail, sign-in and server screens it
+  screenshots the screen as it first renders (`first-*.png`) and fails unless the title is fully
+  on the round screen: below the time text, in the top half and inside the disc.
 - **Stage 2 (server):** `workflow_dispatch` with `stage: server` and `base_url` (default
   `https://ui.coo.ee`). Browses and installs a public face from the live server (a
   wear-os-samples catalog face when the server lists one); with the

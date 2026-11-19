@@ -3,14 +3,13 @@ package ee.schimke.watchface.push.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,18 +24,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.CircularProgressIndicator
 import androidx.wear.compose.material3.EdgeButton
-import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TitleCard
+import androidx.wear.compose.material3.lazy.rememberTransformationSpec
+import androidx.wear.compose.material3.lazy.transformedHeight
 import coil3.compose.AsyncImage
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
@@ -69,47 +69,60 @@ fun LinkScreen(state: LinkState, server: String?, onRetry: () -> Unit, onChangeS
           else -> state.javaClass.simpleName
         },
     )
-  ScreenScaffold(list) { padding ->
+  val spec = rememberTransformationSpec()
+  // After an expired, declined or failed code, a new code is the screen's primary action.
+  val retryLabel =
+    when (state) {
+      LinkState.Expired -> "New code"
+      LinkState.Denied -> "Try again"
+      is LinkState.Failed -> "Retry"
+      else -> null
+    }
+  ScreenScaffold(
+    list,
+    edgeButton = { retryLabel?.let { EdgeButton(onClick = onRetry) { Text(it) } } },
+  ) { padding ->
     TransformingLazyColumn(state = list, contentPadding = padding) {
-      item { ListHeader { Text("Link your account") } }
+      item(key = "header") { Header("Link your account", spec) }
       when (state) {
-        LinkState.Requesting -> item { CircularProgressIndicator() }
+        LinkState.Requesting ->
+          item(key = "requesting") {
+            CircularProgressIndicator(Modifier.transformedItem(this, spec))
+          }
         is LinkState.Waiting -> {
-          item { QrCode(state.verificationUrl, Modifier.size(112.dp)) }
-          item {
-            Text(
+          item(key = "qr") {
+            Box(Modifier.fillMaxWidth().transformedItem(this, spec), Alignment.Center) {
+              QrCode(state.verificationUrl, Modifier.size(112.dp))
+            }
+          }
+          item(key = "code") {
+            BodyText(
               state.code,
-              style = MaterialTheme.typography.titleLarge,
-              fontFamily = FontFamily.Monospace,
-              textAlign = TextAlign.Center,
+              spec,
+              style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Monospace),
             )
           }
-          item {
-            Text(
+          item(key = "how") {
+            BodyText(
               "Scan, or open the site's Link page and enter this code.",
+              spec,
               style = MaterialTheme.typography.bodySmall,
-              textAlign = TextAlign.Center,
             )
           }
         }
-        is LinkState.Linked -> item { Text("Linked ${state.accountName.orEmpty()}") }
-        LinkState.Expired -> {
-          item { Text("The code expired.", textAlign = TextAlign.Center) }
-          item { Button(onClick = onRetry, label = { Text("New code") }) }
-        }
-        LinkState.Denied -> {
-          item { Text("Linking was declined on the site.", textAlign = TextAlign.Center) }
-          item { Button(onClick = onRetry, label = { Text("Try again") }) }
-        }
-        is LinkState.Failed -> {
-          item { Text(state.message, textAlign = TextAlign.Center) }
-          item { Button(onClick = onRetry, label = { Text("Retry") }) }
-        }
+        is LinkState.Linked ->
+          item(key = "linked") { BodyText("Linked ${state.accountName.orEmpty()}", spec) }
+        LinkState.Expired -> item(key = "status") { BodyText("The code expired.", spec) }
+        LinkState.Denied ->
+          item(key = "status") { BodyText("Linking was declined on the site.", spec) }
+        is LinkState.Failed -> item(key = "status") { BodyText(state.message, spec) }
       }
-      item {
+      item(key = "server") {
         Button(
           onClick = onChangeServer,
+          modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
           colors = ButtonDefaults.filledTonalButtonColors(),
+          transformation = SurfaceTransformation(spec),
           label = { Text("Server") },
           secondaryLabel = { server?.let { Text(CatalogServers.label(it)) } },
         )
@@ -190,52 +203,73 @@ fun DesignListScreen(
   // Opens at the header, and again once the designs first arrive (see the function).
   val list =
     rememberTopAnchoredListState(contentKey = if (state is DesignsState.Loading) null else "loaded")
-  ScreenScaffold(list) { padding ->
+  val spec = rememberTransformationSpec()
+  ScreenScaffold(
+    list,
+    edgeButton = {
+      // Refresh is the list's primary action; Retry after a failed load.
+      when (state) {
+        is DesignsState.Ready -> EdgeButton(onClick = onRefresh) { Text("Refresh") }
+        is DesignsState.Error -> EdgeButton(onClick = onRefresh) { Text("Retry") }
+        DesignsState.Loading -> {}
+      }
+    },
+  ) { padding ->
     TransformingLazyColumn(state = list, contentPadding = padding) {
-      item { ListHeader { Text(if (linked) "Your designs" else "Public faces") } }
+      item(key = "header") { Header(if (linked) "Your designs" else "Public faces", spec) }
       if (!pushSupported) {
-        item {
-          Text(
+        item(key = "unsupported") {
+          BodyText(
             Messages.blocked(BlockReason.PUSH_UNSUPPORTED, 0, deviceWff),
+            spec,
             style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Center,
           )
         }
       }
       when (state) {
-        DesignsState.Loading -> item { CircularProgressIndicator() }
-        is DesignsState.Error -> {
-          item { Text(state.message, textAlign = TextAlign.Center) }
-          item { Button(onClick = onRefresh, label = { Text("Retry") }) }
-        }
+        DesignsState.Loading ->
+          item(key = "loading") {
+            Box(Modifier.fillMaxWidth().transformedItem(this, spec), Alignment.Center) {
+              CircularProgressIndicator()
+            }
+          }
+        is DesignsState.Error -> item(key = "error") { BodyText(state.message, spec) }
         is DesignsState.Ready -> {
           if (state.designs.isEmpty()) {
-            item {
-              Text(
+            item(key = "empty") {
+              BodyText(
                 if (linked) "Nothing published yet. Publish a design from the site."
                 else "No public faces yet.",
-                textAlign = TextAlign.Center,
+                spec,
               )
             }
           }
           state.push?.let { push ->
-            item {
+            item(key = "slots") {
               val total = push.installed.size + push.remainingSlots
-              Text(
+              BodyText(
                 "$total face slot${if (total == 1) "" else "s"}: installing another design " +
                   if (total == 1) "replaces the current one." else "uses a free slot first.",
+                spec,
                 style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
               )
             }
           }
-          val sections = designSections(state.designs)
-          for (section in sections) {
-            section.title?.let { title -> item { ListHeader { Text(title) } } }
-            items(section.designs.size) { index ->
+          // Keys must be unique or the column throws: one row per id, sections by position.
+          val sections = designSections(state.designs.distinctBy { it.id })
+          for ((sectionIndex, section) in sections.withIndex()) {
+            section.title?.let { title ->
+              item(key = "section:$sectionIndex") { Header(title, spec) }
+            }
+            items(
+              section.designs.size,
+              key = { index -> "design:${section.designs[index].id}" },
+            ) { index ->
               val design = section.designs[index]
               TitleCard(
                 onClick = { onOpen(design) },
+                modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
+                transformation = SurfaceTransformation(spec),
                 title = { Text(design.title) },
                 subtitle = { Text(statusLabel(design, state.push, deviceWff)) },
               ) {
@@ -247,22 +281,13 @@ fun DesignListScreen(
           }
         }
       }
-      item { Spacer(Modifier.height(4.dp)) }
-      if (state is DesignsState.Ready) {
-        item {
-          Button(
-            onClick = onRefresh,
-            colors = ButtonDefaults.filledTonalButtonColors(),
-            label = { Text("Refresh") },
-            secondaryLabel = { Text("Check for new designs") },
-          )
-        }
-      }
       if (linked) {
-        item {
+        item(key = "unlink") {
           Button(
             onClick = onUnlink,
+            modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
             colors = ButtonDefaults.filledTonalButtonColors(),
+            transformation = SurfaceTransformation(spec),
             label = { Text("Unlink") },
             secondaryLabel = {
               val who = listOfNotNull(accountName, server?.let(CatalogServers::label))
@@ -271,17 +296,21 @@ fun DesignListScreen(
           )
         }
       } else {
-        item {
+        item(key = "sign-in") {
           Button(
             onClick = onSignIn,
+            modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
+            transformation = SurfaceTransformation(spec),
             label = { Text("Sign in for your designs") },
             secondaryLabel = { Text("Optional: adds your own") },
           )
         }
-        item {
+        item(key = "server") {
           Button(
             onClick = onChangeServer,
+            modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
             colors = ButtonDefaults.filledTonalButtonColors(),
+            transformation = SurfaceTransformation(spec),
             label = { Text("Server") },
             secondaryLabel = { server?.let { Text(CatalogServers.label(it)) } },
           )
@@ -303,6 +332,7 @@ fun DesignDetailScreen(
   onDismissResult: () -> Unit,
 ) {
   val list = rememberTopAnchoredListState()
+  val spec = rememberTransformationSpec()
   val plan =
     push?.let { InstallPlanner.plan(design, it, pushSupported, deviceWff) }
       ?: if (!pushSupported) InstallPlan.Blocked(BlockReason.PUSH_UNSUPPORTED) else null
@@ -318,6 +348,17 @@ fun DesignDetailScreen(
       plan is InstallPlan.ReplaceOther -> if (confirming) "Replace now" else "Install"
       else -> "Install"
     }
+  val attribution = attributionLines(design)
+  val description = design.description
+  // The result is added at the end while the person is at the Install button: bring it into view.
+  val resultIndex =
+    4 +
+      (if (description != null) 1 else 0) +
+      attribution.size +
+      (if (blocked != null) 1 else 0) +
+      (if (plan is InstallPlan.ReplaceOther) 1 else 0) +
+      (if (working) 1 else 0)
+  LaunchedEffect(finished) { if (finished != null) list.animateScrollToItem(resultIndex) }
   ScreenScaffold(
     list,
     edgeButton = {
@@ -338,59 +379,71 @@ fun DesignDetailScreen(
     },
   ) { padding ->
     TransformingLazyColumn(state = list, contentPadding = padding) {
-      item { PreviewImage(design, Modifier.size(96.dp)) }
-      item { ListHeader { Text(design.title) } }
-      item {
-        Text(
-          "Version ${design.versionName ?: design.version} · requires WFF v${design.wffVersion}",
-          style = MaterialTheme.typography.bodySmall,
-          textAlign = TextAlign.Center,
-        )
-      }
-      design.description?.let { item { Text(it, style = MaterialTheme.typography.bodySmall) } }
-      for (line in attributionLines(design)) {
-        item {
-          Text(
-            line,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-          )
+      // The title first, so the screen opens on it; the preview follows.
+      item(key = "header") { Header(design.title, spec) }
+      item(key = "preview") {
+        Box(Modifier.fillMaxWidth().transformedItem(this, spec), Alignment.Center) {
+          PreviewImage(design, Modifier.size(96.dp))
         }
       }
-      item {
-        Text(
+      item(key = "version") {
+        BodyText(
+          "Version ${design.versionName ?: design.version} · requires WFF v${design.wffVersion}",
+          spec,
+          style = MaterialTheme.typography.bodySmall,
+        )
+      }
+      item(key = "status") {
+        BodyText(
           statusLabel(design, push, deviceWff),
+          spec,
           style = MaterialTheme.typography.labelMedium,
           color = MaterialTheme.colorScheme.primary,
         )
       }
+      description?.let {
+        item(key = "description") { BodyText(it, spec, style = MaterialTheme.typography.bodySmall) }
+      }
+      items(attribution.size, key = { "attribution:$it" }) { index ->
+        BodyText(
+          attribution[index],
+          spec,
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
       blocked?.let {
-        item {
-          Text(
+        item(key = "blocked") {
+          BodyText(
             Messages.blocked(it.reason, design.wffVersion, deviceWff),
+            spec,
             color = MaterialTheme.colorScheme.error,
-            textAlign = TextAlign.Center,
           )
         }
       }
       if (plan is InstallPlan.ReplaceOther) {
-        item {
-          Text(
+        item(key = "replace") {
+          BodyText(
             "Your watch has room for one face from this app. Installing replaces " +
               plan.slot.packageName.substringAfterLast('.') +
               ".",
+            spec,
             style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Center,
           )
         }
       }
-      if (working) item { CircularProgressIndicator() }
+      if (working) {
+        item(key = "working") {
+          Box(Modifier.fillMaxWidth().transformedItem(this, spec), Alignment.Center) {
+            CircularProgressIndicator()
+          }
+        }
+      }
       finished?.let { done ->
-        item {
-          Text(
+        item(key = "result") {
+          BodyText(
             Messages.result(done.result, design.wffVersion, deviceWff),
-            textAlign = TextAlign.Center,
+            spec,
             color =
               if (done.result is InstallResult.Success) MaterialTheme.colorScheme.primary
               else MaterialTheme.colorScheme.error,
@@ -398,14 +451,24 @@ fun DesignDetailScreen(
         }
         val success = done.result as? InstallResult.Success
         if (success != null && success.activation == Activation.NotRequested) {
-          item {
+          item(key = "activate") {
             Button(
               onClick = { onRequestActivation(success.face.slotId) },
+              modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
+              transformation = SurfaceTransformation(spec),
               label = { Text("Set as watch face") },
             )
           }
         }
-        item { Button(onClick = onDismissResult, label = { Text("OK") }) }
+        item(key = "dismiss") {
+          Button(
+            onClick = onDismissResult,
+            modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
+            colors = ButtonDefaults.filledTonalButtonColors(),
+            transformation = SurfaceTransformation(spec),
+            label = { Text("OK") },
+          )
+        }
       }
     }
   }
