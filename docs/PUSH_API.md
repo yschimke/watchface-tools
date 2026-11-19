@@ -48,8 +48,8 @@ must be `hasCode=false`, `minSdk >= 33`, and contain only `AndroidManifest.xml`,
 
 Linking is optional. Without it the watch browses the server's **public** designs: `GET /designs`
 and the public designs' `GET /designs/{id}/apk` work with no `Authorization` header. Linking adds the
-account's own (private) designs. On the watch, the link screen offers "Browse public faces", and the
-public list offers "Link account".
+account's own (private) designs. On the watch, an unlinked watch opens on the public list, which
+offers "Sign in for your designs" (the device-code screen below); swiping back returns to the list.
 
 Account linking uses the OAuth device-code pattern so nothing is typed on the watch.
 

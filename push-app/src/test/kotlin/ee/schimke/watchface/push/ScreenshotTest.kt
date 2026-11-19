@@ -130,6 +130,27 @@ class ScreenshotTest {
       )
     }
 
+  private val publicDesigns = server.publicDesigns
+
+  /** What an unlinked watch opens on: the first viewport of the round display. */
+  @Test fun publicFirstScreen() = shot("public-first-screen") { PublicList() }
+
+  @Config(qualifiers = TALL) @Test fun publicList() = shot("public-list") { PublicList() }
+
+  @Composable
+  private fun PublicList() =
+    DesignListScreen(
+      state = ee.schimke.watchface.push.DesignsState.Ready(publicDesigns, singleSlotFull),
+      accountName = null,
+      server = "https://ui.coo.ee",
+      deviceWff = 4,
+      pushSupported = true,
+      onOpen = {},
+      onRefresh = {},
+      onUnlink = {},
+      linked = false,
+    )
+
   @Config(qualifiers = TALL)
   @Test
   fun detailReplacesSingleSlot() =

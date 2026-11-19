@@ -28,7 +28,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
-import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.CircularProgressIndicator
@@ -54,26 +53,26 @@ import ee.schimke.watchface.push.push.InstallPlanner
 import ee.schimke.watchface.push.push.InstallResult
 import ee.schimke.watchface.push.push.PushState
 
+/**
+ * Signing in with a device code, opened from the public list; swiping it away goes back there, so
+ * signing in stays optional.
+ */
 @Composable
-fun LinkScreen(
-  state: LinkState,
-  server: String?,
-  onRetry: () -> Unit,
-  onChangeServer: () -> Unit,
-  onBrowse: () -> Unit = {},
-) {
-  val list = rememberTransformingLazyColumnState()
+fun LinkScreen(state: LinkState, server: String?, onRetry: () -> Unit, onChangeServer: () -> Unit) {
+  // Back to the header (and the QR below it) for each new code, even one that repeats the last.
+  val list =
+    rememberTopAnchoredListState(
+      contentKey =
+        when (state) {
+          LinkState.Requesting -> null
+          is LinkState.Waiting -> "code:${state.code}"
+          else -> state.javaClass.simpleName
+        },
+      repinAfterReload = true,
+    )
   ScreenScaffold(list) { padding ->
     TransformingLazyColumn(state = list, contentPadding = padding) {
       item { ListHeader { Text("Link your account") } }
-      // Public faces need no account: offered first, so linking stays optional.
-      item {
-        Button(
-          onClick = onBrowse,
-          label = { Text("Browse public faces") },
-          secondaryLabel = { Text("No account needed") },
-        )
-      }
       when (state) {
         LinkState.Requesting -> item { CircularProgressIndicator() }
         is LinkState.Waiting -> {
@@ -184,10 +183,14 @@ fun DesignListScreen(
   onOpen: (Design) -> Unit,
   onRefresh: () -> Unit,
   onUnlink: () -> Unit,
-  /** False while browsing public designs: the last button links instead of unlinking. */
+  /** False while browsing public designs: the list offers signing in instead of unlinking. */
   linked: Boolean = true,
+  onSignIn: () -> Unit = {},
+  onChangeServer: () -> Unit = {},
 ) {
-  val list = rememberTransformingLazyColumnState()
+  // Opens at the header, and again once the designs first arrive (see the function).
+  val list =
+    rememberTopAnchoredListState(contentKey = if (state is DesignsState.Loading) null else "loaded")
   ScreenScaffold(list) { padding ->
     TransformingLazyColumn(state = list, contentPadding = padding) {
       item { ListHeader { Text(if (linked) "Your designs" else "Public faces") } }
@@ -256,18 +259,34 @@ fun DesignListScreen(
           )
         }
       }
-      item {
-        Button(
-          onClick = onUnlink,
-          colors = ButtonDefaults.filledTonalButtonColors(),
-          label = { Text(if (linked) "Unlink" else "Link account") },
-          secondaryLabel = {
-            val who =
-              if (linked) listOfNotNull(accountName, server?.let(CatalogServers::label))
-              else listOf("Adds your own designs")
-            if (who.isNotEmpty()) Text(who.joinToString(" · "))
-          },
-        )
+      if (linked) {
+        item {
+          Button(
+            onClick = onUnlink,
+            colors = ButtonDefaults.filledTonalButtonColors(),
+            label = { Text("Unlink") },
+            secondaryLabel = {
+              val who = listOfNotNull(accountName, server?.let(CatalogServers::label))
+              if (who.isNotEmpty()) Text(who.joinToString(" · "))
+            },
+          )
+        }
+      } else {
+        item {
+          Button(
+            onClick = onSignIn,
+            label = { Text("Sign in for your designs") },
+            secondaryLabel = { Text("Optional: adds your own") },
+          )
+        }
+        item {
+          Button(
+            onClick = onChangeServer,
+            colors = ButtonDefaults.filledTonalButtonColors(),
+            label = { Text("Server") },
+            secondaryLabel = { server?.let { Text(CatalogServers.label(it)) } },
+          )
+        }
       }
     }
   }
@@ -284,7 +303,7 @@ fun DesignDetailScreen(
   onRequestActivation: (slotId: String) -> Unit,
   onDismissResult: () -> Unit,
 ) {
-  val list = rememberTransformingLazyColumnState()
+  val list = rememberTopAnchoredListState()
   val plan =
     push?.let { InstallPlanner.plan(design, it, pushSupported, deviceWff) }
       ?: if (!pushSupported) InstallPlan.Blocked(BlockReason.PUSH_UNSUPPORTED) else null

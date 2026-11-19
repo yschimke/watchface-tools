@@ -14,7 +14,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
-import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.ListHeader
@@ -40,7 +39,7 @@ fun ServerScreen(
   onSelect: (String) -> Boolean,
   onDone: () -> Unit,
 ) {
-  val list = rememberTransformingLazyColumnState()
+  val list = rememberTopAnchoredListState()
   var error by remember { mutableStateOf<String?>(null) }
   val input =
     rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->

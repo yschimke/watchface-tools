@@ -30,8 +30,11 @@ class AppViewModelServerTest {
   private val home = "https://$FAKE_HOST"
   private val other = "https://other.example"
   private val server = FakePushServer(FAKE_HOST)
-  /** Every request's URL and Authorization header, whichever server it went to. */
-  private val sent = java.util.Collections.synchronizedList(mutableListOf<Pair<String, String?>>())
+  /**
+   * Every request's URL and Authorization header, whichever server it went to. Copy-on-write: the
+   * test reads it while OkHttp threads append (unlinking starts an anonymous listing).
+   */
+  private val sent = java.util.concurrent.CopyOnWriteArrayList<Pair<String, String?>>()
   private val api =
     SwitchingPushApi(
       home,
@@ -89,13 +92,25 @@ class AppViewModelServerTest {
     assertTrue(vm.selectServer("other.example/"))
     assertEquals(other, vm.server.value)
     assertEquals(other, api.server)
-    assertIs<Session.Unlinked>(vm.session.value)
+    // No token for this server: the watch browses its public faces instead of prompting.
+    assertIs<Session.Browsing>(vm.session.value)
 
     // Back to the first server: its token was kept, so the watch is linked there again.
     assertTrue(vm.selectServer(home))
     assertIs<Session.Linked>(vm.session.value)
     assertEquals(listOf(home, other, home), switched)
   }
+
+  @Test
+  fun reselectingTheCurrentServerKeepsItsListing(): Unit =
+    kotlinx.coroutines.runBlocking {
+      tokens = InMemoryTokenStore()
+      val vm = vm()
+      // Picked again while the first public listing may still be in flight.
+      assertTrue(vm.selectServer(home))
+      awaitReady(vm)
+      assertEquals(listOf(home), switched)
+    }
 
   @Test
   fun refusesAnUnusableServerAndStaysPut() {
@@ -143,13 +158,10 @@ class AppViewModelServerTest {
     }
 
   @Test
-  fun browsesAndInstallsPublicFacesWithoutLinking(): Unit =
+  fun anUnlinkedWatchOpensOnThePublicFaces(): Unit =
     kotlinx.coroutines.runBlocking {
       tokens = InMemoryTokenStore()
       val vm = vm()
-      assertIs<Session.Unlinked>(vm.session.value)
-
-      vm.browsePublic()
       assertIs<Session.Browsing>(vm.session.value)
       val ready = awaitReady(vm)
       assertEquals(server.publicIds, ready.designs.map { it.id }.toSet())
@@ -162,9 +174,23 @@ class AppViewModelServerTest {
         (vm.install.value as InstallUi.Finished).result,
       )
       assertTrue(sent.all { it.second == null }, "no token while browsing: $sent")
+    }
 
-      vm.stopBrowsing()
-      assertIs<Session.Unlinked>(vm.session.value)
+  @Test
+  fun unlinkingGoesBackToThePublicFaces(): Unit =
+    kotlinx.coroutines.runBlocking {
+      val vm = vm()
+      assertTrue(awaitReady(vm).designs.any { it.id !in server.publicIds })
+      vm.unlink()
+      kotlinx.coroutines.withTimeout(5_000) {
+        while (vm.session.value !is Session.Browsing) kotlinx.coroutines.delay(10)
+      }
+      kotlinx.coroutines.withTimeout(5_000) {
+        while (
+          (vm.designs.value as? DesignsState.Ready)?.designs?.map { it.id }?.toSet() !=
+            server.publicIds
+        ) kotlinx.coroutines.delay(10)
+      }
     }
 
   @Test
@@ -179,7 +205,6 @@ class AppViewModelServerTest {
     kotlinx.coroutines.runBlocking {
       tokens = InMemoryTokenStore()
       val vm = vm()
-      vm.browsePublic()
       awaitReady(vm)
       vm.installDesign(server.designs.first { it.id == "pulse" }, false, activate = false)
       kotlinx.coroutines.withTimeout(5_000) {
@@ -192,7 +217,7 @@ class AppViewModelServerTest {
     }
 
   @Test
-  fun browsingCancelsTheLinkAttemptTheLinkScreenStarted(): Unit =
+  fun leavingTheSignInScreenForgetsItsCode(): Unit =
     kotlinx.coroutines.runBlocking {
       tokens = InMemoryTokenStore()
       val vm = vm()
@@ -202,7 +227,22 @@ class AppViewModelServerTest {
           kotlinx.coroutines.delay(10)
         }
       }
-      vm.browsePublic()
+      vm.cancelLink()
+      assertIs<ee.schimke.watchface.push.link.LinkState.Requesting>(vm.link.value)
+    }
+
+  @Test
+  fun leavingTheSignInScreenCancelsItsLinkAttempt(): Unit =
+    kotlinx.coroutines.runBlocking {
+      tokens = InMemoryTokenStore()
+      val vm = vm()
+      vm.startLink()
+      kotlinx.coroutines.withTimeout(5_000) {
+        while (vm.link.value !is ee.schimke.watchface.push.link.LinkState.Waiting) {
+          kotlinx.coroutines.delay(10)
+        }
+      }
+      vm.cancelLink()
       // The fake approves on the third poll, one second apart: run well past that.
       repeat(8) {
         scheduler.advanceTimeBy(1_000)

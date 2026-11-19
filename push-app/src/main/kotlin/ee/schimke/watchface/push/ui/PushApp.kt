@@ -3,6 +3,7 @@ package ee.schimke.watchface.push.ui
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,52 +27,26 @@ fun PushApp(vm: AppViewModel) {
   MaterialTheme {
     AppScaffold {
       val session by vm.session.collectAsStateWithLifecycle()
+      // Each session gets its own back stack: linking lands on the account's list, unlinking on
+      // the public one.
       when (val s = session) {
         Session.Loading -> CircularProgressIndicator()
-        Session.Unlinked -> UnlinkedNav(vm)
-        Session.Browsing -> DesignsNav(vm, accountName = null, server = null, linked = false)
-        is Session.Linked -> DesignsNav(vm, s.account.accountName, s.account.server, linked = true)
+        Session.Browsing -> DesignsNav(vm, accountName = null, linked = false)
+        is Session.Linked -> DesignsNav(vm, s.account.accountName, linked = true)
       }
     }
   }
 }
 
 /**
- * Linking, browsing public faces, and choosing the server; the server can't change while linked.
+ * The design list and detail. Not [linked], the list shows the server's public faces and offers
+ * signing in (the device-code screen, swiped away back to the list) and choosing the server; the
+ * server can't change while linked.
  */
 @Composable
-private fun UnlinkedNav(vm: AppViewModel) {
+private fun DesignsNav(vm: AppViewModel, accountName: String?, linked: Boolean) {
   val nav = rememberSwipeDismissableNavController()
   val server by vm.server.collectAsStateWithLifecycle()
-  SwipeDismissableNavHost(navController = nav, startDestination = "link") {
-    composable("link") {
-      val link by vm.link.collectAsStateWithLifecycle()
-      // A new code whenever the server changes: a code belongs to the server that issued it.
-      LaunchedEffect(server) { vm.startLink() }
-      LinkScreen(
-        link,
-        server = server,
-        onRetry = vm::startLink,
-        onChangeServer = { nav.navigate("server") },
-        onBrowse = vm::browsePublic,
-      )
-    }
-    composable("server") {
-      ServerScreen(
-        current = server,
-        presets = vm.serverPresets,
-        onSelect = vm::selectServer,
-        onDone = { nav.popBackStack() },
-      )
-    }
-  }
-}
-
-/** The design list and detail; [linked] false while browsing public faces without an account. */
-@Composable
-private fun DesignsNav(vm: AppViewModel, accountName: String?, server: String?, linked: Boolean) {
-  val nav = rememberSwipeDismissableNavController()
-  val current by vm.server.collectAsStateWithLifecycle()
   val designs by vm.designs.collectAsStateWithLifecycle()
   val install by vm.install.collectAsStateWithLifecycle()
   var pendingActivation by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -88,7 +63,7 @@ private fun DesignsNav(vm: AppViewModel, accountName: String?, server: String?, 
       DesignListScreen(
         state = designs,
         accountName = accountName,
-        server = server ?: current,
+        server = server,
         deviceWff = vm.wffVersion,
         pushSupported = vm.pushSupported,
         onOpen = {
@@ -97,9 +72,34 @@ private fun DesignsNav(vm: AppViewModel, accountName: String?, server: String?, 
           nav.navigate("design")
         },
         onRefresh = vm::refresh,
-        onUnlink = if (linked) vm::unlink else vm::stopBrowsing,
+        onUnlink = vm::unlink,
         linked = linked,
+        onSignIn = { nav.navigate("link") },
+        onChangeServer = { nav.navigate("server") },
       )
+    }
+    if (!linked) {
+      composable("link") {
+        val link by vm.link.collectAsStateWithLifecycle()
+        // A new code whenever the server changes: a code belongs to the server that issued it.
+        LaunchedEffect(server) { vm.startLink() }
+        // Swiped back to the list: no approval may link the watch after the person left.
+        DisposableEffect(Unit) { onDispose { vm.cancelLink() } }
+        LinkScreen(
+          link,
+          server = server,
+          onRetry = vm::startLink,
+          onChangeServer = { nav.navigate("server") },
+        )
+      }
+      composable("server") {
+        ServerScreen(
+          current = server,
+          presets = vm.serverPresets,
+          onSelect = vm::selectServer,
+          onDone = { nav.popBackStack() },
+        )
+      }
     }
     composable("design") {
       val id = openId
