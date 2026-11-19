@@ -47,6 +47,12 @@ android {
     versionName = appVersionName
 
     buildConfigField("String", "MARKETPLACE_PACKAGE", "\"$marketplacePackage\"")
+    // Reported with each install (InstallEvent.watchFacePushApiVersion).
+    buildConfigField(
+      "String",
+      "WATCH_FACE_PUSH_VERSION",
+      "\"${libs.versions.watchfacepush.get()}\"",
+    )
     // The catalog server the app starts on, and the others its server picker offers (any other
     // can be typed in on the watch). Override with -Ppush.baseUrl / -Ppush.servers.
     buildConfigField(

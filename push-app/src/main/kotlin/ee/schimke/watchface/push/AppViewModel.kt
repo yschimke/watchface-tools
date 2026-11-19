@@ -261,18 +261,25 @@ class AppViewModel(
     }
   }
 
-  /** Makes an already installed design the active face (needs the runtime permission). */
+  /**
+   * Makes an already installed design the active face (needs the runtime permission) and reports
+   * the outcome to the server as a second install event.
+   */
   fun activate(designId: String, slotId: String) {
-    viewModelScope.launch {
+    val token = currentToken().getOrNull()
+    launchWithToken {
       val previous = _install.value as? InstallUi.Finished
       val success = previous?.result as? InstallResult.Success
+      val face = success?.face?.takeIf { it.slotId == slotId }
       val activation =
-        try {
-          pusher.setActive(slotId)
-          Activation.Active
-        } catch (e: PushFailure) {
-          Activation.Manual(e.kind)
-        }
+        if (face != null) installFlow.activate(token, designId, face)
+        else
+          try {
+            pusher.setActive(slotId)
+            Activation.Active
+          } catch (e: PushFailure) {
+            Activation.Manual(e.kind)
+          }
       if (success != null) {
         _install.value = InstallUi.Finished(designId, success.copy(activation = activation))
       }
