@@ -41,7 +41,8 @@ public object WffMemoryEstimator {
   public const val ACTIVE_LIMIT_BYTES: Long = 100L * 1024 * 1024
   public const val AMBIENT_LIMIT_BYTES: Long = 10L * 1024 * 1024
 
-  private val IMAGE_ATTRIBUTES = setOf("resource", "defaultImageResource")
+  /** Images the face draws (`thumbnail`: an `AnimatedImage` shown while it is not playing). */
+  private val IMAGE_ATTRIBUTES = setOf("resource", "defaultImageResource", "thumbnail")
   /** Editor-only images (configuration icons): checked to exist, not charged. */
   private val ICON_ATTRIBUTES = setOf("icon")
   private const val DOWNSCALE_SLACK = 1.1
@@ -55,6 +56,8 @@ public object WffMemoryEstimator {
     val width: Int?,
     val height: Int?,
     val tinted: Boolean,
+    /** The face needs the file (missing is an error): anything but a configuration icon. */
+    val required: Boolean = drawn,
   )
 
   public fun estimate(
@@ -91,7 +94,7 @@ public object WffMemoryEstimator {
           )
         // Google's validators only reject a missing image the face draws; a missing
         // configuration icon just shows nothing in the editor.
-        val drawn = uses.firstOrNull { it.drawn }
+        val drawn = uses.firstOrNull { it.required }
         findings +=
           if (drawn != null) {
             ReportFinding(
@@ -249,57 +252,43 @@ public object WffMemoryEstimator {
     // Bitmap font glyphs are drawn wherever text uses that font: record those uses first.
     val bitmapFontUses = mutableMapOf<String, MutableList<Use>>()
 
-    fun walk(
-      e: WffElement,
-      path: String,
-      hiddenInAmbient: Boolean,
-      inConfig: Boolean,
-      inBitmapFonts: Boolean,
-      size: Pair<Int?, Int?>,
-      visit: (WffElement, String, Boolean, Boolean, Boolean, Pair<Int?, Int?>) -> Unit,
-    ) {
-      val hidden = hiddenInAmbient || hidesInAmbient(e)
+    fun walk(e: WffElement, path: String, parent: Walk, visit: (WffElement, String, Walk) -> Unit) {
       val w = e.attr("width")?.toFloatOrNull()?.toInt()
       val h = e.attr("height")?.toFloatOrNull()?.toInt()
-      val here = if (w != null && h != null) w to h else size
-      val config = inConfig || e.name == "UserConfigurations"
-      val glyphs = inBitmapFonts || e.name == "BitmapFonts"
-      visit(e, path, hidden, config, glyphs, here)
+      val here =
+        Walk(
+          hidden = parent.hidden || hidesInAmbient(e),
+          config = parent.config || e.name == "UserConfigurations",
+          glyphs = parent.glyphs || e.name == "BitmapFonts",
+          // A `tintColor` on a container (`PartImage`) tints the `Image` inside it.
+          tinted = parent.tinted || e.attr("tintColor") != null,
+          width = if (w != null && h != null) w else parent.width,
+          height = if (w != null && h != null) h else parent.height,
+        )
+      visit(e, path, here)
       val counts = e.childElements.groupingBy { it.name }.eachCount()
       val seen = mutableMapOf<String, Int>()
       for (c in e.childElements) {
         val n = (seen[c.name] ?: 0) + 1
         seen[c.name] = n
         val childPath = path + "/" + c.name + if ((counts[c.name] ?: 0) > 1) "[$n]" else ""
-        walk(c, childPath, hidden, config, glyphs, here, visit)
+        walk(c, childPath, here, visit)
       }
     }
 
     val root = doc.root
+    val start = Walk()
     // Pass 1: where each font family is used.
-    walk(root, "/${root.name}", false, false, false, null to null) {
-      e,
-      path,
-      hidden,
-      config,
-      glyphs,
-      size ->
-      if (config || glyphs) return@walk
+    walk(root, "/${root.name}", start) { e, path, at ->
+      if (at.config || at.glyphs) return@walk
       val family = e.attr("family") ?: return@walk
       if (e.name != "Font" && e.name != "BitmapFont") return@walk
-      val use =
-        Use(e, path, drawn = true, ambient = !hidden, size.first, size.second, tinted = false)
+      val use = Use(e, path, drawn = true, ambient = !at.hidden, at.width, at.height, false)
       if (e.name == "BitmapFont") bitmapFontUses.getOrPut(family) { mutableListOf() } += use
       else fonts.getOrPut(family) { mutableListOf() } += use
     }
     // Pass 2: image references.
-    walk(root, "/${root.name}", false, false, false, null to null) {
-      e,
-      path,
-      hidden,
-      config,
-      glyphs,
-      size ->
+    walk(root, "/${root.name}", start) { e, path, at ->
       for (a in e.attributes) {
         val value = a.value.removePrefix("@drawable/")
         if (value.isEmpty() || value.startsWith("[")) continue
@@ -307,27 +296,37 @@ public object WffMemoryEstimator {
         if (a.name !in IMAGE_ATTRIBUTES && !icon) continue
         val use =
           when {
-            icon || config -> Use(e, path, false, false, null, null, false)
-            glyphs -> {
-              val font = bitmapFontName(root, e)
-              val users = font?.let { bitmapFontUses[it] }.orEmpty()
+            icon || at.config -> Use(e, path, false, false, null, null, false)
+            at.glyphs -> {
+              // A glyph is drawn only where text uses its font: an unused font costs nothing.
+              val users = bitmapFontName(root, e)?.let { bitmapFontUses[it] }.orEmpty()
               Use(
                 e,
                 path,
-                drawn = true,
-                ambient = users.isEmpty() || users.any { it.ambient },
-                size.first,
-                size.second,
+                drawn = users.isNotEmpty(),
+                ambient = users.any { it.ambient },
+                at.width,
+                at.height,
                 tinted = false,
+                required = true,
               )
             }
-            else ->
-              Use(e, path, true, !hidden, size.first, size.second, e.attr("tintColor") != null)
+            else -> Use(e, path, true, !at.hidden, at.width, at.height, at.tinted)
           }
         images.getOrPut(value) { mutableListOf() } += use
       }
     }
   }
+
+  /** What [collect] inherits from the ancestors of an element. */
+  private data class Walk(
+    val hidden: Boolean = false,
+    val config: Boolean = false,
+    val glyphs: Boolean = false,
+    val tinted: Boolean = false,
+    val width: Int? = null,
+    val height: Int? = null,
+  )
 
   private fun hidesInAmbient(e: WffElement): Boolean =
     e.childElements("Variant").any {

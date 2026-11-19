@@ -81,15 +81,16 @@ are read from their PNG/JPEG/WebP headers only, never decoded. The same JSON, wi
 `estimate`; `wff-xsd` and `push-validator` are `skipped` with a warning. Its rules:
 
 - an image costs `width * height * 4` bytes in active mode when the face draws it, and in ambient
-  mode unless it or an ancestor has `<Variant mode="AMBIENT" target="alpha" value="0"/>`; bitmap
-  font glyphs count where text uses that font; bundled fonts cost their file size;
+  mode unless it or an ancestor has `<Variant mode="AMBIENT" target="alpha" value="0"/>` (images are
+  `resource`, `defaultImageResource` and an `AnimatedImage` `thumbnail`); bitmap font glyphs count
+  only where text uses that font (an unused font costs nothing); bundled fonts cost their file size;
 - the limits are Google's suggested Play settings (100 MB active, 10 MB ambient); over one is an
   error naming the largest contributors;
 - a drawn image missing from the bundle is an error with the element path (Google's validators
   fail it too); a missing configuration icon is only a warning (they accept it);
 - suggestions: downscale an image to the largest size it is drawn at (when it is over 10% larger in
   both dimensions and that saves at least 16 KB), hide a full-colour image in ambient or draw a
-  greyscale one (not for a tinted image), remove a drawable nothing references.
+  greyscale one (not for an image tinted by itself or its container), remove a drawable nothing references.
 
 It approximates Google's evaluator, which stays the authority before publishing. In Kotlin/Wasm it
 adds about 39 KB to an optimized binary that already has wff-core's parser and validator (13 KB

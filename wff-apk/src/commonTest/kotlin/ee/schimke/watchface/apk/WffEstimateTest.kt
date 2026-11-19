@@ -198,4 +198,60 @@ class WffEstimateTest {
       json,
     )
   }
+
+  @Test
+  fun anAnimationThumbnailIsAReferenceNotALeftover() {
+    val scene =
+      """<PartAnimatedImage x="0" y="0" width="100" height="100"><AnimatedImage resource="anim" format="WEBP" thumbnail="thumb"/></PartAnimatedImage>"""
+    val report =
+      WffEstimate.report(bundle(scene, "anim.png" to png(100, 100), "thumb.png" to png(100, 100)))
+    val thumb =
+      report.check(MEMORY_FOOTPRINT)!!.contributors!!.single { it.resource == "drawable/thumb" }
+    assertTrue(thumb.activeBytes > 0, "$thumb")
+    assertFalse("not referenced" in thumb.suggestion.orEmpty(), "${thumb.suggestion}")
+
+    val missing = WffEstimate.report(bundle(scene, "anim.png" to png(100, 100)))
+    assertTrue(
+      missing.check(MEMORY_FOOTPRINT)!!.findings.any {
+        it.severity == FindingSeverity.ERROR && "thumb" in it.message
+      },
+    )
+  }
+
+  @Test
+  fun bitmapGlyphsCostOnlyWhereTextUsesTheirFont() {
+    val fonts =
+      """<BitmapFonts><BitmapFont name="digits"><Character name="0" resource="glyph" width="2000" height="2000"/></BitmapFont></BitmapFonts>"""
+    fun face(scene: String) =
+      """<WatchFace width="450" height="450">$fonts<Scene>$scene</Scene></WatchFace>"""
+    fun estimate(scene: String) =
+      TestBundles.bundle().toMutableMap().let { b ->
+        b[WffBundleLayout.WATCH_FACE_PATH] = face(scene).encodeToByteArray()
+        b["res/drawable/glyph.png"] = png(2000, 2000)
+        WffEstimate.report(b)
+      }
+
+    val unused = estimate("")
+    val glyph = unused.check(MEMORY_FOOTPRINT)!!.contributors!!.single()
+    assertEquals(0, glyph.cost, "an unused bitmap font costs nothing")
+    assertTrue(unused.passed, unused.toJson())
+
+    val used =
+      estimate(
+        """<PartText x="0" y="0" width="450" height="450"><Text><BitmapFont family="digits" size="40"><Template>%s<Parameter expression="[HOUR_0_23]"/></Template></BitmapFont></Text></PartText>""",
+      )
+    val drawn = used.check(MEMORY_FOOTPRINT)!!.contributors!!.single()
+    assertEquals(2000L * 2000 * 4, drawn.activeBytes)
+    assertEquals(drawn.activeBytes, drawn.ambientBytes)
+  }
+
+  @Test
+  fun aTintOnTheContainerTintsTheImage() {
+    val scene =
+      """<PartImage x="0" y="0" width="450" height="450" tintColor="#ffffff"><Image resource="hand"/></PartImage>"""
+    val report = WffEstimate.report(bundle(scene, "hand.png" to png(450, 450)))
+    val hand = report.check(MEMORY_FOOTPRINT)!!.contributors!!.single()
+    assertTrue(hand.ambientBytes > 0)
+    assertNull(hand.suggestion, "a tinted image is not full-colour in ambient")
+  }
 }
