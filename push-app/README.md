@@ -70,6 +70,20 @@ internal track with the listing in `src/main/play/`. Setup, secrets and versioni
 
 Unlink from the bottom of the design list.
 
+## Compose previews
+
+`src/debug/.../ui/ScreenPreviews.kt` has a `@Preview` for every screen and its important states on
+small and large round watches, fed by the debug build's `FakePushServer` and `PreviewArt` (no
+network). Scrolling screens also have a `@ScrollingPreview(modes = [LONG])` preview: one tall
+capture of the whole list, next to the first frame.
+
+`.github/workflows/compose-preview.yml` renders them with
+[compose-ai-tools](https://github.com/yschimke/compose-ai-tools) (`ee.schimke.composeai.preview`)
+on every PR and posts a sticky before/after comment, diffed against the `compose-preview/main`
+branch that each push to main refreshes. Locally:
+`./gradlew :push-app:composePreviewRenderAll` (JDK 21) writes `build/compose-previews/renders/`.
+The module's Robolectric is held at the renderer's version (see `gradle/libs.versions.toml`).
+
 ## Emulator test in CI
 
 `.github/workflows/push-app-emulator.yml` runs the app on a Wear OS 6 (API 36) emulator on every

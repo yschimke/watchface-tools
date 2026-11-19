@@ -1,0 +1,59 @@
+name: Compose Preview
+
+# Renders :push-app's @Preview set (push-app/src/debug/.../ScreenPreviews.kt) with compose-ai-tools
+# and posts a sticky before/after comment on each PR. The "before" side is the `compose-preview/main`
+# baselines branch, which every push to main refreshes; the first push to main after this workflow
+# lands seeds it (until then a PR's comment lists every preview as new). The baselines branch has a
+# generated README, so it is also a browsable gallery of every screen.
+#
+# The CLI version follows the plugin pinned in gradle/libs.versions.toml (`cli-version: auto`), so
+# bump `composePreviewPlugin` there and the action ref below together.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  # Pushes the `compose-preview/main` baselines (on main) and the `compose-preview/pr` render branch
+  # the PR comment's images are served from.
+  contents: write
+  # Upserts the sticky PR comment.
+  pull-requests: write
+
+concurrency:
+  # Per-PR group so concurrent PRs don't cancel each other; pushes share one slot per ref.
+  group: compose-preview-${{ github.event.pull_request.number || github.ref }}
+  # PR runs cancel: a new push supersedes the render, and the comment is sticky.
+  #
+  # Baseline runs on main must not. They publish the "before" every later PR diffs against, so a
+  # cancelled one strands the baseline at an older commit and the next PRs report the skipped
+  # commits' changes as their own. GitHub keeps at most one pending run per group, so queueing stays
+  # bounded.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  apply:
+    name: Apply compose-preview
+    # release-please's PRs change versions only.
+    if: ${{ !startsWith(github.head_ref || github.ref_name, 'release-please--') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # `apply` pushes with an explicit token in the remote URL.
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # Robolectric renders at :push-app's SDK 36, which needs JDK 21+.
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: yschimke/compose-ai-tools/.github/actions/apply@e84355a48d27d8ee21a6eedd425560fd9b2889cb # v2.101.0
+        with:
+          # Composable previews only: no resource, accessibility or notification pipelines.
+          only: compose
