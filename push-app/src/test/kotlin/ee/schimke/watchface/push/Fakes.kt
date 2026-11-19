@@ -63,7 +63,8 @@ class FakePusher(
   }
 
   private fun versionOf(token: String) =
-    FakePushServer(FAKE_HOST).designs.first { it.validationToken == token }.version
+    // A face built at runtime (FakePushServer.startBuild) is not in a fresh server: version 1.
+    FakePushServer(FAKE_HOST).designs.firstOrNull { it.validationToken == token }?.version ?: 1
 
   override suspend fun remove(slotId: String) {
     slots.removeAll { it.slotId == slotId }

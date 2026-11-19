@@ -149,13 +149,38 @@ fun QrCode(content: String, modifier: Modifier = Modifier) {
   }
 }
 
-fun statusLabel(design: Design, push: PushState?, deviceWff: Int): String =
-  when {
-    design.wffVersion > deviceWff -> "Needs WFF v${design.wffVersion}"
-    push != null && InstallPlanner.hasUpdate(design, push) -> "Update available"
-    push != null && InstallPlanner.isInstalled(design, push) -> "Installed"
-    else -> "v${design.versionName ?: design.version}"
-  }
+/**
+ * One line for a design: its build while nothing is installable yet ("Building…", "Queued", "Builds
+ * in N min"), else whether it is installed or has an update, with a newer version's build appended
+ * ("Installed · Queued").
+ */
+fun statusLabel(
+  design: Design,
+  push: PushState?,
+  deviceWff: Int,
+  nowMillis: Long = System.currentTimeMillis(),
+): String {
+  val build = design.build
+  if (!design.isInstallable) return build?.let { Messages.build(it, nowMillis) } ?: "Not built yet"
+  val base =
+    when {
+      design.wffVersion > deviceWff -> return "Needs WFF v${design.wffVersion}"
+      push != null && InstallPlanner.hasUpdate(design, push) -> return "Update available"
+      push != null && InstallPlanner.isInstalled(design, push) -> "Installed"
+      else -> "v${design.versionName ?: design.version}"
+    }
+  return if (build != null && build.inProgress) "$base · ${Messages.build(build, nowMillis)}"
+  else base
+}
+
+/** The detail screen's version line; an unbuilt design names the version being built, if any. */
+fun versionLine(design: Design): String {
+  val version =
+    if (design.isInstallable) design.versionName ?: design.version.toString()
+    else design.build?.version?.toString()
+  return listOfNotNull(version?.let { "Version $it" }, "requires WFF v${design.wffVersion}")
+    .joinToString(" · ")
+}
 
 /** A run of the list: [title] null for the designs, else the catalog's name. */
 data class DesignSection(val title: String?, val designs: List<Design>)
@@ -272,7 +297,7 @@ fun DesignListScreen(
                 modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
                 transformation = SurfaceTransformation(spec),
                 title = { Text(design.title) },
-                subtitle = { Text(statusLabel(design, state.push, deviceWff)) },
+                subtitle = { Text(statusLabel(design, state.push, deviceWff, LocalNow.current())) },
               ) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                   PreviewImage(design, Modifier.size(96.dp))
@@ -312,8 +337,8 @@ fun DesignListScreen(
             modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
             colors = ButtonDefaults.filledTonalButtonColors(),
             transformation = SurfaceTransformation(spec),
-            label = { Text("Server") },
-            secondaryLabel = { server?.let { Text(CatalogServers.label(it)) } },
+            label = { Text("Switch server") },
+            secondaryLabel = { server?.let { Text(CatalogServers.displayName(it)) } },
           )
         }
       }
@@ -389,14 +414,14 @@ fun DesignDetailScreen(
       }
       item(key = "version") {
         BodyText(
-          "Version ${design.versionName ?: design.version} · requires WFF v${design.wffVersion}",
+          versionLine(design),
           spec,
           style = MaterialTheme.typography.bodySmall,
         )
       }
       item(key = "status") {
         BodyText(
-          statusLabel(design, push, deviceWff),
+          statusLabel(design, push, deviceWff, LocalNow.current()),
           spec,
           style = MaterialTheme.typography.labelMedium,
           color = MaterialTheme.colorScheme.primary,
@@ -418,7 +443,10 @@ fun DesignDetailScreen(
           BodyText(
             Messages.blocked(it.reason, design.wffVersion, deviceWff),
             spec,
-            color = MaterialTheme.colorScheme.error,
+            // Waiting for a build is not an error: it resolves on its own.
+            color =
+              if (it.reason == BlockReason.NOT_BUILT) MaterialTheme.colorScheme.onSurfaceVariant
+              else MaterialTheme.colorScheme.error,
           )
         }
       }
@@ -480,6 +508,9 @@ fun DesignDetailScreen(
  * previews. Null means "load [Design.previewUrl] with Coil".
  */
 val LocalPreviewPainter = compositionLocalOf<((Design) -> Painter)?> { null }
+
+/** The clock "Builds in N min" counts from; previews pin it so their renders are stable. */
+val LocalNow = compositionLocalOf<() -> Long> { System::currentTimeMillis }
 
 /**
  * A design's preview, cropped to a circle: the faces are round, and the square render's corners are

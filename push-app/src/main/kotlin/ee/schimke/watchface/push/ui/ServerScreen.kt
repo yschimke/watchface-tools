@@ -60,7 +60,7 @@ fun ServerScreen(
       item(key = "header") { Header("Catalog server", spec) }
       item(key = "about") {
         BodyText(
-          "Where Faces finds your designs. Each server has its own link.",
+          "Each site lists its own faces, and a watch links to each one separately.",
           spec,
           style = MaterialTheme.typography.bodySmall,
         )
@@ -72,7 +72,7 @@ fun ServerScreen(
           onSelect = { if (onSelect(server)) onDone() },
           modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
           transformation = SurfaceTransformation(spec),
-          label = { Text(CatalogServers.label(server)) },
+          label = { Text(CatalogServers.displayName(server)) },
           secondaryLabel =
             if (server == presets.firstOrNull()) ({ Text("Default") })
             else if (server !in presets) ({ Text("Entered") }) else null,

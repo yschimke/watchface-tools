@@ -67,6 +67,34 @@ class FakePushServer(
   val publicDesigns: List<Design>
     get() = designs.filter { it.id in publicIds }
 
+  /** Faces the server is building ([startBuild]), listed to everyone after [designs]. */
+  private val builds = java.util.concurrent.ConcurrentHashMap<String, Design>()
+
+  /** Every design this server lists, downloads and previews, with the [builds] in progress. */
+  private val all: List<Design>
+    get() = designs + builds.values.sortedBy { it.id }
+
+  /**
+   * Lists a new public face [id] that the server is still building: no APK, token or checksum, just
+   * [build]. [finishBuild] makes it installable, as a real server's build completing does.
+   */
+  fun startBuild(
+    id: String,
+    title: String,
+    build: BuildStatus = BuildStatus(BuildStatus.BUILDING, stage = "packaging", version = 1),
+  ): Design =
+    fakeDesign(id, title, version = 1, wff = 1, description = "Being built on the server.")
+      .copy(version = 0, apkUrl = null, sha256 = null, validationToken = null, build = build)
+      .also { builds[id] = it }
+
+  /** Completes [startBuild]'s build: version 1, downloadable, `build` state `built`. */
+  fun finishBuild(id: String): Design {
+    val pending = checkNotNull(builds[id]) { "no build of $id" }
+    return fakeDesign(id, pending.title, version = 1, wff = 1, description = "Built.")
+      .copy(build = BuildStatus(BuildStatus.BUILT, version = 1))
+      .also { builds[id] = it }
+  }
+
   private fun apkBytes(id: String, version: Long) = "fake-apk:$id:$version".repeat(64).toByteArray()
 
   private fun sha(bytes: ByteArray) =
@@ -144,8 +172,8 @@ class FakePushServer(
     fun ok(body: String) = respond(200, body.toByteArray(), "application/json")
 
     return when {
-      request.method == "GET" && designs.any { path == it.previewUrl.toHttpUrl().encodedPath } -> {
-        val design = designs.firstOrNull { path == it.previewUrl.toHttpUrl().encodedPath }
+      request.method == "GET" && all.any { path == it.previewUrl.toHttpUrl().encodedPath } -> {
+        val design = all.firstOrNull { path == it.previewUrl.toHttpUrl().encodedPath }
         if (design == null) respond(404) else respond(200, previewPng(design.title), "image/png")
       }
       request.method == "POST" && path == "$api/device-codes" -> {
@@ -175,14 +203,16 @@ class FakePushServer(
       request.method == "GET" && path == "$api/designs" -> {
         val anonymous = request.header("Authorization") == null
         val listed = if (anonymous) publicDesigns else designs
-        ok(json.encodeToString(DesignList(listed + extraDesigns(chain))))
+        val building = builds.values.sortedBy { it.id }
+        ok(json.encodeToString(DesignList(listed + building + extraDesigns(chain))))
       }
       request.method == "GET" && path.endsWith("/apk") -> {
         // Matched on the listed apkUrl, never rebuilt from the id (catalog ids contain `/`).
-        val design = designs.firstOrNull { path == it.apkUrl.toHttpUrl().encodedPath }
+        val design = all.firstOrNull { path == it.apkUrl?.toHttpUrl()?.encodedPath }
         val anonymous = request.header("Authorization") == null
         if (design == null) respond(404)
-        else if (anonymous && design.id !in publicIds) respond(401)
+        else if (anonymous && design.id !in publicIds && !builds.containsKey(design.id))
+          respond(401)
         else {
           val bytes = apkBytes(design.id, design.version)
           if (tamperApk) bytes[0] = (bytes[0] + 1).toByte()

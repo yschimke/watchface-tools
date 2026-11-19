@@ -145,6 +145,37 @@ token is `401`, never a silent fallback to the anonymous list. Response `200`:
 | `sha256` | Lowercase hex SHA-256 of the exact APK bytes served. The watch verifies it before calling the push API. |
 | `validationToken` | Watch Face Push validator token for *this APK* and the marketplace package. Tokens do not expire but are tied to the APK; re-issue when `version` changes. |
 
+### Builds in progress
+
+A site that builds APKs in the background may list a design (or a catalog face) before it is
+built, with an optional `build` object. The top-level fields always describe the newest **built**
+version; `build` describes the newest **requested** one:
+
+```json
+{ "id": "comet", "title": "Comet", "previewUrl": "…", "wffVersion": 2,
+  "packageName": "ee.schimke.watchface.push.watchfacepush.comet",
+  "build": { "state": "pending", "scheduledAtEpochMillis": 1800000180000, "version": 1 } }
+```
+
+| Field | Notes |
+| --- | --- |
+| `build.state` | `pending`, `queued`, `building`, `built`, `refused` or `failed`. The watch reads an unknown state as building. |
+| `build.scheduledAtEpochMillis` | `pending`: when the build starts ("Builds in N min"). |
+| `build.queueAhead` | `queued`: builds ahead of this one ("Queued (N ahead)"). |
+| `build.stage` | `building`: shown as is ("Building… validating"). |
+| `build.version` | The version being built. |
+| `build.message` | `refused` / `failed`: shown as is after "Build failed:". |
+
+- No `build` means built (older servers).
+- An entry is installable only with `apkUrl`, `sha256` and `validationToken` all present; until then
+  they are absent and `version` may be absent (0). The watch lists it with its build state and does
+  not offer Install.
+- While v3 is built and v4 builds, the entry carries v3's `version`, `apkUrl`, `sha256` and
+  `validationToken` and `build: { state: "building", version: 4 }`: the watch installs v3 and shows
+  "Update available" only once v4 is built (the top-level `version` moved).
+- While any listed entry is building, the watch lists again about every 30 s, only while the app is
+  visible.
+
 ### Catalog faces
 
 Besides accounts' designs, the anonymous listing carries the faces of public catalogs on

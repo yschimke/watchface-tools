@@ -15,7 +15,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.CircularProgressIndicator
 import androidx.wear.compose.material3.MaterialTheme
@@ -57,6 +60,12 @@ private fun DesignsNav(vm: AppViewModel, accountName: String?, linked: Boolean) 
   val install by vm.install.collectAsStateWithLifecycle()
   var pendingActivation by remember { mutableStateOf<Pair<String, String>?>(null) }
   var openId by rememberSaveable { mutableStateOf<String?>(null) }
+  // While the app is visible, re-list every 30 s as long as a face is building; never in the
+  // background.
+  val lifecycle = LocalLifecycleOwner.current.lifecycle
+  LaunchedEffect(vm, lifecycle) {
+    lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.pollWhileBuilding() }
+  }
   val permission =
     rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
       val pending = pendingActivation

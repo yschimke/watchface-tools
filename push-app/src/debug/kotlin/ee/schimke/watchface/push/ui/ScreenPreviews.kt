@@ -14,6 +14,7 @@ import ee.schimke.composeai.preview.ScrollMode
 import ee.schimke.composeai.preview.ScrollingPreview
 import ee.schimke.watchface.push.DesignsState
 import ee.schimke.watchface.push.InstallUi
+import ee.schimke.watchface.push.data.BuildStatus
 import ee.schimke.watchface.push.data.Design
 import ee.schimke.watchface.push.data.FakePushServer
 import ee.schimke.watchface.push.data.PreviewArt
@@ -45,18 +46,59 @@ private object Fixtures {
   val freeSlot = PushState(emptyList(), remainingSlots = 1)
   const val DEVICE_WFF = 4
   const val SERVER = "https://ui.coo.ee"
+
+  /** The previews' clock: "Builds in N min" must render the same on every run. */
+  const val NOW = 1_800_000_000_000L
+
+  /** A design the server lists before any version is built: no APK, token or checksum. */
+  private fun unbuilt(id: String, title: String, build: BuildStatus) =
+    aurora.copy(
+      id = id,
+      title = title,
+      description = "Published a moment ago; the server is building it.",
+      version = 0,
+      versionName = null,
+      packageName = "${aurora.packageName}_$id",
+      apkUrl = null,
+      sha256 = null,
+      validationToken = null,
+      build = build,
+    )
+
+  val pending = unbuilt("comet", "Comet", BuildStatus(BuildStatus.PENDING, NOW + 3 * 60_000))
+  val queued = unbuilt("drift", "Drift", BuildStatus(BuildStatus.QUEUED, queueAhead = 2))
+  val building =
+    unbuilt("ember", "Ember", BuildStatus(BuildStatus.BUILDING, stage = "validating", version = 1))
+  val failed =
+    unbuilt(
+      "flare",
+      "Flare",
+      BuildStatus(BuildStatus.FAILED, message = "Asset case_steel is missing"),
+    )
+
+  /** Installed at v3 while the server builds v4: still installable, the build is shown too. */
+  val auroraBuildingNext =
+    aurora.copy(build = BuildStatus(BuildStatus.BUILDING, version = aurora.version + 1))
+  val auroraInstalled = PushState(listOf(InstalledFace("slot1", aurora.packageName, 3)), 0)
+  val auroraOutdated = PushState(listOf(InstalledFace("slot1", aurora.packageName, 2)), 0)
+
+  val buildStates: List<Design> = listOf(pending, queued, building, failed, auroraBuildingNext)
+  val previewed: List<Design> = designs + buildStates
 }
 
 /** The app theme, with previews drawn locally instead of loaded by Coil. */
 @Composable
 private fun Watch(content: @Composable () -> Unit) {
   val painters = remember {
-    Fixtures.designs.associate {
+    Fixtures.previewed.associate {
       val bytes = PreviewArt.render(it.title)
       it.id to BitmapPainter(BitmapFactory.decodeByteArray(bytes, 0, bytes.size).asImageBitmap())
     }
   }
-  CompositionLocalProvider(LocalPreviewPainter provides { painters.getValue(it.id) }) {
+  CompositionLocalProvider(
+    LocalPreviewPainter provides { painters.getValue(it.id) },
+    LocalNow provides { Fixtures.NOW },
+  ) {
     MaterialTheme { AppScaffold { content() } }
   }
 }
@@ -121,6 +163,22 @@ fun ListErrorPreview() =
     DesignsState.Error("This server has no public faces. Sign in for your designs."),
     linked = false,
   )
+
+/**
+ * Every build state in one list: pending, queued, building, failed, and an installed face whose
+ * next version is building.
+ */
+@WearPreviewLargeRound
+@ScrollingPreview(modes = [ScrollMode.LONG])
+@Composable
+fun BuildStatesListLongPreview() =
+  DesignList(DesignsState.Ready(Fixtures.buildStates, Fixtures.auroraInstalled), linked = true)
+
+@WearPreviewSmallRound
+@WearPreviewLargeRound
+@Composable
+fun BuildStatesListPreview() =
+  DesignList(DesignsState.Ready(Fixtures.buildStates, Fixtures.auroraInstalled), linked = true)
 
 // Sign in
 
@@ -236,3 +294,36 @@ fun InstallRejectedPreview() =
       InstallResult.PushRejected(PushFailureKind.MALFORMED_APK, "The APK is malformed."),
     ),
   )
+
+// Builds
+
+@WearPreviewLargeRound
+@ScrollingPreview(modes = [ScrollMode.LONG])
+@Composable
+fun DetailBuildPendingPreview() = Detail(Fixtures.pending)
+
+@WearPreviewLargeRound
+@ScrollingPreview(modes = [ScrollMode.LONG])
+@Composable
+fun DetailBuildQueuedPreview() = Detail(Fixtures.queued)
+
+@WearPreviewSmallRound
+@WearPreviewLargeRound
+@Composable
+fun DetailBuildingPreview() = Detail(Fixtures.building)
+
+@WearPreviewLargeRound
+@ScrollingPreview(modes = [ScrollMode.LONG])
+@Composable
+fun DetailBuildFailedPreview() = Detail(Fixtures.failed)
+
+@WearPreviewLargeRound
+@ScrollingPreview(modes = [ScrollMode.LONG])
+@Composable
+fun DetailInstalledNextBuildingPreview() =
+  Detail(Fixtures.auroraBuildingNext, push = Fixtures.auroraInstalled)
+
+@WearPreviewSmallRound
+@WearPreviewLargeRound
+@Composable
+fun DetailUpdateAvailablePreview() = Detail(Fixtures.aurora, push = Fixtures.auroraOutdated)

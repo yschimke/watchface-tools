@@ -33,6 +33,19 @@ object CatalogServers {
     return url.render().substringAfter("://")
   }
 
+  /** What each known site lists: each site's faces stay on their own site. */
+  private val NAMES =
+    mapOf("https://ui.coo.ee" to "Your designs", "https://preview.coo.ee" to "Sample faces")
+
+  /** A known site's name ("Your designs"), or null for any other server. */
+  fun name(server: String): String? = NAMES[normalize(server)]
+
+  /** "Your designs (ui.coo.ee)" for a known site, else just [label]. */
+  fun displayName(server: String): String {
+    val host = label(normalize(server) ?: server)
+    return name(server)?.let { "$it ($host)" } ?: host
+  }
+
   /** The known servers, default first, without duplicates or entries that do not normalize. */
   fun presets(default: String, known: List<String>, allowInsecure: Boolean = false): List<String> =
     (listOf(default) + known).mapNotNull { normalize(it, allowInsecure) }.distinct()

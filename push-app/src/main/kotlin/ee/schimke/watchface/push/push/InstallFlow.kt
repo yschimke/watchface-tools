@@ -27,11 +27,14 @@ enum class BlockReason {
   WFF_TOO_NEW,
   BAD_PACKAGE_NAME,
   NO_SLOTS,
+  /** The server has no built APK for this design yet (see `Design.build`). */
+  NOT_BUILT,
 }
 
 object InstallPlanner {
   fun plan(design: Design, state: PushState, supported: Boolean, wffVersion: Int): InstallPlan {
     if (!supported) return InstallPlan.Blocked(BlockReason.PUSH_UNSUPPORTED)
+    if (!design.isInstallable) return InstallPlan.Blocked(BlockReason.NOT_BUILT)
     if (design.wffVersion > wffVersion) return InstallPlan.Blocked(BlockReason.WFF_TOO_NEW)
     if (!PushConstants.isValidFacePackage(design.packageName))
       return InstallPlan.Blocked(BlockReason.BAD_PACKAGE_NAME)
@@ -151,18 +154,18 @@ class InstallFlow(
           return InstallResult.DownloadFailed(e.isUnauthorized, e.message, deviceToken == null)
         }
       log("download design=${design.id} bytes=${file.length()} sha256=$actual")
-      val verified = actual.equals(design.sha256, ignoreCase = true)
+      val verified = design.sha256 != null && actual.equals(design.sha256, ignoreCase = true)
       log("verify design=${design.id} sha256 ${if (verified) "ok" else "mismatch"}")
       if (!verified) return InstallResult.ChecksumMismatch
 
+      // The planner blocks a design without one, so this is always set here.
+      val validationToken = checkNotNull(design.validationToken)
       val face =
         try {
           when (plan) {
-            is InstallPlan.AddToFreeSlot -> pusher.add(file, design.validationToken)
-            is InstallPlan.UpdateInstalled ->
-              pusher.update(plan.slot.slotId, file, design.validationToken)
-            is InstallPlan.ReplaceOther ->
-              pusher.update(plan.slot.slotId, file, design.validationToken)
+            is InstallPlan.AddToFreeSlot -> pusher.add(file, validationToken)
+            is InstallPlan.UpdateInstalled -> pusher.update(plan.slot.slotId, file, validationToken)
+            is InstallPlan.ReplaceOther -> pusher.update(plan.slot.slotId, file, validationToken)
             is InstallPlan.Blocked -> error("unreachable")
           }
         } catch (e: PushFailure) {

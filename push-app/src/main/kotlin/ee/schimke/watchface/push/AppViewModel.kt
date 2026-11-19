@@ -196,6 +196,26 @@ class AppViewModel(
    */
   fun refresh() = load(keepContent = true)
 
+  /**
+   * Refreshes the list every [intervalMillis] while any listed design is being built, so it turns
+   * installable on its own. Run it only while the list is visible (the UI ties it to the
+   * lifecycle): nothing polls in the background.
+   */
+  suspend fun pollWhileBuilding(intervalMillis: Long = BUILD_POLL_MILLIS) {
+    while (true) {
+      kotlinx.coroutines.delay(intervalMillis)
+      val ready = _designs.value as? DesignsState.Ready ?: continue
+      if (ready.designs.any { it.isBuilding }) {
+        log("poll builds=${ready.designs.filter { it.isBuilding }.joinToString(",") { it.id }}")
+        refresh()
+      }
+    }
+  }
+
+  companion object {
+    const val BUILD_POLL_MILLIS: Long = 30_000
+  }
+
   /** [keepContent] false for a new session or server, whose list must not show the old one. */
   private fun load(keepContent: Boolean) {
     val token =

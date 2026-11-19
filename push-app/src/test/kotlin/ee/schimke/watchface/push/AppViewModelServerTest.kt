@@ -1,5 +1,6 @@
 package ee.schimke.watchface.push
 
+import androidx.lifecycle.viewModelScope
 import ee.schimke.watchface.push.data.FakePushServer
 import ee.schimke.watchface.push.data.SwitchingPushApi
 import ee.schimke.watchface.push.link.InMemoryServerStore
@@ -17,7 +18,9 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -257,5 +260,43 @@ class AppViewModelServerTest {
       assertIs<Session.Browsing>(vm.session.value)
       assertEquals(null, tokens.account.first())
       assertFalse(server.linked, "no poll may reach approval while browsing")
+    }
+
+  @Test
+  fun aFaceThatFinishesBuildingBecomesInstallableOnItsOwn(): Unit =
+    kotlinx.coroutines.runBlocking {
+      tokens = InMemoryTokenStore()
+      server.startBuild("comet", "Comet")
+      val vm = vm()
+      val first = awaitReady(vm)
+      assertFalse(first.designs.single { it.id == "comet" }.isInstallable)
+
+      val poller =
+        kotlinx.coroutines.CoroutineScope(UnconfinedTestDispatcher(scheduler)).launch {
+          vm.pollWhileBuilding()
+        }
+      try {
+        server.finishBuild("comet")
+        val listings = sent.count { it.first.endsWith("/designs") }
+        scheduler.advanceTimeBy(AppViewModel.BUILD_POLL_MILLIS + 1)
+        kotlinx.coroutines.withTimeout(5_000) {
+          while (
+            (vm.designs.value as? DesignsState.Ready)
+              ?.designs
+              ?.single { it.id == "comet" }
+              ?.isInstallable != true
+          ) kotlinx.coroutines.delay(10)
+        }
+        assertEquals(listings + 1, sent.count { it.first.endsWith("/designs") })
+
+        // Nothing is building now: further ticks do not re-list.
+        scheduler.advanceTimeBy(3 * AppViewModel.BUILD_POLL_MILLIS)
+        kotlinx.coroutines.delay(200)
+        assertEquals(listings + 1, sent.count { it.first.endsWith("/designs") })
+      } finally {
+        poller.cancel()
+        // Nothing of this ViewModel may resume on Main after the test resets it.
+        vm.viewModelScope.cancel()
+      }
     }
 }
