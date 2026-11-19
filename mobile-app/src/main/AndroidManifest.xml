@@ -39,5 +39,13 @@
           android:name="android.appwidget.provider"
           android:resource="@xml/face_widget_info" />
     </receiver>
+    <!--
+      The widget's private actions (the minute tick, the pin callback). Not exported: only the
+      app's own PendingIntents reach it, so no other app can choose a widget's face.
+    -->
+    <receiver
+        android:name=".widget.FaceWidgetActions"
+        android:enabled="@bool/supports_face_widgets"
+        android:exported="false" />
   </application>
 </manifest>

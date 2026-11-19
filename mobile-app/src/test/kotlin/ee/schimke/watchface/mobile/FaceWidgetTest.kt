@@ -20,6 +20,29 @@ class FaceWidgetTest {
   private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
 
   @Test
+  fun anotherAppCantChooseAWidgetsFace() {
+    // The exported provider ignores the app's private pin action.
+    val forged =
+      android.content
+        .Intent(FaceWidgetProvider.ACTION_PINNED)
+        .putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_ID, 42)
+        .putExtra("server", "https://evil.example")
+        .putExtra("face", "x")
+    FaceWidgetProvider().onReceive(context, forged)
+    assertNull(FaceWidgetStore(context).face(42))
+    // The receiver that does take it is not exported.
+    val info =
+      context.packageManager.getReceiverInfo(
+        android.content.ComponentName(
+          context,
+          ee.schimke.watchface.mobile.widget.FaceWidgetActions::class.java,
+        ),
+        android.content.pm.PackageManager.MATCH_DISABLED_COMPONENTS,
+      )
+    assertEquals(false, info.exported)
+  }
+
+  @Test
   fun theTickLandsOnTheNextWholeMinute() {
     assertEquals(120_000L, FaceWidgetTicker.nextMinute(60_000L))
     assertEquals(120_000L, FaceWidgetTicker.nextMinute(119_999L))

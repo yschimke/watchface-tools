@@ -3,6 +3,7 @@ package ee.schimke.watchface.mobile.widget
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -38,27 +39,18 @@ import okhttp3.OkHttpClient
 class FaceWidgetProvider : AppWidgetProvider() {
 
   override fun onReceive(context: Context, intent: Intent) {
+    // This receiver is exported, as the launcher needs: it takes only the system's widget and
+    // clock broadcasts. The app's own actions (the pin callback, the minute tick) go to
+    // [FaceWidgetActions], which no other app can reach.
     when (intent.action) {
-      FaceWidgetTicker.ACTION_TICK,
       Intent.ACTION_TIME_CHANGED,
-      Intent.ACTION_TIMEZONE_CHANGED -> refresh(context, allIds(context), network = false)
-      ACTION_PINNED -> {
-        // requestPinAppWidget's callback: the launcher added the widget the app asked for.
-        val id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
-        val face = faceOf(intent)
-        if (id != -1 && face != null) {
-          FaceWidgetStore(context).setFace(id, face)
-          FaceWidgetTicker.start(context)
-          // Under goAsync, so the process lives until the new widget is drawn.
-          refresh(context, intArrayOf(id), network = true)
-        }
-      }
+      Intent.ACTION_TIMEZONE_CHANGED -> refresh(this, context, allIds(context), network = false)
       else -> super.onReceive(context, intent)
     }
   }
 
   override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
-    refresh(context, appWidgetIds, network = true)
+    refresh(this, context, appWidgetIds, network = true)
   }
 
   override fun onAppWidgetOptionsChanged(
@@ -67,7 +59,7 @@ class FaceWidgetProvider : AppWidgetProvider() {
     appWidgetId: Int,
     newOptions: Bundle,
   ) {
-    refresh(context, intArrayOf(appWidgetId), network = true)
+    refresh(this, context, intArrayOf(appWidgetId), network = true)
   }
 
   override fun onEnabled(context: Context) = FaceWidgetTicker.start(context)
@@ -76,20 +68,6 @@ class FaceWidgetProvider : AppWidgetProvider() {
 
   override fun onDeleted(context: Context, appWidgetIds: IntArray) =
     FaceWidgetStore(context).remove(appWidgetIds)
-
-  private fun refresh(context: Context, ids: IntArray, network: Boolean) {
-    if (ids.isEmpty()) return
-    val pending = goAsync()
-    val app = context.applicationContext
-    scope.launch {
-      try {
-        // A broadcast has ~10 s; leave the rest for the launcher.
-        withTimeoutOrNull(8_000) { lock.withLock { for (id in ids) update(app, id, network) } }
-      } finally {
-        pending.finish()
-      }
-    }
-  }
 
   companion object {
     private const val TAG = "FacesWidget"
@@ -123,7 +101,7 @@ class FaceWidgetProvider : AppWidgetProvider() {
       val manager = AppWidgetManager.getInstance(context)
       if (!manager.isRequestPinAppWidgetSupported) return false
       val callback =
-        Intent(context, FaceWidgetProvider::class.java)
+        Intent(context, FaceWidgetActions::class.java)
           .setAction(ACTION_PINNED)
           .putExtra(EXTRA_SERVER, face.server)
           .putExtra(EXTRA_FACE, face.faceId)
@@ -144,7 +122,7 @@ class FaceWidgetProvider : AppWidgetProvider() {
       )
     }
 
-    private fun faceOf(intent: Intent): WidgetFace? {
+    internal fun faceOf(intent: Intent): WidgetFace? {
       val server = intent.getStringExtra(EXTRA_SERVER) ?: return null
       val face = intent.getStringExtra(EXTRA_FACE) ?: return null
       return WidgetFace(
@@ -172,6 +150,26 @@ class FaceWidgetProvider : AppWidgetProvider() {
           .setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
           .putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(widgetId)),
       )
+    }
+
+    /** Updates [ids] under [receiver]'s goAsync, so the process lives until they are drawn. */
+    internal fun refresh(
+      receiver: BroadcastReceiver,
+      context: Context,
+      ids: IntArray,
+      network: Boolean,
+    ) {
+      if (ids.isEmpty()) return
+      val pending = receiver.goAsync()
+      val app = context.applicationContext
+      scope.launch {
+        try {
+          // A broadcast has ~10 s; leave the rest for the launcher.
+          withTimeoutOrNull(8_000) { lock.withLock { for (id in ids) update(app, id, network) } }
+        } finally {
+          pending.finish()
+        }
+      }
     }
 
     fun allIds(context: Context): IntArray =

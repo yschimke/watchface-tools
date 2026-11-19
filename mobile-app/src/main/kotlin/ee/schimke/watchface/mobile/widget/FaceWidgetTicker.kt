@@ -35,7 +35,7 @@ object FaceWidgetTicker {
     PendingIntent.getBroadcast(
       context,
       0,
-      Intent(context, FaceWidgetProvider::class.java).setAction(ACTION_TICK),
+      Intent(context, FaceWidgetActions::class.java).setAction(ACTION_TICK),
       PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
 }
