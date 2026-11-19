@@ -194,7 +194,9 @@ class AppViewModel(
    * Lists the designs again. The current list stays on screen until the new one arrives: swapping
    * in a spinner would lose the person's place in it.
    */
-  fun refresh() = load(keepContent = true)
+  fun refresh() {
+    load(keepContent = true)
+  }
 
   /**
    * Refreshes the list every [intervalMillis] while any listed design is being built, so it turns
@@ -207,7 +209,9 @@ class AppViewModel(
       val ready = _designs.value as? DesignsState.Ready ?: continue
       if (ready.designs.any { it.isBuilding }) {
         log("poll builds=${ready.designs.filter { it.isBuilding }.joinToString(",") { it.id }}")
-        load(keepContent = true, keepOnFailure = true)
+        // Wait for this listing before the next tick: one that started while it was in flight
+        // would supersede it, and a server slower than the interval would never update the list.
+        load(keepContent = true, keepOnFailure = true)?.join()
       }
     }
   }
@@ -222,14 +226,14 @@ class AppViewModel(
    * the next tick can retry and an open detail screen does not go blank. A revoked token still
    * unlinks.
    */
-  private fun load(keepContent: Boolean, keepOnFailure: Boolean = false) {
+  private fun load(keepContent: Boolean, keepOnFailure: Boolean = false): Job? {
     val token =
       currentToken().getOrElse {
-        return
+        return null
       }
     if (!keepContent || _designs.value !is DesignsState.Ready) _designs.value = DesignsState.Loading
     val generation = ++refreshGeneration
-    launchWithToken {
+    return launchWithToken {
       val next =
         try {
           val designs = api.listDesigns(token)
