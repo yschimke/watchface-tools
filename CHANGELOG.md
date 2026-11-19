@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/yschimke/watchface-tools/compare/v0.9.0...v0.10.0) (2026-11-19)
+
+
+### Features
+
+* **push-app:** show the server's build progress and name the catalog servers ([#69](https://github.com/yschimke/watchface-tools/issues/69)) ([43ff4e7](https://github.com/yschimke/watchface-tools/commit/43ff4e7edbf2b1dc546e8badb4b6b94966223c59))
+
 ## [0.9.0](https://github.com/yschimke/watchface-tools/compare/v0.8.0...v0.9.0) (2026-11-19)
 
 
