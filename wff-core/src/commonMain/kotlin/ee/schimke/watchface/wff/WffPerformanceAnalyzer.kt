@@ -145,6 +145,26 @@ public object WffPerformanceAnalyzer {
           bumpInteractive(WffUpdateCadence.MINUTE, 0)
           if (!nowHiddenInAmbient) bumpAmbient(WffUpdateCadence.MINUTE)
         }
+        "TimeText" -> {
+          val format = element.attr("format")
+          if (format != null && hasSecondToken(format)) {
+            bumpInteractive(WffUpdateCadence.SECOND, 1)
+            if (!nowHiddenInAmbient) {
+              ambientAnimatedElementCount++
+              bumpAmbient(WffUpdateCadence.SECOND)
+              findings +=
+                WffPerformanceFinding(
+                  severity = WffSeverity.WARNING,
+                  code = WffPerformanceCode.AMBIENT_ANIMATION_VISIBLE,
+                  path = path,
+                  message =
+                    "TimeText format '$format' displays seconds and is not hidden in AMBIENT mode",
+                  suggestion =
+                    "Hide second-displaying TimeText in AMBIENT mode with <Variant mode=\"AMBIENT\" target=\"alpha\" value=\"0\"/>",
+                )
+            }
+          }
+        }
         "SecondHand" -> {
           val sweep = element.firstChild("Sweep")
           if (sweep != null) {
@@ -214,11 +234,7 @@ public object WffPerformanceAnalyzer {
         }
         "PartAnimatedImage" -> {
           animatedImageCount++
-          val fps =
-            element.attr("frameRate")?.toIntOrNull()
-              ?: element.firstChild("Image")?.attr("frameRate")?.toIntOrNull()
-              ?: element.firstChild("SequenceImages")?.attr("frameRate")?.toIntOrNull()
-              ?: 15
+          val fps = maxFrameRateInSubtree(element) ?: 15
           bumpInteractive(WffUpdateCadence.CONTINUOUS, fps)
           if (fps > RECOMMENDED_MAX_FPS) {
             findings +=
@@ -331,6 +347,29 @@ public object WffPerformanceAnalyzer {
       ambientAnimatedElementCount = ambientAnimatedElementCount,
       findings = findings,
     )
+  }
+
+  private fun hasSecondToken(format: String): Boolean {
+    var inQuotes = false
+    for (ch in format) {
+      if (ch == '\'') {
+        inQuotes = !inQuotes
+      } else if (!inQuotes && (ch == 's' || ch == 'S')) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private fun maxFrameRateInSubtree(element: WffElement): Int? {
+    var max: Int? = element.attr("frameRate")?.toIntOrNull()
+    for (child in element.childElements) {
+      val childMax = maxFrameRateInSubtree(child)
+      if (childMax != null && (max == null || childMax > max)) {
+        max = childMax
+      }
+    }
+    return max
   }
 
   private fun isHiddenInAmbient(element: WffElement): Boolean =

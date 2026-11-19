@@ -123,4 +123,58 @@ class WffPerformanceAnalyzerTest {
     assertTrue(WffPerformanceCode.HIGH_FREQUENCY_EXPRESSION in codes)
     assertTrue(WffPerformanceCode.AMBIENT_ANIMATION_VISIBLE !in codes)
   }
+
+  @Test
+  fun detectsSecondsInTimeTextFormat() {
+    val doc =
+      WffXmlParser.parse(
+        """
+        <WatchFace width="450" height="450">
+          <Scene backgroundColor="#ff000000">
+            <DigitalClock x="0" y="0" width="450" height="450">
+              <TimeText x="0" y="180" width="450" height="90" format="hh:mm:ss">
+                <Font family="SYNC_TO_DEVICE" size="48" color="#ffffffff"/>
+              </TimeText>
+            </DigitalClock>
+          </Scene>
+        </WatchFace>
+        """
+          .trimIndent(),
+      )
+
+    val report = WffPerformanceAnalyzer.analyze(doc)
+    assertEquals(WffUpdateCadence.SECOND, report.interactiveCadence)
+    assertEquals(WffUpdateCadence.SECOND, report.ambientCadence)
+    assertEquals(1, report.estimatedMaxFps)
+    assertEquals(1, report.ambientAnimatedElementCount)
+    assertTrue(report.findings.any { it.code == WffPerformanceCode.AMBIENT_ANIMATION_VISIBLE })
+  }
+
+  @Test
+  fun detectsHighFrameRateInNestedAnimatedImagesSequenceImages() {
+    val doc =
+      WffXmlParser.parse(
+        """
+        <WatchFace width="450" height="450">
+          <Scene backgroundColor="#ff000000">
+            <PartAnimatedImage x="0" y="0" width="100" height="100">
+              <Variant mode="AMBIENT" target="alpha" value="0"/>
+              <AnimatedImages>
+                <SequenceImages frameRate="60">
+                  <Image resource="frame_1"/>
+                  <Image resource="frame_2"/>
+                </SequenceImages>
+              </AnimatedImages>
+            </PartAnimatedImage>
+          </Scene>
+        </WatchFace>
+        """
+          .trimIndent(),
+      )
+
+    val report = WffPerformanceAnalyzer.analyze(doc)
+    assertEquals(WffUpdateCadence.CONTINUOUS, report.interactiveCadence)
+    assertEquals(60, report.estimatedMaxFps)
+    assertTrue(report.findings.any { it.code == WffPerformanceCode.HIGH_FPS_ANIMATION })
+  }
 }
