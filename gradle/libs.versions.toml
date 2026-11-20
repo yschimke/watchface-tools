@@ -29,10 +29,13 @@ rcPlayers = "3.8.0"
 # action installs the CLI at this plugin version (cli-version: auto), so bump it here only.
 composePreviewPlugin = "2.101.0"
 composePreviewAnnotations = "3.28.0"
+compose-multiplatform = "1.12.2"
+uiBuilderSource = "source"
 
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+composeai-ui-builder-renderer-sdk-source = { module = "ee.schimke.composeai:ui-builder-renderer-sdk-source", version.ref = "uiBuilderSource" }
 
 apksig = { module = "com.android.tools.build:apksig", version.ref = "apksig" }
 # Google's official Watch Face Push validator; bundles the WFF XSD validator and memory footprint.
@@ -80,3 +83,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 play-publisher = { id = "com.github.triplet.play", version.ref = "playPublisher" }
 compose-preview = { id = "ee.schimke.composeai.preview", version.ref = "composePreviewPlugin" }
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }

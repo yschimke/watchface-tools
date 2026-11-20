@@ -25,6 +25,26 @@ include(":mobile-app")
 include(":wff-packager")
 include(":bom")
 
+// Catalog renderer builds consume the renderer SDK from source, matching wear-m3-catalog /
+// m3-catalog. Opt in explicitly so ordinary library/app builds keep resolving from Maven:
+//
+//   ./gradlew :catalog-ui-builder-renderer:verifyRendererRuntime \
+//     -PcomposeUiBuilderDir=../compose-ui-builder
+providers.gradleProperty("composeUiBuilderDir").orNull?.let { path ->
+  val directory = file(path).canonicalFile
+  require(directory.resolve("settings.gradle.kts").isFile) {
+    "-PcomposeUiBuilderDir names $directory, which is not a compose-ui-builder Gradle checkout."
+  }
+  logger.lifecycle("Composite build: uiBuilder -> $directory")
+  includeBuild(directory) {
+    dependencySubstitution {
+      substitute(module("ee.schimke.composeai:ui-builder-renderer-sdk-source"))
+        .using(project(":ui-builder-renderer-sdk"))
+    }
+  }
+  include(":catalog-ui-builder-renderer")
+}
+
 // Project paths whose build script applies `watchface.maven-publishing`, handed to `:bom` through a
 // system property so its constraints are derived from the build rather than a second list that goes
 // stale. Matched with the closing quote: `watchface.maven-publishing-platform` shares the prefix, and
