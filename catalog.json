@@ -3,5 +3,11 @@
   "system": "wff-watchface",
   "title": "Wear OS watch faces (WFF)",
   "components": [],
-  "uiBuilderFile": "ui-builder.json"
+  "uiBuilderFile": "ui-builder.json",
+  "uiBuilderRuntime": {
+    "runtimeId": "wff-watchface-p2-26c74580d367",
+    "protocolVersion": 2,
+    "path": "ui-builder/runtime.zip",
+    "integritySha256": "a4b527d573aeeaf97a8a64cf4a0662d3cf1f408f7457741404563267a6d44852"
+  }
 }
