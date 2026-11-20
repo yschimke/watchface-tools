@@ -82,6 +82,9 @@ public object WffPerformanceAnalyzer {
       "SECOND_Z",
       "SECOND_TENS_DIGIT",
       "SECOND_UNITS_DIGIT",
+      "SECONDS_IN_DAY",
+      "SECONDS_SINCE_EPOCH",
+      "MINUTE_SECOND",
     )
 
   private val MINUTE_SOURCES: Set<String> =
