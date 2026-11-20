@@ -2,10 +2,16 @@ name: UI Builder catalog
 
 on:
   pull_request:
-    paths: ['ui-builder-catalog/**', '.github/workflows/ui-builder-catalog.yml']
+    paths:
+      - 'ui-builder-catalog/**'
+      - 'catalog-ui-builder-renderer/**'
+      - '.github/workflows/ui-builder-catalog.yml'
   push:
     branches: [main]
-    paths: ['ui-builder-catalog/**', '.github/workflows/ui-builder-catalog.yml']
+    paths:
+      - 'ui-builder-catalog/**'
+      - 'catalog-ui-builder-renderer/**'
+      - '.github/workflows/ui-builder-catalog.yml'
   workflow_dispatch:
 
 permissions:
@@ -15,14 +21,44 @@ concurrency:
   group: ui-builder-catalog-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  UI_BUILDER_SDK_REF: v3.141.0
+
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          path: watchface-tools
           persist-credentials: false
-      - run: python3 ui-builder-catalog/validate.py
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: yschimke/compose-ui-builder
+          ref: ${{ env.UI_BUILDER_SDK_REF }}
+          path: compose-ui-builder
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Validate catalog metadata
+        run: python3 watchface-tools/ui-builder-catalog/validate.py
+      - name: Build and verify catalog-owned WFF renderer runtime
+        working-directory: watchface-tools
+        run: >-
+          ./gradlew :catalog-ui-builder-renderer:ktfmtCheck :catalog-ui-builder-renderer:check
+          -PcomposeUiBuilderDir=../compose-ui-builder
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wff-watchface-ui-builder-renderer
+          path: watchface-tools/catalog-ui-builder-renderer/build/distributions/wff-watchface-ui-builder-renderer.zip
+          retention-days: 1
 
   publish:
     needs: validate
@@ -34,11 +70,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: wff-watchface-ui-builder-renderer
+          path: ${{ runner.temp }}/runtime
       - name: Publish to design-artifacts/wff-watchface
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_SHA: ${{ github.sha }}
           REPO: ${{ github.repository }}
+          RUNTIME_ZIP: ${{ runner.temp }}/runtime/wff-watchface-ui-builder-renderer.zip
         run: |
           set -euo pipefail
           branch=design-artifacts/wff-watchface
@@ -55,9 +96,25 @@ jobs:
           fi
           git rm -rf --quiet --ignore-unmatch .
           cp -R "$GITHUB_WORKSPACE/ui-builder-catalog/." .
+          mkdir -p ui-builder
+          cp "$RUNTIME_ZIP" ui-builder/runtime.zip
+          python3 - <<'PY'
+          import json, pathlib, zipfile
+          manifest = json.loads(zipfile.ZipFile("ui-builder/runtime.zip").read("runtime-manifest.json").decode("utf-8"))
+          catalog_path = pathlib.Path("catalog.json")
+          catalog = json.loads(catalog_path.read_text())
+          catalog["uiBuilderRuntime"] = {
+              "runtimeId": manifest["runtimeId"],
+              "protocolVersion": manifest["protocolVersion"],
+              "path": "ui-builder/runtime.zip",
+              "integritySha256": manifest["integritySha256"],
+          }
+          catalog_path.write_text(json.dumps(catalog, indent=2) + "\n")
+          PY
+          python3 validate.py
           rm -f validate.py README.md
           printf '%s\n' "$SOURCE_SHA" > source-commit.txt
           git add -A
           if git diff --cached --quiet; then echo "nothing to publish"; exit 0; fi
-          git commit --quiet -m 'chore(wff-watchface): publish UI Builder catalog' -m "Source: ${REPO}@${SOURCE_SHA}"
+          git commit --quiet -m 'chore(wff-watchface): publish UI Builder catalog and renderer runtime' -m "Source: ${REPO}@${SOURCE_SHA}"
           git push origin "HEAD:${branch}"
