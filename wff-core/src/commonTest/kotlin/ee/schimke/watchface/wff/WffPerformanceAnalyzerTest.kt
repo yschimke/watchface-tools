@@ -205,4 +205,31 @@ class WffPerformanceAnalyzerTest {
     assertTrue(WffPerformanceCode.SWEEP_SECOND_HAND in codes)
     assertTrue(WffPerformanceCode.HIGH_FPS_ANIMATION in codes)
   }
+
+  @Test
+  fun detectsSecondsInDayAndEpochDataSources() {
+    val doc =
+      WffXmlParser.parse(
+        """
+        <WatchFace width="450" height="450">
+          <Scene backgroundColor="#ff000000">
+            <PartText x="0" y="0" width="200" height="50">
+              <Text>
+                <Font family="SYNC_TO_DEVICE" size="24" color="#ffffffff">
+                  <Template>%s<Parameter expression="[SECONDS_IN_DAY]"/></Template>
+                </Font>
+              </Text>
+            </PartText>
+          </Scene>
+        </WatchFace>
+        """
+          .trimIndent(),
+      )
+
+    val report = WffPerformanceAnalyzer.analyze(doc)
+    assertEquals(WffUpdateCadence.SECOND, report.interactiveCadence)
+    assertEquals(WffUpdateCadence.SECOND, report.ambientCadence)
+    assertEquals(1, report.estimatedMaxFps)
+    assertTrue(report.findings.any { it.code == WffPerformanceCode.AMBIENT_ANIMATION_VISIBLE })
+  }
 }
