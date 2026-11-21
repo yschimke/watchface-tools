@@ -327,6 +327,14 @@ class PushServer(
     } catch (e: IllegalArgumentException) {
       sendJsonError(exchange, 400, "bad_request", e.message ?: "invalid bundle ZIP")
       null
+    } catch (e: java.io.IOException) {
+      sendJsonError(
+        exchange,
+        400,
+        "bad_request",
+        "invalid bundle ZIP: ${e.message ?: e.javaClass.simpleName}",
+      )
+      null
     }
   }
 
@@ -398,14 +406,21 @@ class PushServer(
       maxEntries: Int = DEFAULT_MAX_ZIP_ENTRIES,
     ): Map<String, ByteArray> {
       val files = LinkedHashMap<String, ByteArray>()
+      var totalEntries = 0
       var totalBytes = 0
       ZipInputStream(ByteArrayInputStream(zipBytes)).use { zis ->
         var entry = zis.nextEntry
         while (entry != null) {
-          if (!entry.isDirectory) {
-            if (files.size >= maxEntries) {
-              throw PayloadTooLargeException("ZIP bundle exceeds $maxEntries entries")
+          if (++totalEntries > maxEntries) {
+            throw PayloadTooLargeException("ZIP bundle exceeds $maxEntries entries")
+          }
+          if (entry.isDirectory) {
+            if (zis.read() != -1) {
+              throw IllegalArgumentException(
+                "ZIP directory entry must not contain data: ${entry.name}",
+              )
             }
+          } else {
             val name = normalizeZipPath(entry.name)
             val data = readBounded(zis, maxUncompressedBytes - totalBytes)
             totalBytes += data.size
