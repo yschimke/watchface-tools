@@ -53,7 +53,7 @@ while the model and schema API settle.
 
 ```kotlin
 dependencies {
-  implementation(platform("ee.schimke.watchface:watchface-tools-bom:0.12.0")) // x-release-please-version
+  implementation(platform("ee.schimke.watchface:watchface-tools-bom:0.12.1")) // x-release-please-version
   implementation("ee.schimke.watchface:wff-core")
   implementation("ee.schimke.watchface:wff-apk")      // pure-Kotlin packaging (JVM and Kotlin/Wasm)
   implementation("ee.schimke.watchface:wff-packager") // aapt2 + Google's validators (JVM)

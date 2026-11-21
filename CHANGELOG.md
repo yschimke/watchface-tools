@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.1](https://github.com/yschimke/watchface-tools/compare/v0.12.0...v0.12.1) (2026-11-21)
+
+
+### Bug Fixes
+
+* **push-server:** reject corrupt ZIPs with 400 and enforce directory entry limits ([#81](https://github.com/yschimke/watchface-tools/issues/81)) ([f938096](https://github.com/yschimke/watchface-tools/commit/f9380960d55bef67190813acf95212661d441dbe))
+
 ## [0.12.0](https://github.com/yschimke/watchface-tools/compare/v0.11.0...v0.12.0) (2026-11-21)
 
 
