@@ -266,6 +266,29 @@ class PushServerTest {
             HttpResponse.BodyHandlers.ofString(),
           )
         assertEquals(413, bigResp.statusCode())
+
+        val validZip = zipOf(minimalBundle())
+        val truncatedZip = validZip.copyOf(validZip.size / 2)
+        val truncatedResp =
+          client.send(
+            HttpRequest.newBuilder(URI("$base/v1/estimate"))
+              .POST(HttpRequest.BodyPublishers.ofByteArray(truncatedZip))
+              .build(),
+            HttpResponse.BodyHandlers.ofString(),
+          )
+        assertEquals(400, truncatedResp.statusCode())
+        assertTrue(truncatedResp.body().contains("invalid bundle ZIP"))
+
+        val dirWithPayload = zipOf(mapOf("res/" to "bomb".encodeToByteArray()))
+        val dirResp =
+          client.send(
+            HttpRequest.newBuilder(URI("$base/v1/estimate"))
+              .POST(HttpRequest.BodyPublishers.ofByteArray(dirWithPayload))
+              .build(),
+            HttpResponse.BodyHandlers.ofString(),
+          )
+        assertEquals(400, dirResp.statusCode())
+        assertTrue(dirResp.body().contains("directory entry must not contain data"))
       }
   }
 
