@@ -1,0 +1,61 @@
+name: Publish push-server image
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: Released watchface-tools tag (e.g. v0.15.0)
+        required: true
+  workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag_name }}
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Resolve version
+        id: version
+        env:
+          RAW_TAG: ${{ inputs.tag_name }}
+        run: |
+          ver="${RAW_TAG#v}"
+          test -n "${ver}" || { echo "::error::tag_name is empty"; exit 1; }
+          echo "value=${ver}" >> "$GITHUB_OUTPUT"
+      - name: Build push-server distribution
+        run: ./gradlew :push-server:distTar -Prelease
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/watchface-push-server
+          tags: |
+            type=raw,value=${{ steps.version.outputs.value }}
+            type=raw,value=latest
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: deploy/push-server/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

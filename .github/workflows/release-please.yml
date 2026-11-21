@@ -93,6 +93,19 @@ jobs:
       PUSH_APP_KEY_PASSWORD: ${{ secrets.PUSH_APP_KEY_PASSWORD }}
       PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
 
+  # Standalone HTTP packager/validator container (ghcr.io/yschimke/watchface-push-server), beside
+  # the Maven publish so Watchtower-managed hosts pick up new watchface-tools releases directly.
+  push-server-image:
+    name: Push-server image
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    uses: ./.github/workflows/push-server-image.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      tag_name: ${{ needs.release-please.outputs.tag_name }}
+
   # The PR half, split out so it never runs against a half-published release. Runs on an ordinary
   # push, or straight after a SUCCESSFUL release; never after a failed one (its baseline would be
   # stale and produce a phantom release PR).

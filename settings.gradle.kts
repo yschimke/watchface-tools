@@ -23,6 +23,7 @@ include(":wff-apk")
 include(":push-app")
 include(":mobile-app")
 include(":wff-packager")
+include(":push-server")
 include(":bom")
 
 // Catalog renderer builds consume the renderer SDK from source, matching wear-m3-catalog /
