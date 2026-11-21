@@ -28,7 +28,7 @@ jobs:
         env:
           # Make the SDK-dependent packager tests fail instead of skipping when the SDK is absent.
           WFF_REQUIRE_SDK: "1"
-        run: ./gradlew :wff-core:jvmTest :wff-core:compileKotlinWasmJs :wff-apk:jvmTest :wff-apk:wasmJsBrowserTest :wff-packager:test
+        run: ./gradlew :wff-core:jvmTest :wff-core:compileKotlinWasmJs :wff-apk:jvmTest :wff-apk:wasmJsBrowserTest :wff-packager:test :push-server:test :push-server:distTar
       - name: Release tooling (build-logic tests, publish plan and script tests, printPublishTasks)
         run: |
           ./gradlew -p build-logic test
