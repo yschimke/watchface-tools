@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.12.0](https://github.com/yschimke/watchface-tools/compare/v0.11.0...v0.12.0) (2026-11-21)
+
+
+### Features
+
+* **push-server:** add standalone HTTP packager/validator service and GHCR image ([#80](https://github.com/yschimke/watchface-tools/issues/80)) ([41f6fef](https://github.com/yschimke/watchface-tools/commit/41f6fef71dd079ca1a3a6ae565b9ae6df156ae57))
+* **wff:** add static performance analyzer, pixel OPR/burn-in/diff metrics, and literal format version check ([#75](https://github.com/yschimke/watchface-tools/issues/75)) ([3454382](https://github.com/yschimke/watchface-tools/commit/345438204196338f2ccee667d648d54923f278eb))
+
+
+### Bug Fixes
+
+* **wff:** include SECONDS_IN_DAY, SECONDS_SINCE_EPOCH, and MINUTE_SECOND in cadence analysis ([#78](https://github.com/yschimke/watchface-tools/issues/78)) ([4ec6c85](https://github.com/yschimke/watchface-tools/commit/4ec6c856490f2c81a487020e582990ccb8ce5265))
+
 ## [0.11.0](https://github.com/yschimke/watchface-tools/compare/v0.10.0...v0.11.0) (2026-11-19)
 
 
