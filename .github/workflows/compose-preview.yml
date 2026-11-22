@@ -51,7 +51,7 @@ jobs:
         with:
           distribution: temurin
           # Robolectric renders at :push-app's SDK 36, which needs JDK 21+.
-          java-version: 21.0.13+9.0.LTS
+          java-version: 21.0.13+100000002.0.LTS
       - uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
       - uses: yschimke/compose-ai-tools/.github/actions/apply@88e12c7e3661022d26d50a94e10d97bbaaee785f # v2.103.0
         with:
