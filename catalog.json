@@ -5,7 +5,7 @@
   "components": [],
   "uiBuilderFile": "ui-builder.json",
   "uiBuilderRuntime": {
-    "runtimeId": "wff-watchface-p2-81410ba9bde7",
+    "runtimeId": "wff-watchface-p2-c463310a512a",
     "protocolVersion": 2,
     "path": "ui-builder/runtime.zip",
     "integritySha256": "a4b527d573aeeaf97a8a64cf4a0662d3cf1f408f7457741404563267a6d44852"
