@@ -28,7 +28,7 @@ rcPlayers = "3.8.0"
 # compose-ai-tools: the preview renderer behind .github/workflows/compose-preview.yml. The CI
 # action installs the CLI at this plugin version (cli-version: auto), so bump it here only.
 composePreviewPlugin = "2.103.0"
-composePreviewAnnotations = "3.28.0"
+composePreviewAnnotations = "3.28.2"
 compose-multiplatform = "1.12.2"
 uiBuilderSource = "source"
 
