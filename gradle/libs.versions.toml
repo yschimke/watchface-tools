@@ -24,7 +24,7 @@ apksig = "8.13.2"
 validatorPush = "1.1.0-alpha01"
 # rc-players (yschimke/rc-players): publishes a Remote Compose document as a launcher widget, for
 # :mobile-app.
-rcPlayers = "3.8.0"
+rcPlayers = "3.12.1"
 # compose-ai-tools: the preview renderer behind .github/workflows/compose-preview.yml. The CI
 # action installs the CLI at this plugin version (cli-version: auto), so bump it here only.
 composePreviewPlugin = "2.103.0"
