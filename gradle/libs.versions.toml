@@ -18,7 +18,7 @@ serializationJson = "1.13.0"
 coroutines = "1.11.0"
 # Held at compose-preview's Robolectric: its renderer runs on this classpath and calls
 # DefaultNativeRuntimeLoader.maybeCopyFonts, which 4.18 removed. Bump with composePreviewPlugin.
-robolectric = "4.17"
+robolectric = "4.18.1"
 androidxTest = "1.3.0"
 apksig = "8.13.2"
 validatorPush = "1.1.0-alpha01"
