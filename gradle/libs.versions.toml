@@ -20,7 +20,7 @@ coroutines = "1.11.0"
 # DefaultNativeRuntimeLoader.maybeCopyFonts, which 4.18 removed. Bump with composePreviewPlugin.
 robolectric = "4.18.1"
 androidxTest = "1.3.0"
-apksig = "8.13.2"
+apksig = "9.5.1"
 validatorPush = "1.1.0-alpha01"
 # rc-players (yschimke/rc-players): publishes a Remote Compose document as a launcher widget, for
 # :mobile-app.
