@@ -6,7 +6,7 @@
 # `watchface-tools` publishes a fresh image that Watchtower can roll without restarting the main
 # preview server.
 
-FROM eclipse-temurin:21.0.13.1_2-jdk AS sdk
+FROM eclipse-temurin:25.0.4.1_1-jdk AS sdk
 ARG ANDROID_SDK_PLATFORM=android-36
 ARG ANDROID_BUILD_TOOLS=36.0.0
 ENV ANDROID_HOME=/opt/android-sdk ANDROID_SDK_ROOT=/opt/android-sdk
@@ -35,7 +35,7 @@ RUN set -eu; \
     cp -a "${ANDROID_HOME}/platforms/${ANDROID_SDK_PLATFORM}/android.jar" \
           "/opt/android-sdk-min/platforms/${ANDROID_SDK_PLATFORM}/"
 
-FROM eclipse-temurin:21.0.13.1_2-jre
+FROM eclipse-temurin:25.0.4.1_1-jre
 COPY --from=sdk /opt/android-sdk-min /opt/android-sdk
 COPY push-server/build/distributions/watchface-push-server*.tar.gz /tmp/
 RUN set -eu; \
