@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.12.2](https://github.com/yschimke/watchface-tools/compare/v0.12.1...v0.12.2) (2026-11-28)
+
+
+### Bug Fixes
+
+* **deps:** update androidx to v2.11.1 ([#86](https://github.com/yschimke/watchface-tools/issues/86)) ([e1e4538](https://github.com/yschimke/watchface-tools/commit/e1e453888579a2eaa00b72095e66069ee9e6ddc6))
+* **deps:** update androidx-wear to v1.7.2 ([#87](https://github.com/yschimke/watchface-tools/issues/87)) ([a0a9eb6](https://github.com/yschimke/watchface-tools/commit/a0a9eb6e51dc89849ccd6b789dcf2ce272801805))
+* **deps:** update dependency com.android.tools.build:apksig to v8.13.2 ([#96](https://github.com/yschimke/watchface-tools/issues/96)) ([1a28c75](https://github.com/yschimke/watchface-tools/commit/1a28c75c79d5fa5201e5d864473851f324310038))
+* **deps:** update dependency ee.schimke.composeai:preview-annotations to v3.28.2 ([#91](https://github.com/yschimke/watchface-tools/issues/91)) ([34fcef4](https://github.com/yschimke/watchface-tools/commit/34fcef4ba8d6ebc1ca58e0d81bf29da5110a6002))
+* **deps:** update dependency ee.schimke.composeai:rc-players-bom to v3.12.0 ([#97](https://github.com/yschimke/watchface-tools/issues/97)) ([78e1499](https://github.com/yschimke/watchface-tools/commit/78e1499775d750a8450ed373118d5e8fc219d6ae))
+* **deps:** update dependency org.robolectric:robolectric to v4.18.1 ([#102](https://github.com/yschimke/watchface-tools/issues/102)) ([33a4def](https://github.com/yschimke/watchface-tools/commit/33a4def1c1a5243e973548bbcaf2d737bc89a8c2))
+
 ## [0.12.1](https://github.com/yschimke/watchface-tools/compare/v0.12.0...v0.12.1) (2026-11-21)
 
 
